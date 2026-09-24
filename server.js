@@ -11,40 +11,44 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.all('/api/ivr', async (req, res) => {
   try {
-    // ימות המשיח שולחים את מספר השלוחה בפרמטר ApiExtension או extension
-    const fullExtension = req.query.ApiExtension || req.body.ApiExtension || '';
-    
-    // ניקוי תווים מיותרים (למשל הפיכת "1/01" ל-"101")
-    const ext = fullExtension.replace(/\//g, '');
     const callerPhone = req.query.ApiPhone || req.body.ApiPhone || '';
+    const city = req.query.city || req.body.city || '';
 
-    console.log(`קריאה מנכנסת משלוחה: ${ext}, טלפון מתקשר: ${callerPhone}`);
+    console.log(`שיחה נכנסת מ: ${callerPhone}, בחירת עיר: ${city}`);
 
-    // חיפוש הגבאי ב-Supabase לפי מספר השלוחה
-    const { data: hall, error } = await supabase
-      .from('halls')
-      .select('*')
-      .eq('extension', ext)
-      .eq('is_active', true)
-      .single();
-
-    if (error || !hall) {
-      console.log(`לא נמצא גבאי לשלוחה ${ext}`);
-      return res.send('id_list_message=t-לא נמצא גבאי פעיל לשלוחה זו&go_to_folder=hangup');
+    // שתי דרכים לשליפה: לפי עיר או שליפת הגבאי הראשון הפעיל
+    let query = supabase.from('halls').select('*').eq('is_active', true);
+    
+    if (city === '1') {
+      query = query.eq('city_name', 'בני ברק');
+    } else if (city === '2') {
+      query = query.eq('city_name', 'ירושלים');
     }
 
-    // תיעוד השיחה בטבלת הלוגים
+    const { data: halls, error } = await query.limit(1);
+
+    if (error || !halls || halls.length === 0) {
+      return res.send('id_list_message=t-לא נמצא גבאי זמין&go_to_folder=hangup');
+    }
+
+    const hall = halls[0];
+
+    // תיעוד השיחה ב-leads_log (כפי שראינו שעובד מצוין)
     await supabase.from('leads_log').insert({
       hall_id: hall.id,
       caller_phone: callerPhone,
-      source: `ivr_ext_${ext}`
+      source: 'phone_ivr'
     });
 
-    // החזרת הוראת חיוג לטלפון של הגבאי
-return res.send(`id_list_message=t-מעביר אותך לגבאי&go_to_folder=routing&dial=${hall.gabbai_phone}`);
+    // ניקוי תווים מיותרים ממספר הטלפון של הגבאי (רק ספרות)
+    const rawPhone = (hall.gabbai_phone || '').replace(/\D/g, '');
+
+    // הוראת חיוג מדויקת לימות המשיח
+    return res.send(`id_list_message=t-מעביר אותך כעת לגבאי&routing_yemot=dial=${rawPhone}`);
+
   } catch (err) {
     console.error('שגיאה בשרת:', err);
-    return res.send('id_list_message=t-ארעה שגיאה במערכת&go_to_folder=hangup');
+    return res.send('id_list_message=t-תקלה במערכת&go_to_folder=hangup');
   }
 });
 
