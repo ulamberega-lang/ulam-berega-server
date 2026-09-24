@@ -32,12 +32,17 @@ app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה 
 
 app.all('/api/ivr', async (req, res) => {
   const q = params(req);
+  console.log('YEMOT', JSON.stringify(q));
   res.type('text/plain; charset=utf-8');
   try {
     if (q.hangup === 'yes') { await closeCall(q.ApiCallId); return res.send(''); }
 
-    const cityName = CITIES[q.city];
-    if (!cityName) return res.send(`id_list_message=${say('עיר לא מוגדרת')}&go_to_folder=hangup`);
+    // city יכול להגיע מ-api_add_0 או מהקשת המתקשר; אם הגיע פעמיים - לוקחים את האחרון
+    const city = [].concat(q.city ?? '').pop();
+    const cityName = CITIES[city];
+    if (!cityName) {
+      return res.send(`read=${say('לבני ברק הקש 1', 'לירושלים הקש 2')}=city,no,1,1,7,No,yes,yes`);
+    }
 
     const { data: halls, error } = await supabase
       .from('halls').select('*')
@@ -74,7 +79,6 @@ app.all('/api/ivr', async (req, res) => {
   }
 });
 
-
 app.all('/api/ivr/no-answer', async (req, res) => {
   const q = params(req);
   res.type('text/plain; charset=utf-8');
@@ -85,4 +89,5 @@ app.all('/api/ivr/no-answer', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
