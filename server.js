@@ -5,77 +5,296 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// service_role בשרת בלבד (משתנה סביבה ב-Render)
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const CITIES = { '1': 'בני ברק', '2': 'ירושלים' };
 const WAIT_SEC = 30;         // זמן המתנה למענה הגבאי
-const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה" (type=api -> /api/ivr/no-answer)
+const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
+const GUEST_MARGIN = 30;     // חריגה מותרת: אולם קטן עד 30 איש מכמות המוזמנים
+const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
+const MAX_TRIES = 3;         // ניסיונות לפני ניתוק
 
+// ---------- עזרי ימות ----------
 const params = (req) => ({ ...req.query, ...req.body });
-const clean = (s) => String(s ?? '').replace(/[.,\-=&"'\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
-const say = (...parts) => parts.filter(Boolean).map((p) => `t-${clean(p)}`).join('.');
+const last = (v) => [].concat(v ?? '').pop();
+const clean = (s) => String(s ?? '').replace(/[.,\-=&"'|\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
+const say = (parts) => [].concat(parts).flat().filter(Boolean).map((p) => `t-${clean(p)}`).join('.');
+const bye = (...parts) => `id_list_message=${say([...parts, 'להתראות'])}&go_to_folder=hangup`;
+const digits = (n) => String(n).split('').join(' '); // "101" -> "1 0 1" כדי שיוקרא ספרה-ספרה
+
+// read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים
+const tap = (max, sec = 7, allowed = '') => `${max},1,${sec},No,yes,no,,${allowed}`;
+// read בזיהוי דיבור (מאפשר גם הקשה): שם,להשתמש_בקיים,voice,שפה,חסימת_הקשה,מקס_ספרות
+const stt = (maxDigits = '') => `voice,,,${maxDigits}`;
+
+// כל שאלה מקבלת שם משתנה חדש (v1, v2...) כי ימות שולחת בכל פנייה את כל מה שנאסף
+function ask(s, parts, ops) {
+  s.n++;
+  s.t = Date.now();
+  const text = say([s.note, ...parts]);
+  s.note = null;
+  return `read=${text}=v${s.n},no,${ops}`;
+}
+
+// ---------- זיהוי טקסט ----------
+const norm = (s) => String(s ?? '').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+
+function bestMatch(text, options) {
+  const t = norm(text);
+  if (t.length < 2) return null;
+  let best = null, bestD = Infinity;
+  for (const o of options) {
+    const n = norm(o);
+    if (!n) continue;
+    if (n === t || t.includes(n) || n.includes(t)) return o;
+    const dist = lev(t, n);
+    if (dist < bestD) { bestD = dist; best = o; }
+  }
+  return best && bestD <= Math.max(1, Math.floor(norm(best).length / 4)) ? best : null;
+}
+
+const isNo = (v) => /^(לא|אין|כל העיר|לא תודה|0)$/.test(clean(v));
+const isYes = (v) => /^(כן|יש)$/.test(clean(v));
+
+// ---------- Supabase ----------
+const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
+
+async function getCities() {
+  const { data, error } = await supabase.from('halls').select('city_name').eq('is_active', true);
+  if (error) throw error;
+  return uniq(data.map((r) => r.city_name));
+}
+
+async function getHoods(city) {
+  const { data, error } = await supabase
+    .from('halls').select('neighborhood_name').eq('is_active', true).eq('city_name', city);
+  if (error) throw error;
+  return uniq(data.map((r) => r.neighborhood_name));
+}
+
+async function searchHalls(s) {
+  let qb = supabase.from('halls').select('*')
+    .eq('is_active', true).eq('city_name', s.city)
+    .gte('max_guests', s.guests - GUEST_MARGIN)
+    .not('extension', 'is', null)
+    .order('max_guests').order('name');
+  if (s.hood) qb = qb.eq('neighborhood_name', s.hood);
+  const { data, error } = await qb;
+  if (error) throw error;
+  return data;
+}
+
+async function logStart(q) {
+  if (!q.ApiCallId) return;
+  const { error } = await supabase.from('leads_log').upsert(
+    { yemot_call_id: q.ApiCallId, caller_phone: q.ApiPhone || '', source: 'phone_ivr' },
+    { onConflict: 'yemot_call_id' }
+  );
+  if (error) console.error('logStart:', error.message);
+}
 
 async function closeCall(callId) {
   if (!callId) return;
   const { data } = await supabase
-    .from('leads_log').select('created_at, answered').eq('yemot_call_id', callId).maybeSingle();
+    .from('leads_log').select('created_at, answered, hall_id').eq('yemot_call_id', callId).maybeSingle();
   if (!data) return;
-  await supabase.from('leads_log').update({
+  const patch = {
     ended_at: new Date().toISOString(),
     duration_sec: Math.round((Date.now() - new Date(data.created_at).getTime()) / 1000),
-    answered: data.answered ?? true, // לא חזר לשלוחת "אין מענה" => נענה
-  }).eq('yemot_call_id', callId);
+  };
+  if (data.hall_id && data.answered === null) patch.answered = true; // לא חזר לשלוחת "אין מענה"
+  await supabase.from('leads_log').update(patch).eq('yemot_call_id', callId);
 }
 
+// ---------- ניתוב לאולם ----------
+async function routeByExt(q, ext) {
+  const { data: hall } = await supabase
+    .from('halls').select('*').eq('is_active', true).eq('extension', String(ext)).maybeSingle();
+  if (!hall) return null;
+
+  sessions.delete(q.ApiCallId);
+  const phone = (hall.gabbai_phone || '').replace(/\D/g, '');
+  await supabase.from('leads_log').upsert({
+    yemot_call_id: q.ApiCallId,
+    caller_phone: q.ApiPhone || '',
+    source: 'phone_ivr',
+    hall_id: hall.id,
+    called_phone: phone,
+  }, { onConflict: 'yemot_call_id' });
+
+  const info = say([
+    hall.name,
+    hall.neighborhood_name && `שכונת ${hall.neighborhood_name}`,
+    hall.address,
+    hall.max_guests && `עד ${hall.max_guests} אורחים`,
+    'מעביר לגבאי',
+  ]);
+  // ערכי routing לפי הסדר: 1 מספר ... 9 זמן המתנה, 10 מעבר בסיום
+  const routing = [phone, '', '', '', '', '', '', '', WAIT_SEC, NO_ANSWER_EXT].join(',');
+  return `id_list_message=${info}&routing=${routing}`;
+}
+
+// ---------- מצב שיחה ----------
+const sessions = new Map(); // ApiCallId -> מצב
+setInterval(() => {
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  for (const [k, s] of sessions) if (s.t < cutoff) sessions.delete(k);
+}, 10 * 60 * 1000);
+
+async function prompt(s) {
+  switch (s.step) {
+    case 'menu':
+      return ask(s, ['ברוכים הבאים לגמח אולם ברגע', 'לחיפוש אולם הקש 1',
+        'אם ידוע לך מספר השלוחה של האולם הקש אותו עכשיו'], tap(4, 5));
+    case 'guests':
+      return ask(s, ['מה כמות המוזמנים המשוערת', 'אפשר לומר את המספר או להקיש ולסיים בסולמית'], stt(4));
+    case 'guestsOk':
+      return ask(s, [`הבנתי ${s.guests} מוזמנים`, 'לאישור הקש 1', 'לתיקון הקש 2'], tap(1, 7, '1.2'));
+    case 'city':
+      return ask(s, ['באיזו עיר'], stt());
+    case 'cityOk':
+      return ask(s, [`הבנתי ${s.city}`, 'לאישור הקש 1', 'לתיקון הקש 2'], tap(1, 7, '1.2'));
+    case 'hood':
+      s.hoods = await getHoods(s.city);
+      if (!s.hoods.length) { s.step = 'results'; s.page = 0; return prompt(s); }
+      return ask(s, ['האם יש שכונה מסוימת', 'אם כן אמור את שם השכונה', 'לחיפוש בכל העיר הקש 0'], stt(1));
+    case 'hoodOk':
+      return ask(s, [`הבנתי שכונת ${s.hood}`, 'לאישור הקש 1', 'לתיקון הקש 2'], tap(1, 7, '1.2'));
+    case 'hoodMenu':
+      return ask(s, ['באיזו שכונה',
+        ...s.hoods.slice(0, 9).map((h, i) => `ל${h} הקש ${i + 1}`),
+        'לכל העיר הקש 0'], tap(1));
+    case 'results':
+      return resultsPrompt(s);
+  }
+}
+
+async function resultsPrompt(s) {
+  const halls = await searchHalls(s);
+  if (!halls.length) {
+    if (s.hood) {
+      s.note = `לא נמצאו אולמות מתאימים בשכונת ${s.hood}`;
+      s.hood = null;
+      s.step = 'hood';
+      return prompt(s);
+    }
+    return bye(`לא נמצאו אולמות ב${s.city} ל${s.guests} מוזמנים`);
+  }
+  const from = s.page * PAGE_SIZE;
+  const page = halls.slice(from, from + PAGE_SIZE);
+  s.more = halls.length > from + PAGE_SIZE;
+
+  const parts = [];
+  if (s.page === 0) parts.push(halls.length === 1 ? 'נמצא אולם אחד' : `נמצאו ${halls.length} אולמות`);
+  for (const h of page) {
+    parts.push(h.name, h.neighborhood_name && `בשכונת ${h.neighborhood_name}`,
+      `עד ${h.max_guests} אורחים`, `למעבר לאולם הקש ${digits(h.extension)}`);
+  }
+  if (s.more) parts.push('לאולמות נוספים הקש 9');
+  if (s.hood) parts.push('לחיפוש בשכונה נוספת הקש 0');
+  parts.push('לשמיעה חוזרת הקש 8');
+  return ask(s, parts, tap(4));
+}
+
+async function handle(s, q, val) {
+  const go = (step) => { s.step = step; s.tries = 0; return prompt(s); };
+  const fail = (note) => {
+    if (++s.tries >= MAX_TRIES) { sessions.delete(q.ApiCallId); return bye('לא הצלחנו להבין', 'נסה שוב מאוחר יותר'); }
+    s.note = note;
+    return prompt(s);
+  };
+  const confirm = (okStep, fixStep) => (val === '1' ? go(okStep) : val === '2' ? go(fixStep) : fail('לא הבנתי'));
+
+  switch (s.step) {
+    case 'menu':
+      if (val === '1') return go('guests');
+      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מספר שלוחה לא קיים');
+      return fail('בחירה לא תקינה');
+
+    case 'guests': {
+      const n = Number(val.replace(/\D/g, ''));
+      if (!(n >= 1 && n <= 5000)) return fail('לא הבנתי את המספר');
+      s.guests = n;
+      return go('guestsOk');
+    }
+    case 'guestsOk':
+      return confirm('city', 'guests');
+
+    case 'city': {
+      const city = bestMatch(val, await getCities());
+      if (!city) return fail('לא זיהיתי את העיר או שאין בה אולמות רשומים');
+      s.city = city;
+      return go('cityOk');
+    }
+    case 'cityOk':
+      return confirm('hood', 'city');
+
+    case 'hood': {
+      s.page = 0;
+      if (isNo(val)) { s.hood = null; return go('results'); }
+      if (isYes(val)) return go('hoodMenu');
+      const hood = bestMatch(val, s.hoods);
+      if (hood) { s.hood = hood; return go('hoodOk'); }
+      s.note = 'לא זיהיתי את השכונה';
+      return go('hoodMenu');
+    }
+    case 'hoodOk':
+      return confirm('results', 'hood');
+    case 'hoodMenu': {
+      s.page = 0;
+      if (val === '0') { s.hood = null; return go('results'); }
+      const h = s.hoods[Number(val) - 1];
+      if (!h) return fail('בחירה לא תקינה');
+      s.hood = h;
+      return go('results');
+    }
+
+    case 'results':
+      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מספר שלוחה לא קיים');
+      if (val === '9' && s.more) { s.page++; return go('results'); }
+      if (val === '8') return go('results');
+      if (val === '0' && s.hood) { s.hood = null; return go('hood'); }
+      return fail('בחירה לא תקינה');
+  }
+  return go('menu');
+}
+
+// ---------- נתיבים ----------
 app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
 
 app.all('/api/ivr', async (req, res) => {
   const q = params(req);
   console.log('YEMOT', JSON.stringify(q));
   res.type('text/plain; charset=utf-8');
+  const id = q.ApiCallId;
   try {
-    if (q.hangup === 'yes') { await closeCall(q.ApiCallId); return res.send(''); }
+    if (q.hangup === 'yes') { sessions.delete(id); await closeCall(id); return res.send(''); }
 
-    // city יכול להגיע מ-api_add_0 או מהקשת המתקשר; אם הגיע פעמיים - לוקחים את האחרון
-    const city = [].concat(q.city ?? '').pop();
-    const cityName = CITIES[city];
-    if (!cityName) {
-      return res.send(`read=${say('לבני ברק הקש 1', 'לירושלים הקש 2')}=city,no,1,1,7,No,yes,yes`);
+    let s = sessions.get(id);
+    if (!s) {
+      await logStart(q);
+      // כניסה ישירה משלוחת אולם בימות (api_add_0=ext=101)
+      const ext = last(q.ext);
+      if (ext) return res.send((await routeByExt(q, ext)) ?? bye('שלוחה לא קיימת'));
+
+      s = { step: 'menu', n: 0, tries: 0, page: 0, t: Date.now() };
+      sessions.set(id, s);
+      return res.send(await prompt(s));
     }
 
-    const { data: halls, error } = await supabase
-      .from('halls').select('*')
-      .eq('is_active', true).eq('city_name', cityName)
-      .order('name').limit(1);
-
-    if (error || !halls?.length) {
-      return res.send(`id_list_message=${say('לא נמצא גבאי זמין')}&go_to_folder=hangup`);
-    }
-    const hall = halls[0];
-    const phone = (hall.gabbai_phone || '').replace(/\D/g, '');
-
-    await supabase.from('leads_log').upsert({
-      yemot_call_id: q.ApiCallId,
-      hall_id: hall.id,
-      caller_phone: q.ApiPhone || '',
-      called_phone: phone,
-      source: 'phone_ivr',
-    }, { onConflict: 'yemot_call_id' });
-
-    const info = say(
-      hall.name,
-      hall.neighborhood_name && `שכונת ${hall.neighborhood_name}`,
-      hall.address,
-      hall.max_guests && `עד ${hall.max_guests} אורחים`,
-      'מעביר לגבאי'
-    );
-    // ערכי routing לפי הסדר: 1 מספר ... 9 זמן המתנה, 10 מעבר בסיום
-    const routing = [phone, '', '', '', '', '', '', '', WAIT_SEC, NO_ANSWER_EXT].join(',');
-    return res.send(`id_list_message=${info}&routing=${routing}`);
+    const val = clean(last(q[`v${s.n}`]));
+    return res.send(await handle(s, q, val));
   } catch (err) {
     console.error('שגיאה בשרת:', err);
-    return res.send(`id_list_message=${say('תקלה במערכת')}&go_to_folder=hangup`);
+    return res.send(bye('תקלה במערכת נסה שוב מאוחר יותר'));
   }
 });
 
@@ -84,10 +303,9 @@ app.all('/api/ivr/no-answer', async (req, res) => {
   res.type('text/plain; charset=utf-8');
   if (q.hangup === 'yes') { await closeCall(q.ApiCallId); return res.send(''); }
   await supabase.from('leads_log').update({ answered: false }).eq('yemot_call_id', q.ApiCallId);
-  return res.send(`id_list_message=${say('הגבאי לא ענה נסה שוב מאוחר יותר')}&go_to_folder=hangup`);
+  return res.send(bye('הגבאי לא ענה נסה שוב מאוחר יותר'));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 
