@@ -1,55 +1,52 @@
-const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
+import express from 'express';
+import { createClient } from '@supabase/supabase-js';
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// חיבור ל-Supabase דרך משתני סביבה מאובטחים
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// נקודת קצה לקבלת שיחות מימות המשיח
-app.get('/api/ivr', async (req, res) => {
-    try {
-        const callerPhone = req.query.ApiPhone || 'unknown';
-        const selectedCity = req.query.city;
+app.all('/api/ivr', async (req, res) => {
+  try {
+    // ימות המשיח שולחים את מספר השלוחה בפרמטר ApiExtension או extension
+    const fullExtension = req.query.ApiExtension || req.body.ApiExtension || '';
+    
+    // ניקוי תווים מיותרים (למשל הפיכת "1/01" ל-"101")
+    const ext = fullExtension.replace(/\//g, '');
+    const callerPhone = req.query.ApiPhone || req.body.ApiPhone || '';
 
-        // אם המשתמש עוד לא בחר עיר - תפריט הקשה
-        if (!selectedCity) {
-            return res.send("read=t-הקש 1 לבני ברק, 2 לירושלים=city,1,1,1,7,Numeric,no");
-        }
+    console.log(`קריאה מנכנסת משלוחה: ${ext}, טלפון מתקשר: ${callerPhone}`);
 
-        let cityName = 'בני ברק';
-        if (selectedCity === '2') cityName = 'ירושלים';
+    // חיפוש הגבאי ב-Supabase לפי מספר השלוחה
+    const { data: hall, error } = await supabase
+      .from('halls')
+      .select('*')
+      .eq('extension', ext)
+      .eq('is_active', true)
+      .single();
 
-        // שליפת אולם פעיל מ-Supabase
-        const { data: halls, error } = await supabase
-            .from('halls')
-            .select('*')
-            .eq('city_name', cityName)
-            .eq('is_active', true)
-            .limit(1);
-
-        if (error || !halls || halls.length === 0) {
-            return res.send("id_list_message=t-לא נמצאו אולמות פנויים בעיר זו&go_to_folder=/");
-        }
-
-        const hall = halls[0];
-
-        // רישום הליד בטבלת התיעוד
-        await supabase.from('leads_log').insert([
-            { hall_id: hall.id, caller_phone: callerPhone, source: 'phone_ivr' }
-        ]);
-
-        // ניתוב השיחה לגבאי
-        return res.send(`routing_yemot=${hall.gabbai_phone}`);
-
-    } catch (err) {
-        console.error(err);
-        return res.send("id_list_message=t-אירעה שגיאה במערכת, אנא נסה שוב מאוחר יותר&go_to_folder=/");
+    if (error || !hall) {
+      console.log(`לא נמצא גבאי לשלוחה ${ext}`);
+      return res.send('id_list_message=t-לא נמצא גבאי פעיל לשלוחה זו&go_to_folder=hangup');
     }
+
+    // תיעוד השיחה בטבלת הלוגים
+    await supabase.from('leads_log').insert({
+      hall_id: hall.id,
+      caller_phone: callerPhone,
+      source: `ivr_ext_${ext}`
+    });
+
+    // החזרת הוראת חיוג לטלפון של הגבאי
+    return res.send(`id_list_message=t-מעביר אותך לגבאי של ${hall.name}&go_to_folder=routing&dial=${hall.gabbai_phone}`);
+
+  } catch (err) {
+    console.error('שגיאה בשרת:', err);
+    return res.send('id_list_message=t-ארעה שגיאה במערכת&go_to_folder=hangup');
+  }
 });
 
 const PORT = process.env.PORT || 3000;
