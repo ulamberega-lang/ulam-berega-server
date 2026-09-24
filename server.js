@@ -14,9 +14,7 @@ app.all('/api/ivr', async (req, res) => {
     const callerPhone = req.query.ApiPhone || req.body.ApiPhone || '';
     const city = req.query.city || req.body.city || '';
 
-    console.log(`שיחה נכנסת מ: ${callerPhone}, בחירת עיר: ${city}`);
-
-    // שתי דרכים לשליפה: לפי עיר או שליפת הגבאי הראשון הפעיל
+    // שליפת הגבאי המבוקש מ-Supabase
     let query = supabase.from('halls').select('*').eq('is_active', true);
     
     if (city === '1') {
@@ -33,18 +31,18 @@ app.all('/api/ivr', async (req, res) => {
 
     const hall = halls[0];
 
-    // תיעוד השיחה ב-leads_log (כפי שראינו שעובד מצוין)
+    // תיעוד השיחה בטבלת leads_log
     await supabase.from('leads_log').insert({
       hall_id: hall.id,
       caller_phone: callerPhone,
       source: 'phone_ivr'
     });
 
-    // ניקוי תווים מיותרים ממספר הטלפון של הגבאי (רק ספרות)
+    // ניקוי תווים שאינם ספרות מהמספר
     const rawPhone = (hall.gabbai_phone || '').replace(/\D/g, '');
 
-    // הוראת חיוג מדויקת לימות המשיח
-    return res.send(`id_list_message=t-מעביר אותך כעת לגבאי&routing_yemot=dial=${rawPhone}`);
+    // העברה מיידית לנייד לפי הפרמטר routing_to_phone
+    return res.send(`routing_to_phone=${rawPhone}`);
 
   } catch (err) {
     console.error('שגיאה בשרת:', err);
