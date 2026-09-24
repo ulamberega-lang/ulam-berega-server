@@ -41,8 +41,7 @@ app.all('/api/ivr', async (req, res) => {
     });
 
     // החזרת הוראת חיוג לטלפון של הגבאי
-    return res.send(`id_list_message=t-מעביר אותך לגבאי של ${hall.name}&go_to_folder=routing&dial=${hall.gabbai_phone}`);
-
+return res.send(`id_list_message=t-מעביר אותך לגבאי&go_to_folder=routing&dial=${hall.gabbai_phone}`);
   } catch (err) {
     console.error('שגיאה בשרת:', err);
     return res.send('id_list_message=t-ארעה שגיאה במערכת&go_to_folder=hangup');
