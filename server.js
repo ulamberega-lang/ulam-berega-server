@@ -21,8 +21,8 @@ const say = (parts) => [].concat(parts).flat().filter(Boolean).map((p) => `t-${c
 const bye = (...parts) => `id_list_message=${say([...parts, 'לְהִתְרָאוֹת'])}&go_to_folder=hangup`;
 const digits = (n) => String(n).split('').join(' '); // "101" -> "1 0 1" כדי שיוקרא ספרה-ספרה
 
-// read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים
-const tap = (max, sec = 7, allowed = '') => `${max},1,${sec},No,yes,no,,${allowed}`;
+// read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים (כוכבית מותרת = חזרה לתפריט)
+const tap = (max, sec = 7, allowed = '') => `${max},1,${sec},No,no,no,,${allowed}`;
 // read בזיהוי דיבור (מאפשר גם הקשה): שם,להשתמש_בקיים,voice,שפה,חסימת_הקשה,מקס_ספרות
 const stt = (maxDigits = '') => `voice,,,${maxDigits}`;
 
@@ -149,29 +149,51 @@ setInterval(() => {
   for (const [k, s] of sessions) if (s.t < cutoff) sessions.delete(k);
 }, 10 * 60 * 1000);
 
+const HOOD_PAGE = 8; // שכונות בכל עמוד (9 = עוד שכונות)
+const MAX_RESETS = 2; // כמה פעמים לחזור לתפריט לפני ניתוק
+const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
+
+function reset(s) {
+  Object.assign(s, { step: 'menu', tries: 0, page: 0, hoodPage: 0, guests: null, city: null, hood: null });
+}
+
 async function prompt(s) {
   switch (s.step) {
     case 'menu':
-      return ask(s, ['בְּרוּכִים הַבָּאִים לַגְּמַח אוּלָם בְּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
+      return ask(s, ['בְּרוּכִים הַבָּאִים לַגְּמַח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
         'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ אוֹתוֹ עַכְשָׁיו'], tap(4, 5));
-    case 'guests':
-      return ask(s, ['מָה כַּמּוּת הַמּוּזְמָנִים הַמְּשׁוֹעֶרֶת', 'אֶפְשָׁר לוֹמַר אֶת הַמִּסְפָּר אוֹ לְהַקִּישׁ וּלְסַיֵּם בְּסוּלָמִית'], stt(4));
+    case 'guests': {
+      const hint = !s.hinted && 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
+      s.hinted = true;
+      return ask(s, [hint, 'מָה כַּמּוּת הַמּוּזְמָנִים הַמְּשׁוֹעֶרֶת',
+        'אֶפְשָׁר לוֹמַר אֶת הַמִּסְפָּר אוֹ לְהַקִּישׁ וּלְסַיֵּם בְּסוּלָמִית'], stt(4));
+    }
     case 'guestsOk':
-      return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, 'לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tap(1, 7, '1.2'));
+      return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, ...CONFIRM], tap(1));
     case 'city':
       return ask(s, ['בְּאֵיזוֹ עִיר'], stt());
     case 'cityOk':
-      return ask(s, [`הֵבַנְתִּי ${s.city}`, 'לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tap(1, 7, '1.2'));
+      return ask(s, [`הֵבַנְתִּי ${s.city}`, ...CONFIRM], tap(1));
     case 'hood':
       s.hoods = await getHoods(s.city);
       if (!s.hoods.length) { s.step = 'results'; s.page = 0; return prompt(s); }
-      return ask(s, ['הַאִם יֵשׁ שְׁכוּנָה מְסוּיֶּמֶת', 'אִם כֵּן אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה', 'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], stt(1));
+      return ask(s, ['הַאִם יֵשׁ שְׁכוּנָה מְסוּיֶּמֶת', 'אִם כֵּן אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה',
+        'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], stt(1));
     case 'hoodOk':
-      return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${s.hood}`, 'לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tap(1, 7, '1.2'));
-    case 'hoodMenu':
+      return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${s.hood}`, ...CONFIRM], tap(1));
+    case 'hoodMenu': {
+      const from = s.hoodPage * HOOD_PAGE;
+      const page = s.hoods.slice(from, from + HOOD_PAGE);
+      s.hoodMore = s.hoods.length > from + HOOD_PAGE;
       return ask(s, ['בְּאֵיזוֹ שְׁכוּנָה',
-        ...s.hoods.slice(0, 9).map((h, i) => `לְ${h} הַקֵּשׁ ${i + 1}`),
+        ...page.map((h, i) => `לְ${h} הַקֵּשׁ ${i + 1}`),
+        s.hoodMore && 'לִשְׁכוּנוֹת נוֹסָפוֹת הַקֵּשׁ 9',
         'לְכָל הָעִיר הַקֵּשׁ 0'], tap(1));
+    }
+    case 'noResults':
+      return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${s.city} לְ${s.guests} מוּזְמָנִים`,
+        'לְשִׁינּוּי כַּמּוּת הַמּוּזְמָנִים הַקֵּשׁ 1', 'לְשִׁינּוּי הָעִיר הַקֵּשׁ 2',
+        'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ כּוֹכָבִית'], tap(1));
     case 'results':
       return resultsPrompt(s);
   }
@@ -186,7 +208,8 @@ async function resultsPrompt(s) {
       s.step = 'hood';
       return prompt(s);
     }
-    return bye(`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${s.city} לְ${s.guests} מוּזְמָנִים`);
+    s.step = 'noResults';
+    return prompt(s);
   }
   const from = s.page * PAGE_SIZE;
   const page = halls.slice(from, from + PAGE_SIZE);
@@ -204,14 +227,33 @@ async function resultsPrompt(s) {
   return ask(s, parts, tap(4));
 }
 
-async function handle(s, q, val) {
+// מספר ראשון מתוך הטקסט ("בערך 1,200 או 1300" -> 1200)
+function parseGuests(raw) {
+  const m = String(raw ?? '').replace(/(\d)[,.](?=\d{3}\b)/g, '$1').match(/\d+/);
+  return m ? Number(m[0]) : NaN;
+}
+
+async function handle(s, q, val, raw) {
   const go = (step) => { s.step = step; s.tries = 0; return prompt(s); };
+  const toMenu = (note) => {
+    if (++s.resets > MAX_RESETS) {
+      sessions.delete(q.ApiCallId);
+      return bye('לֹא הִצְלַחְנוּ לְהָבִין', 'נַסֵּה שׁוּב מְאוּחָר יוֹתֵר');
+    }
+    reset(s);
+    s.note = note;
+    return prompt(s);
+  };
   const fail = (note) => {
-    if (++s.tries >= MAX_TRIES) { sessions.delete(q.ApiCallId); return bye('לֹא הִצְלַחְנוּ לְהָבִין', 'נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'); }
+    if (++s.tries >= MAX_TRIES) return toMenu('נַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי');
     s.note = note;
     return prompt(s);
   };
   const confirm = (okStep, fixStep) => (val === '1' ? go(okStep) : val === '2' ? go(fixStep) : fail('לֹא הֵבַנְתִּי'));
+
+  // כוכבית בכל שלב = חזרה לתפריט הראשי (לא נספר כטעות)
+  if (val.includes('*')) { reset(s); return prompt(s); }
+  if (!val) return fail('לֹא נִשְׁמְעָה תְּשׁוּבָה');
 
   switch (s.step) {
     case 'menu':
@@ -220,7 +262,7 @@ async function handle(s, q, val) {
       return fail('בְּחִירָה לֹא תְּקִינָה');
 
     case 'guests': {
-      const n = Number(val.replace(/\D/g, ''));
+      const n = parseGuests(raw);
       if (!(n >= 1 && n <= 5000)) return fail('לֹא הֵבַנְתִּי אֶת הַמִּסְפָּר');
       s.guests = n;
       return go('guestsOk');
@@ -239,6 +281,7 @@ async function handle(s, q, val) {
 
     case 'hood': {
       s.page = 0;
+      s.hoodPage = 0;
       if (isNo(val)) { s.hood = null; return go('results'); }
       if (isYes(val)) return go('hoodMenu');
       const hood = bestMatch(val, s.hoods);
@@ -251,20 +294,32 @@ async function handle(s, q, val) {
     case 'hoodMenu': {
       s.page = 0;
       if (val === '0') { s.hood = null; return go('results'); }
-      const h = s.hoods[Number(val) - 1];
+      if (val === '9' && s.hoodMore) { s.hoodPage++; return go('hoodMenu'); }
+      const n = Number(val);
+      const h = n >= 1 && n <= HOOD_PAGE ? s.hoods[s.hoodPage * HOOD_PAGE + n - 1] : null;
       if (!h) return fail('בְּחִירָה לֹא תְּקִינָה');
       s.hood = h;
       return go('results');
     }
 
+    case 'noResults':
+      if (val === '1') return go('guests');
+      if (val === '2') return go('city');
+      return fail('בְּחִירָה לֹא תְּקִינָה');
+
     case 'results':
       if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מִסְפַּר שְׁלוּחָה לֹא קַיָּים');
-      if (val === '9' && s.more) { s.page++; return go('results'); }
+      if (val === '9') {
+        if (s.more) { s.page++; return go('results'); }
+        s.note = 'אֵין אוּלַמּוֹת נוֹסָפִים';
+        return prompt(s);
+      }
       if (val === '8') return go('results');
-      if (val === '0' && s.hood) { s.hood = null; return go('hood'); }
+      if (val === '0' && s.hood) { s.hood = null; s.hoodPage = 0; return go('hood'); }
       return fail('בְּחִירָה לֹא תְּקִינָה');
   }
-  return go('menu');
+  reset(s);
+  return prompt(s);
 }
 
 // ---------- נתיבים ----------
@@ -285,13 +340,17 @@ app.all('/api/ivr', async (req, res) => {
       const ext = last(q.ext);
       if (ext) return res.send((await routeByExt(q, ext)) ?? bye('שְׁלוּחָה לֹא קַיֶּימֶת'));
 
-      s = { step: 'menu', n: 0, tries: 0, page: 0, t: Date.now() };
+      s = { n: 0, resets: 0, t: Date.now() };
+      reset(s);
+      // אם השרת אותחל באמצע שיחה - ממשיכים ממספור המשתנים הקיים ומודיעים על חזרה לתפריט
+      const used = Object.keys(q).map((k) => /^v(\d+)$/.exec(k)?.[1]).filter(Boolean).map(Number);
+      if (used.length) { s.n = Math.max(...used); s.note = 'נַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי'; }
       sessions.set(id, s);
       return res.send(await prompt(s));
     }
 
-    const val = clean(last(q[`v${s.n}`]));
-    return res.send(await handle(s, q, val));
+    const raw = String(last(q[`v${s.n}`]) ?? '');
+    return res.send(await handle(s, q, clean(raw), raw));
   } catch (err) {
     console.error('שגיאה בשרת:', err);
     return res.send(bye('תַּקָּלָה בַּמַּעֲרֶכֶת נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
