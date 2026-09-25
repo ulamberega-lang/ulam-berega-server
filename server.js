@@ -18,7 +18,7 @@ const params = (req) => ({ ...req.query, ...req.body });
 const last = (v) => [].concat(v ?? '').pop();
 const clean = (s) => String(s ?? '').replace(/[.,\-=&"'|\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
 const say = (parts) => [].concat(parts).flat().filter(Boolean).map((p) => `t-${clean(p)}`).join('.');
-const bye = (...parts) => `id_list_message=${say([...parts, 'להתראות'])}&go_to_folder=hangup`;
+const bye = (...parts) => `id_list_message=${say([...parts, 'לְהִתְרָאוֹת'])}&go_to_folder=hangup`;
 const digits = (n) => String(n).split('').join(' '); // "101" -> "1 0 1" כדי שיוקרא ספרה-ספרה
 
 // read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים
@@ -132,10 +132,10 @@ async function routeByExt(q, ext) {
 
   const info = say([
     hall.name,
-    hall.neighborhood_name && `שכונת ${hall.neighborhood_name}`,
+    hall.neighborhood_name && `שְׁכוּנַת ${hall.neighborhood_name}`,
     hall.address,
-    hall.max_guests && `עד ${hall.max_guests} אורחים`,
-    'מעביר לגבאי',
+    hall.max_guests && `עַד ${hall.max_guests} אוֹרְחִים`,
+    'מַעֲבִיר לַגַּבַּאי',
   ]);
   // ערכי routing לפי הסדר: 1 מספר ... 9 זמן המתנה, 10 מעבר בסיום
   const routing = [phone, '', '', '', '', '', '', '', WAIT_SEC, NO_ANSWER_EXT].join(',');
@@ -152,26 +152,26 @@ setInterval(() => {
 async function prompt(s) {
   switch (s.step) {
     case 'menu':
-      return ask(s, ['ברוכים הבאים לגמח אולם ברגע', 'לחיפוש אולם הקש 1',
-        'אם ידוע לך מספר השלוחה של האולם הקש אותו עכשיו'], tap(4, 5));
+      return ask(s, ['בְּרוּכִים הַבָּאִים לַגְּמַח אוּלָם בְּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
+        'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ אוֹתוֹ עַכְשָׁיו'], tap(4, 5));
     case 'guests':
-      return ask(s, ['מה כמות המוזמנים המשוערת', 'אפשר לומר את המספר או להקיש ולסיים בסולמית'], stt(4));
+      return ask(s, ['מָה כַּמּוּת הַמּוּזְמָנִים הַמְּשׁוֹעֶרֶת', 'אֶפְשָׁר לוֹמַר אֶת הַמִּסְפָּר אוֹ לְהַקִּישׁ וּלְסַיֵּם בְּסוּלָמִית'], stt(4));
     case 'guestsOk':
-      return ask(s, [`הבנתי ${s.guests} מוזמנים`, 'לאישור הקש 1', 'לתיקון הקש 2'], tap(1, 7, '1.2'));
+      return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, 'לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tap(1, 7, '1.2'));
     case 'city':
-      return ask(s, ['באיזו עיר'], stt());
+      return ask(s, ['בְּאֵיזוֹ עִיר'], stt());
     case 'cityOk':
-      return ask(s, [`הבנתי ${s.city}`, 'לאישור הקש 1', 'לתיקון הקש 2'], tap(1, 7, '1.2'));
+      return ask(s, [`הֵבַנְתִּי ${s.city}`, 'לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tap(1, 7, '1.2'));
     case 'hood':
       s.hoods = await getHoods(s.city);
       if (!s.hoods.length) { s.step = 'results'; s.page = 0; return prompt(s); }
-      return ask(s, ['האם יש שכונה מסוימת', 'אם כן אמור את שם השכונה', 'לחיפוש בכל העיר הקש 0'], stt(1));
+      return ask(s, ['הַאִם יֵשׁ שְׁכוּנָה מְסוּיֶּמֶת', 'אִם כֵּן אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה', 'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], stt(1));
     case 'hoodOk':
-      return ask(s, [`הבנתי שכונת ${s.hood}`, 'לאישור הקש 1', 'לתיקון הקש 2'], tap(1, 7, '1.2'));
+      return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${s.hood}`, 'לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tap(1, 7, '1.2'));
     case 'hoodMenu':
-      return ask(s, ['באיזו שכונה',
-        ...s.hoods.slice(0, 9).map((h, i) => `ל${h} הקש ${i + 1}`),
-        'לכל העיר הקש 0'], tap(1));
+      return ask(s, ['בְּאֵיזוֹ שְׁכוּנָה',
+        ...s.hoods.slice(0, 9).map((h, i) => `לְ${h} הַקֵּשׁ ${i + 1}`),
+        'לְכָל הָעִיר הַקֵּשׁ 0'], tap(1));
     case 'results':
       return resultsPrompt(s);
   }
@@ -181,47 +181,47 @@ async function resultsPrompt(s) {
   const halls = await searchHalls(s);
   if (!halls.length) {
     if (s.hood) {
-      s.note = `לא נמצאו אולמות מתאימים בשכונת ${s.hood}`;
+      s.note = `לֹא נִמְצְאוּ אוּלַמּוֹת מַתְאִימִים בִּשְׁכוּנַת ${s.hood}`;
       s.hood = null;
       s.step = 'hood';
       return prompt(s);
     }
-    return bye(`לא נמצאו אולמות ב${s.city} ל${s.guests} מוזמנים`);
+    return bye(`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${s.city} לְ${s.guests} מוּזְמָנִים`);
   }
   const from = s.page * PAGE_SIZE;
   const page = halls.slice(from, from + PAGE_SIZE);
   s.more = halls.length > from + PAGE_SIZE;
 
   const parts = [];
-  if (s.page === 0) parts.push(halls.length === 1 ? 'נמצא אולם אחד' : `נמצאו ${halls.length} אולמות`);
+  if (s.page === 0) parts.push(halls.length === 1 ? 'נִמְצָא אוּלָם אֶחָד' : `נִמְצְאוּ ${halls.length} אוּלַמּוֹת`);
   for (const h of page) {
-    parts.push(h.name, h.neighborhood_name && `בשכונת ${h.neighborhood_name}`,
-      `עד ${h.max_guests} אורחים`, `למעבר לאולם הקש ${digits(h.extension)}`);
+    parts.push(h.name, h.neighborhood_name && `בִּשְׁכוּנַת ${h.neighborhood_name}`,
+      `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${digits(h.extension)}`);
   }
-  if (s.more) parts.push('לאולמות נוספים הקש 9');
-  if (s.hood) parts.push('לחיפוש בשכונה נוספת הקש 0');
-  parts.push('לשמיעה חוזרת הקש 8');
+  if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9');
+  if (s.hood) parts.push('לְחִיפּוּשׂ בִּשְׁכוּנָה נוֹסֶפֶת הַקֵּשׁ 0');
+  parts.push('לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 8');
   return ask(s, parts, tap(4));
 }
 
 async function handle(s, q, val) {
   const go = (step) => { s.step = step; s.tries = 0; return prompt(s); };
   const fail = (note) => {
-    if (++s.tries >= MAX_TRIES) { sessions.delete(q.ApiCallId); return bye('לא הצלחנו להבין', 'נסה שוב מאוחר יותר'); }
+    if (++s.tries >= MAX_TRIES) { sessions.delete(q.ApiCallId); return bye('לֹא הִצְלַחְנוּ לְהָבִין', 'נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'); }
     s.note = note;
     return prompt(s);
   };
-  const confirm = (okStep, fixStep) => (val === '1' ? go(okStep) : val === '2' ? go(fixStep) : fail('לא הבנתי'));
+  const confirm = (okStep, fixStep) => (val === '1' ? go(okStep) : val === '2' ? go(fixStep) : fail('לֹא הֵבַנְתִּי'));
 
   switch (s.step) {
     case 'menu':
       if (val === '1') return go('guests');
-      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מספר שלוחה לא קיים');
-      return fail('בחירה לא תקינה');
+      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מִסְפַּר שְׁלוּחָה לֹא קַיָּים');
+      return fail('בְּחִירָה לֹא תְּקִינָה');
 
     case 'guests': {
       const n = Number(val.replace(/\D/g, ''));
-      if (!(n >= 1 && n <= 5000)) return fail('לא הבנתי את המספר');
+      if (!(n >= 1 && n <= 5000)) return fail('לֹא הֵבַנְתִּי אֶת הַמִּסְפָּר');
       s.guests = n;
       return go('guestsOk');
     }
@@ -230,7 +230,7 @@ async function handle(s, q, val) {
 
     case 'city': {
       const city = bestMatch(val, await getCities());
-      if (!city) return fail('לא זיהיתי את העיר או שאין בה אולמות רשומים');
+      if (!city) return fail('לֹא זִיהִיתִי אֶת הָעִיר אוֹ שֶׁאֵין בָּהּ אוּלַמּוֹת רְשׁוּמִים');
       s.city = city;
       return go('cityOk');
     }
@@ -243,7 +243,7 @@ async function handle(s, q, val) {
       if (isYes(val)) return go('hoodMenu');
       const hood = bestMatch(val, s.hoods);
       if (hood) { s.hood = hood; return go('hoodOk'); }
-      s.note = 'לא זיהיתי את השכונה';
+      s.note = 'לֹא זִיהִיתִי אֶת הַשְּׁכוּנָה';
       return go('hoodMenu');
     }
     case 'hoodOk':
@@ -252,17 +252,17 @@ async function handle(s, q, val) {
       s.page = 0;
       if (val === '0') { s.hood = null; return go('results'); }
       const h = s.hoods[Number(val) - 1];
-      if (!h) return fail('בחירה לא תקינה');
+      if (!h) return fail('בְּחִירָה לֹא תְּקִינָה');
       s.hood = h;
       return go('results');
     }
 
     case 'results':
-      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מספר שלוחה לא קיים');
+      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מִסְפַּר שְׁלוּחָה לֹא קַיָּים');
       if (val === '9' && s.more) { s.page++; return go('results'); }
       if (val === '8') return go('results');
       if (val === '0' && s.hood) { s.hood = null; return go('hood'); }
-      return fail('בחירה לא תקינה');
+      return fail('בְּחִירָה לֹא תְּקִינָה');
   }
   return go('menu');
 }
@@ -283,7 +283,7 @@ app.all('/api/ivr', async (req, res) => {
       await logStart(q);
       // כניסה ישירה משלוחת אולם בימות (api_add_0=ext=101)
       const ext = last(q.ext);
-      if (ext) return res.send((await routeByExt(q, ext)) ?? bye('שלוחה לא קיימת'));
+      if (ext) return res.send((await routeByExt(q, ext)) ?? bye('שְׁלוּחָה לֹא קַיֶּימֶת'));
 
       s = { step: 'menu', n: 0, tries: 0, page: 0, t: Date.now() };
       sessions.set(id, s);
@@ -294,7 +294,7 @@ app.all('/api/ivr', async (req, res) => {
     return res.send(await handle(s, q, val));
   } catch (err) {
     console.error('שגיאה בשרת:', err);
-    return res.send(bye('תקלה במערכת נסה שוב מאוחר יותר'));
+    return res.send(bye('תַּקָּלָה בַּמַּעֲרֶכֶת נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
   }
 });
 
@@ -303,9 +303,8 @@ app.all('/api/ivr/no-answer', async (req, res) => {
   res.type('text/plain; charset=utf-8');
   if (q.hangup === 'yes') { await closeCall(q.ApiCallId); return res.send(''); }
   await supabase.from('leads_log').update({ answered: false }).eq('yemot_call_id', q.ApiCallId);
-  return res.send(bye('הגבאי לא ענה נסה שוב מאוחר יותר'));
+  return res.send(bye('הַגַּבַּאי לֹא עָנָה נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
