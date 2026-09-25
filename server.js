@@ -23,8 +23,8 @@ const digits = (n) => String(n).split('').join(' '); // "101" -> "1 0 1" כדי 
 
 // read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים (כוכבית מותרת = חזרה לתפריט)
 const tap = (max, sec = 7, allowed = '') => `${max},1,${sec},No,no,no,,${allowed}`;
-// read בזיהוי דיבור (מאפשר גם הקשה): שם,להשתמש_בקיים,voice,שפה,חסימת_הקשה,מקס_ספרות
-const stt = (maxDigits = '') => `voice,,,${maxDigits}`;
+// read בזיהוי דיבור: שם,להשתמש_בקיים,voice,שפה,חסימת_הקשה('no' = דיבור בלבד),מקס_ספרות
+const stt = (maxDigits = '', voiceOnly = false) => `voice,,${voiceOnly ? 'no' : ''},${maxDigits}`;
 
 // כל שאלה מקבלת שם משתנה חדש (v1, v2...) כי ימות שולחת בכל פנייה את כל מה שנאסף
 function ask(s, parts, ops) {
@@ -162,14 +162,14 @@ async function prompt(s) {
     case 'menu':
       return ask(s, ['בְּרוּכִים הַבָּאִים לֶגְמַ״ח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
         'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ אוֹתוֹ עַכְשָׁיו'], tap(4, 3));
-    case 'guests': {
+    case 'guests':
+      return ask(s, ['מָה כַּמּוּת הַמּוּזְמָנִים הַמְּשׁוֹעֶרֶת'], stt(4));
+    case 'guestsOk': {
+      // ההודעה על כוכבית כאן ולא בשאלת המוזמנים, כי שם אין הקשה
       const hint = !s.hinted && 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
       s.hinted = true;
-      return ask(s, [hint, 'מָה כַּמּוּת הַמּוּזְמָנִים הַמְּשׁוֹעֶרֶת',
-        'אֶפְשָׁר לוֹמַר אֶת הַמִּסְפָּר אוֹ לְהַקִּישׁ וּלְסַיֵּם בְּסוּלָמִית'], stt(4));
+      return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, hint, ...CONFIRM], tap(1));
     }
-    case 'guestsOk':
-      return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, ...CONFIRM], tap(1));
     case 'city':
       return ask(s, ['בְּאֵיזוֹ עִיר'], stt());
     case 'cityOk':
@@ -349,7 +349,8 @@ app.all('/api/ivr', async (req, res) => {
       return res.send(await prompt(s));
     }
 
-    const raw = String(last(q[`v${s.n}`]) ?? '');
+    // בזיהוי דיבור, הקשה מגיעה כ-"Digits-1234" - מסירים את הקידומת
+    const raw = String(last(q[`v${s.n}`]) ?? '').replace(/^Digits-?/i, '');
     return res.send(await handle(s, q, clean(raw), raw));
   } catch (err) {
     console.error('שגיאה בשרת:', err);
@@ -367,3 +368,4 @@ app.all('/api/ivr/no-answer', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
