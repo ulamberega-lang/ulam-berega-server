@@ -7,7 +7,7 @@ app.use(express.json());
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const WAIT_SEC = 35;         // זמן המתנה למענה הגבאי (לפני שהתא הקולי עונה)
+const WAIT_SEC = 35;         // זמן המתנה למענה באולם (לפני שהתא הקולי עונה)
 const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
 const REC_MAX_SEC = 5;       // אורך הקלטה מקסימלי (ההקלטה נעצרת רק בסולמית או בזמן הזה)
 const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
@@ -21,9 +21,13 @@ const params = (req) => {
 };
 const last = (v) => [].concat(v ?? '').pop();
 const clean = (s) => String(s ?? '').replace(/[.,\-=&"'|\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
-const say = (parts) => [].concat(parts).flat().filter(Boolean).map((p) => `t-${clean(p)}`).join('.');
+// מספרים בטקסט מושמעים בהקלטות המובנות של ימות (n-) ולא במנוע ההקראה - נשמע טבעי יותר
+const seg = (p) => (typeof p === 'object'
+  ? `d-${p.d}`
+  : clean(p).split(/(\d+)/).map((x) => x.trim()).filter(Boolean)
+    .map((x) => (/^\d+$/.test(x) ? `n-${x}` : `t-${x}`)).join('.'));
+const say = (parts) => [].concat(parts).flat().filter(Boolean).map(seg).join('.');
 const bye = (...parts) => `id_list_message=${say([...parts, 'לְהִתְרָאוֹת'])}&go_to_folder=hangup`;
-const digits = (n) => String(n).split('').join(' '); // "101" -> "1 0 1" כדי שיוקרא ספרה-ספרה
 
 // read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים (כוכבית מותרת = חזרה לתפריט)
 const tap = (max, sec = 7, allowed = '') => `${max},1,${sec},No,no,no,,${allowed}`;
@@ -81,6 +85,18 @@ function bestMatch(text, options) {
 // ---------- Supabase ----------
 const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
 
+// ---------- ניקוד לשמות מה-DB (טבלת pronunciations) ----------
+let nikud = new Map();
+async function loadNikud() {
+  const { data, error } = await supabase.from('pronunciations').select('word, nikud');
+  if (error) return console.error('nikud:', error.message);
+  nikud = new Map(data.map((r) => [r.word.trim(), r.nikud]));
+}
+loadNikud();
+setInterval(loadNikud, 10 * 60 * 1000);
+// ביטוי שלם ("אולם כתר"), ואם אין - מילה-מילה ("אולם" + "כתר")
+const pr = (name) => (name ? nikud.get(name.trim()) ?? name.split(' ').map((w) => nikud.get(w) ?? w).join(' ') : name);
+
 async function getCities() {
   const { data, error } = await supabase.from('halls').select('city_name').eq('is_active', true);
   if (error) throw error;
@@ -134,7 +150,7 @@ async function closeCall(callId) {
   if (answered) await mailGabbai({ ...data, ...patch }).catch((e) => console.error('mail:', e.message));
 }
 
-// ---------- מייל לגבאי (Brevo) ----------
+// ---------- מייל לאולם (Brevo) ----------
 async function mailGabbai(call) {
   if (!process.env.BREVO_API_KEY || !process.env.MAIL_FROM) return;
   const { data: hall } = await supabase.from('halls').select('name, gabbai_email').eq('id', call.hall_id).maybeSingle();
@@ -166,7 +182,7 @@ async function routeByExt(q, ext) {
   if (!hall) return null;
 
   const s = sessions.get(q.ApiCallId);
-  if (s) s.routed = true; // אם הגבאי לא יענה - נחזור לרשימה
+  if (s) s.routed = true; // אם האולם לא יענה - נחזור לרשימה
   const phone = (hall.gabbai_phone || '').replace(/\D/g, '');
   await supabase.from('leads_log').upsert({
     yemot_call_id: q.ApiCallId,
@@ -178,11 +194,11 @@ async function routeByExt(q, ext) {
   }, { onConflict: 'yemot_call_id' });
 
   const info = say([
-    hall.name,
-    hall.neighborhood_name && `שְׁכוּנַת ${hall.neighborhood_name}`,
+    pr(hall.name),
+    hall.neighborhood_name && `שְׁכוּנַת ${pr(hall.neighborhood_name)}`,
     hall.address,
     hall.max_guests && `עַד ${hall.max_guests} אוֹרְחִים`,
-    'מַעֲבִיר לַגַּבַּאי',
+    'מַעֲבִיר לָאוּלָם',
   ]);
   // ערכי routing לפי הסדר: 1 מספר ... 9 זמן המתנה, 10 מעבר בסיום
   const routing = [phone, '', '', '', '', '', '', '', WAIT_SEC, NO_ANSWER_EXT].join(',');
@@ -260,13 +276,13 @@ async function prompt(s) {
     case 'city':
       return ask(s, ['אֱמוֹר אֶת שֵׁם הָעִיר אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], rec(s));
     case 'cityOk':
-      return ask(s, [`הֵבַנְתִּי ${s.city}`, ...CONFIRM], tap(1));
+      return ask(s, [`הֵבַנְתִּי ${pr(s.city)}`, ...CONFIRM], tap(1));
     case 'cityMenu': {
       s.cities = await getCities();
       const from = s.cityPage * HOOD_PAGE;
       s.cityMore = s.cities.length > from + HOOD_PAGE;
       return ask(s, ['בְּאֵיזוֹ עִיר',
-        ...s.cities.slice(from, from + HOOD_PAGE).map((c, i) => `לְ${c} הַקֵּשׁ ${i + 1}`),
+        ...s.cities.slice(from, from + HOOD_PAGE).map((c, i) => `לְ${pr(c)} הַקֵּשׁ ${i + 1}`),
         s.cityMore && 'לְעָרִים נוֹסָפוֹת הַקֵּשׁ 9'], tap(1));
     }
     case 'hood':
@@ -277,18 +293,18 @@ async function prompt(s) {
     case 'hoodSay':
       return ask(s, ['אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], rec(s));
     case 'hoodOk':
-      return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${s.hood}`, ...CONFIRM], tap(1));
+      return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${pr(s.hood)}`, ...CONFIRM], tap(1));
     case 'hoodMenu': {
       const from = s.hoodPage * HOOD_PAGE;
       const page = s.hoods.slice(from, from + HOOD_PAGE);
       s.hoodMore = s.hoods.length > from + HOOD_PAGE;
       return ask(s, ['בְּאֵיזוֹ שְׁכוּנָה',
-        ...page.map((h, i) => `לְ${h} הַקֵּשׁ ${i + 1}`),
+        ...page.map((h, i) => `לְ${pr(h)} הַקֵּשׁ ${i + 1}`),
         s.hoodMore && 'לִשְׁכוּנוֹת נוֹסָפוֹת הַקֵּשׁ 9',
         'לְכָל הָעִיר הַקֵּשׁ 0'], tap(1));
     }
     case 'noResults':
-      return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${s.city} לְ${s.guests} מוּזְמָנִים`,
+      return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${pr(s.city)} לְ${s.guests} מוּזְמָנִים`,
         'לְשִׁינּוּי כַּמּוּת הַמּוּזְמָנִים הַקֵּשׁ 1', 'לְשִׁינּוּי הָעִיר הַקֵּשׁ 2',
         'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ כּוֹכָבִית'], tap(1));
     case 'results':
@@ -300,7 +316,7 @@ async function resultsPrompt(s) {
   const halls = await searchHalls(s);
   if (!halls.length) {
     if (s.hood) {
-      s.note = `לֹא נִמְצְאוּ אוּלַמּוֹת מַתְאִימִים בִּשְׁכוּנַת ${s.hood}`;
+      s.note = `לֹא נִמְצְאוּ אוּלַמּוֹת מַתְאִימִים בִּשְׁכוּנַת ${pr(s.hood)}`;
       s.hood = null;
       s.step = 'hood';
       return prompt(s);
@@ -315,8 +331,8 @@ async function resultsPrompt(s) {
   const parts = [];
   if (s.page === 0) parts.push(halls.length === 1 ? 'נִמְצָא אוּלָם אֶחָד' : `נִמְצְאוּ ${halls.length} אוּלַמּוֹת`);
   for (const h of page) {
-    parts.push(h.name, h.neighborhood_name && `בִּשְׁכוּנַת ${h.neighborhood_name}`,
-      `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${digits(h.extension)}`);
+    parts.push(pr(h.name), h.neighborhood_name && `בִּשְׁכוּנַת ${pr(h.neighborhood_name)}`,
+      `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${h.extension}`); // "101" מושמע "מאה ואחת"
   }
   if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9');
   if (s.hood) parts.push('לְחִיפּוּשׂ בִּשְׁכוּנָה נוֹסֶפֶת הַקֵּשׁ 0');
@@ -478,18 +494,18 @@ app.all('/api/ivr/no-answer', async (req, res) => {
     const s = sessions.get(id);
     if (s?.routed) {
       s.back = true;
-      return res.send(`id_list_message=${say('הַגַּבַּאי לֹא עָנָה')}&go_to_folder=/`);
+      return res.send(`id_list_message=${say('אֵין מַעֲנֶה בָּאוּלָם')}&go_to_folder=/`);
     }
-    return res.send(bye('הַגַּבַּאי לֹא עָנָה נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
+    return res.send(bye('אֵין מַעֲנֶה בָּאוּלָם נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
   } catch (err) {
     console.error('no-answer:', err);
-    return res.send(bye('הַגַּבַּאי לֹא עָנָה'));
+    return res.send(bye('אֵין מַעֲנֶה בָּאוּלָם'));
   }
 });
 
 // Render החינמי נרדם אחרי 15 דקות בלי בקשות - פינג עצמי כל 10 דקות
 if (process.env.RENDER_EXTERNAL_URL) {
-  setInterval(() => fetch(`${process.env.RENDER_EXTERNAL_URL}/health`).catch(() => {}), 5 * 60 * 1000);
+  setInterval(() => fetch(`${process.env.RENDER_EXTERNAL_URL}/health`).catch(() => {}), 10 * 60 * 1000);
 }
 
 const PORT = process.env.PORT || 3000;
