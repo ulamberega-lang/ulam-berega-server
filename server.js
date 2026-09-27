@@ -153,6 +153,9 @@ const HOOD_PAGE = 8; // שכונות בכל עמוד (9 = עוד שכונות)
 const MAX_RESETS = 2; // כמה פעמים לחזור לתפריט לפני ניתוק
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
 
+// ימות כבר מקריאה את מה שזוהה — חוזרים על הערך רק אם תיקנו אותו (למשל "ירושלם" → ירושלים)
+const echo = (s, value, text) => norm(value) !== norm(s.heard) && text;
+
 function reset(s) {
   Object.assign(s, { step: 'menu', tries: 0, page: 0, hoodPage: 0, guests: null, city: null, hood: null });
 }
@@ -168,19 +171,19 @@ async function prompt(s) {
       // ההודעה על כוכבית כאן ולא בשאלת המוזמנים, כי שם אין הקשה
       const hint = !s.hinted && 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
       s.hinted = true;
-      return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, hint, ...CONFIRM], tap(1));
+      return ask(s, [echo(s, s.guests, `הֵבַנְתִּי ${s.guests} מוּזְמָנִים`), hint, ...CONFIRM], tap(1));
     }
     case 'city':
       return ask(s, ['בְּאֵיזוֹ עִיר'], stt());
     case 'cityOk':
-      return ask(s, [`הֵבַנְתִּי ${s.city}`, ...CONFIRM], tap(1));
+      return ask(s, [echo(s, s.city, `הֵבַנְתִּי ${s.city}`), ...CONFIRM], tap(1));
     case 'hood':
       s.hoods = await getHoods(s.city);
       if (!s.hoods.length) { s.step = 'results'; s.page = 0; return prompt(s); }
       return ask(s, ['הַאִם יֵשׁ שְׁכוּנָה מְסוּיֶּמֶת', 'אִם כֵּן אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה',
         'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], stt(1));
     case 'hoodOk':
-      return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${s.hood}`, ...CONFIRM], tap(1));
+      return ask(s, [echo(s, s.hood, `הֵבַנְתִּי שְׁכוּנַת ${s.hood}`), ...CONFIRM], tap(1));
     case 'hoodMenu': {
       const from = s.hoodPage * HOOD_PAGE;
       const page = s.hoods.slice(from, from + HOOD_PAGE);
@@ -265,6 +268,7 @@ async function handle(s, q, val, raw) {
       const n = parseGuests(raw);
       if (!(n >= 1 && n <= 5000)) return fail('לֹא הֵבַנְתִּי אֶת הַמִּסְפָּר');
       s.guests = n;
+      s.heard = raw;
       return go('guestsOk');
     }
     case 'guestsOk':
@@ -274,6 +278,7 @@ async function handle(s, q, val, raw) {
       const city = bestMatch(val, await getCities());
       if (!city) return fail('לֹא זִיהִיתִי אֶת הָעִיר אוֹ שֶׁאֵין בָּהּ אוּלַמּוֹת רְשׁוּמִים');
       s.city = city;
+      s.heard = val;
       return go('cityOk');
     }
     case 'cityOk':
@@ -285,7 +290,7 @@ async function handle(s, q, val, raw) {
       if (isNo(val)) { s.hood = null; return go('results'); }
       if (isYes(val)) return go('hoodMenu');
       const hood = bestMatch(val, s.hoods);
-      if (hood) { s.hood = hood; return go('hoodOk'); }
+      if (hood) { s.hood = hood; s.heard = val; return go('hoodOk'); }
       s.note = 'לֹא זִיהִיתִי אֶת הַשְּׁכוּנָה';
       return go('hoodMenu');
     }
@@ -368,4 +373,3 @@ app.all('/api/ivr/no-answer', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
