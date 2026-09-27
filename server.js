@@ -56,15 +56,25 @@ function lev(a, b) {
 function bestMatch(text, options) {
   const t = norm(text);
   if (t.length < 2) return null;
-  let best = null, bestD = Infinity;
-  for (const o of options) {
-    const n = norm(o);
-    if (!n) continue;
-    if (n === t || t.includes(n) || n.includes(t)) return o;
+  const opts = options.map((o) => [o, norm(o)]).filter(([, n]) => n);
+  // 1. התאמה מדויקת
+  const exact = opts.find(([, n]) => n === t);
+  if (exact) return exact[0];
+  // שגיאת תמלול קטנה ("רמות אשקול")
+  let close = null, bestD = Infinity;
+  for (const [o, n] of opts) {
     const dist = lev(t, n);
-    if (dist < bestD) { bestD = dist; best = o; }
+    if (dist < bestD) { bestD = dist; close = [o, n]; }
   }
-  return best && bestD <= Math.max(1, Math.floor(norm(best).length / 4)) ? best : null;
+  if (close && bestD > Math.max(1, Math.floor(close[1].length / 4))) close = null;
+  // 2. השם מופיע בתוך מה שנאמר ("בירושלים") - הארוך ביותר, כדי ש"רמות אשכול" לא ייתפס כ"רמות"
+  const inside = opts.filter(([, n]) => t.includes(n)).sort((a, b) => b[1].length - a[1].length)[0];
+  if (inside) return close && close[1].length > inside[1].length ? close[0] : inside[0];
+  // 3. נאמר רק חלק מהשם ("מאה") - רק אם יש אפשרות אחת כזו
+  const partial = opts.filter(([, n]) => n.includes(t));
+  if (partial.length === 1 && t.length >= 3) return partial[0][0];
+  // 4. שגיאת תמלול קטנה
+  return close ? close[0] : null;
 }
 
 
@@ -117,9 +127,11 @@ async function closeCall(callId) {
     ended_at: new Date().toISOString(),
     duration_sec: Math.round((Date.now() - new Date(data.created_at).getTime()) / 1000),
   };
-  if (data.hall_id && data.answered === null) patch.answered = true; // לא חזר לשלוחת "אין מענה"
+  const answered = data.hall_id && data.answered === null; // לא חזר לשלוחת "אין מענה"
+  if (answered) patch.answered = true;
   await supabase.from('leads_log').update(patch).eq('yemot_call_id', callId);
-  if (data.hall_id) await mailGabbai({ ...data, ...patch }).catch((e) => console.error('mail:', e.message));
+  // מייל על שיחה שלא נענתה כבר נשלח משלוחת "אין מענה"
+  if (answered) await mailGabbai({ ...data, ...patch }).catch((e) => console.error('mail:', e.message));
 }
 
 // ---------- מייל לגבאי (Brevo) ----------
@@ -153,7 +165,8 @@ async function routeByExt(q, ext) {
     .from('halls').select('*').eq('is_active', true).eq('extension', String(ext)).maybeSingle();
   if (!hall) return null;
 
-  sessions.delete(q.ApiCallId);
+  const s = sessions.get(q.ApiCallId);
+  if (s) s.routed = true; // אם הגבאי לא יענה - נחזור לרשימה
   const phone = (hall.gabbai_phone || '').replace(/\D/g, '');
   await supabase.from('leads_log').upsert({
     yemot_call_id: q.ApiCallId,
@@ -161,6 +174,7 @@ async function routeByExt(q, ext) {
     source: 'phone_ivr',
     hall_id: hall.id,
     called_phone: phone,
+    answered: null, // ניסיון חדש (אחרי אולם שלא ענה)
   }, { onConflict: 'yemot_call_id' });
 
   const info = say([
@@ -189,26 +203,29 @@ async function transcribe(s) {
   const type = file.headers.get('content-type') || '';
   if (!file.ok || type.includes('json') || type.includes('text')) {
     console.error('download:', file.status, (await file.text()).slice(0, 200));
-    return '';
+    return null;
   }
   const audio = await file.blob();
   const t1 = Date.now();
-  // מוחקים את ההקלטה מימות (לא קריטי אם נכשל)
-  fetch(`${YEMOT_API}/FileAction?token=${token}&action=delete&what=${encodeURIComponent(path)}`).catch(() => {});
+  // מוחקים את ההקלטה מימות (לא חוסם את השיחה; נרשם בלוג אם נכשל)
+  fetch(`${YEMOT_API}/FileAction?token=${token}&action=delete&what=${encodeURIComponent(path)}`)
+    .then((r) => r.json()).then((j) => { if (!j.success) console.error('delete:', JSON.stringify(j).slice(0, 200)); })
+    .catch((e) => console.error('delete:', e.message));
 
   // רשימת השמות האפשריים משפרת את הזיהוי
   const names = await namesP;
   const form = new FormData();
   form.append('file', audio, 'answer.wav');
-  form.append('model', 'gpt-4o-mini-transcribe');
-  form.append('language', 'he');
-  form.append('prompt', `שם של ${s.step === 'city' ? 'עיר' : 'שכונה'}, אחד מאלה: ${names.join(', ')}`);
+  form.append('model', 'gpt-transcribe');
+  form.append('languages[]', 'he'); // ב-gpt-transcribe מחליף את language
+  form.append('prompt', `מתקשר אומר שם של ${s.step === 'city' ? 'עיר' : 'שכונה'} בישראל`);
+  for (const n of names) form.append('keywords[]', n.replace(/[<>\r\n]/g, ''));
   const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: form,
   });
-  if (!res.ok) { console.error('openai:', res.status, await res.text()); return ''; }
+  if (!res.ok) { console.error('openai:', res.status, await res.text()); return null; }
   const text = (await res.json()).text || '';
   console.log(`זמנים: מהשאלה ${t0 - s.t}ms | הורדה ${t1 - t0}ms | תמלול ${Date.now() - t1}ms | "${text}"`);
   return text;
@@ -241,9 +258,17 @@ async function prompt(s) {
       return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, hint, ...CONFIRM], tap(1));
     }
     case 'city':
-      return ask(s, ['בְּאֵיזוֹ עִיר', 'אֱמוֹר אֶת שֵׁם הָעִיר אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], rec(s));
+      return ask(s, ['אֱמוֹר אֶת שֵׁם הָעִיר אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], rec(s));
     case 'cityOk':
       return ask(s, [`הֵבַנְתִּי ${s.city}`, ...CONFIRM], tap(1));
+    case 'cityMenu': {
+      s.cities = await getCities();
+      const from = s.cityPage * HOOD_PAGE;
+      s.cityMore = s.cities.length > from + HOOD_PAGE;
+      return ask(s, ['בְּאֵיזוֹ עִיר',
+        ...s.cities.slice(from, from + HOOD_PAGE).map((c, i) => `לְ${c} הַקֵּשׁ ${i + 1}`),
+        s.cityMore && 'לְעָרִים נוֹסָפוֹת הַקֵּשׁ 9'], tap(1));
+    }
     case 'hood':
       s.hoods = await getHoods(s.city);
       if (!s.hoods.length) { s.step = 'results'; s.page = 0; return prompt(s); }
@@ -332,12 +357,20 @@ async function handle(s, q, val, raw) {
 
     case 'city': {
       const city = bestMatch(val, await getCities());
-      if (!city) return fail('לֹא זִיהִיתִי אֶת הָעִיר אוֹ שֶׁאֵין בָּהּ אוּלַמּוֹת רְשׁוּמִים');
+      if (!city) return fail(`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${val}`); // חוזרים על מה שנשמע כדי שהמתקשר ידע מה הובן
       s.city = city;
       return go('cityOk');
     }
     case 'cityOk':
       return confirm('hood', 'city');
+    case 'cityMenu': {
+      if (val === '9' && s.cityMore) { s.cityPage++; return go('cityMenu'); }
+      const n = Number(val);
+      const c = n >= 1 && n <= HOOD_PAGE ? s.cities[s.cityPage * HOOD_PAGE + n - 1] : null;
+      if (!c) return fail('בְּחִירָה לֹא תְּקִינָה');
+      s.city = c;
+      return go('hood');
+    }
 
     case 'hood':
       s.page = 0;
@@ -349,7 +382,7 @@ async function handle(s, q, val, raw) {
     case 'hoodSay': {
       const hood = bestMatch(val, s.hoods);
       if (hood) { s.hood = hood; return go('hoodOk'); }
-      s.note = 'לֹא זִיהִיתִי אֶת הַשְּׁכוּנָה';
+      s.note = `לֹא נִמְצְאוּ אוּלַמּוֹת בִּשְׁכוּנַת ${val}`;
       return go('hoodMenu');
     }
     case 'hoodOk':
@@ -411,9 +444,20 @@ app.all('/api/ivr', async (req, res) => {
       return res.send(await prompt(s));
     }
 
+    // חזרה מ"אין מענה" - משמיעים שוב את רשימת האולמות
+    if (s.back) { s.back = false; s.routed = false; return res.send(await prompt(s)); }
+
     let raw = String(last(q[`v${s.n}`]) ?? '');
     // בשלבי דיבור ימות רק מקליטה - מתמללים בעצמנו
-    if (RECORD_STEPS.has(s.step) && !raw.includes('*')) raw = await transcribe(s).catch((e) => { console.error('transcribe:', e.message); return ''; });
+    if (RECORD_STEPS.has(s.step) && !raw.includes('*')) {
+      raw = await transcribe(s).catch((e) => { console.error('transcribe:', e.message); return null; });
+      // התמלול נכשל (למשל נגמרה היתרה ב-OpenAI) - עוברים לבחירה מרשימה בהקשה
+      if (raw === null) {
+        s.note = 'בְּחַר מֵהָרְשִׁימָה';
+        if (s.step === 'city') { s.cityPage = 0; s.step = 'cityMenu'; } else { s.hoodPage = 0; s.step = 'hoodMenu'; }
+        return res.send(await prompt(s));
+      }
+    }
     return res.send(await handle(s, q, clean(raw), raw));
   } catch (err) {
     console.error('שגיאה בשרת:', err);
@@ -424,10 +468,29 @@ app.all('/api/ivr', async (req, res) => {
 app.all('/api/ivr/no-answer', async (req, res) => {
   const q = params(req);
   res.type('text/plain; charset=utf-8');
-  if (q.hangup === 'yes') { await closeCall(q.ApiCallId); return res.send(''); }
-  await supabase.from('leads_log').update({ answered: false }).eq('yemot_call_id', q.ApiCallId);
-  return res.send(bye('הַגַּבַּאי לֹא עָנָה נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
+  const id = q.ApiCallId;
+  try {
+    if (q.hangup === 'yes') { sessions.delete(id); await closeCall(id); return res.send(''); }
+    const { data } = await supabase.from('leads_log').update({ answered: false })
+      .eq('yemot_call_id', id).select('created_at, hall_id, caller_phone').maybeSingle();
+    if (data?.hall_id) mailGabbai({ ...data, answered: false }).catch((e) => console.error('mail:', e.message));
+    // חוזרים לשלב שממנו נבחר האולם (רשימת האולמות או התפריט)
+    const s = sessions.get(id);
+    if (s?.routed) {
+      s.back = true;
+      return res.send(`id_list_message=${say('הַגַּבַּאי לֹא עָנָה')}&go_to_folder=/`);
+    }
+    return res.send(bye('הַגַּבַּאי לֹא עָנָה נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
+  } catch (err) {
+    console.error('no-answer:', err);
+    return res.send(bye('הַגַּבַּאי לֹא עָנָה'));
+  }
 });
+
+// Render החינמי נרדם אחרי 15 דקות בלי בקשות - פינג עצמי כל 10 דקות
+if (process.env.RENDER_EXTERNAL_URL) {
+  setInterval(() => fetch(`${process.env.RENDER_EXTERNAL_URL}/health`).catch(() => {}), 5 * 60 * 1000);
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
