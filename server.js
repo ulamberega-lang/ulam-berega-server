@@ -7,9 +7,8 @@ app.use(express.json());
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const WAIT_SEC = 30;         // זמן המתנה למענה הגבאי
+const WAIT_SEC = 20;         // זמן המתנה למענה הגבאי (לפני שהתא הקולי עונה)
 const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
-const GUEST_MARGIN = 30;     // חריגה מותרת: אולם קטן עד 30 איש מכמות המוזמנים
 const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
 const MAX_TRIES = 3;         // ניסיונות לפני ניתוק
 
@@ -85,10 +84,13 @@ async function getHoods(city) {
   return uniq(data.map((r) => r.neighborhood_name));
 }
 
+// חריגה מותרת: אולם קטן מכמות המוזמנים עד המרווח הזה
+const margin = (g) => (g <= 100 ? 30 : g <= 250 ? 50 : g <= 500 ? 100 : 200);
+
 async function searchHalls(s) {
   let qb = supabase.from('halls').select('*')
     .eq('is_active', true).eq('city_name', s.city)
-    .gte('max_guests', s.guests - GUEST_MARGIN)
+    .gte('max_guests', s.guests - margin(s.guests))
     .not('extension', 'is', null)
     .order('max_guests').order('name');
   if (s.hood) qb = qb.eq('neighborhood_name', s.hood);
@@ -110,7 +112,6 @@ async function closeCall(callId) {
   if (!callId) return;
   const { data } = await supabase
     .from('leads_log').select('created_at, answered, hall_id, caller_phone, ended_at').eq('yemot_call_id', callId).maybeSingle();
-  console.log('closeCall', callId, JSON.stringify(data));
   if (!data || data.ended_at) return; // כבר נסגרה - מונע מייל כפול
   const patch = {
     ended_at: new Date().toISOString(),
@@ -123,9 +124,9 @@ async function closeCall(callId) {
 
 // ---------- מייל לגבאי (Brevo) ----------
 async function mailGabbai(call) {
-  if (!process.env.BREVO_API_KEY || !process.env.MAIL_FROM) return console.log('mail: חסרים משתני סביבה');
+  if (!process.env.BREVO_API_KEY || !process.env.MAIL_FROM) return;
   const { data: hall } = await supabase.from('halls').select('name, gabbai_email').eq('id', call.hall_id).maybeSingle();
-  if (!hall?.gabbai_email) return console.log('mail: אין מייל לאולם', call.hall_id);
+  if (!hall?.gabbai_email) return;
   const when = new Date(call.created_at).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
   const status = call.answered ? 'השיחה הועברה אליך' : 'השיחה לא נענתה';
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -144,7 +145,6 @@ async function mailGabbai(call) {
     }),
   });
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-  console.log('mail: נשלח אל', hall.gabbai_email);
 }
 
 // ---------- ניתוב לאולם ----------
@@ -365,7 +365,6 @@ app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה 
 
 app.all('/api/ivr', async (req, res) => {
   const q = params(req);
-  console.log('YEMOT', JSON.stringify(q));
   res.type('text/plain; charset=utf-8');
   const id = q.ApiCallId;
   try {
@@ -398,7 +397,6 @@ app.all('/api/ivr', async (req, res) => {
 
 app.all('/api/ivr/no-answer', async (req, res) => {
   const q = params(req);
-  console.log('NO-ANSWER', JSON.stringify(q));
   res.type('text/plain; charset=utf-8');
   if (q.hangup === 'yes') { await closeCall(q.ApiCallId); return res.send(''); }
   await supabase.from('leads_log').update({ answered: false }).eq('yemot_call_id', q.ApiCallId);
