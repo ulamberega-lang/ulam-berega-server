@@ -329,16 +329,15 @@ async function resultsPrompt(s) {
 
   const parts = [];
   if (s.page === 0) parts.push(halls.length === 1 ? 'נִמְצָא אוּלָם אֶחָד' : `נִמְצְאוּ ${halls.length} אוּלַמּוֹת`);
-  // כל אולם בעמוד מקבל מקש אחד (1-5) - תגובה מיידית בלי המתנה לספרות נוספות
-  s.pageExts = page.map((h) => h.extension);
-  page.forEach((h, i) => {
+  // מקישים את מספר השלוחה עצמו (למשל 101) - כדי שהמתקשר יזכור אותו לפעם הבאה
+  for (const h of page) {
     parts.push(pr(h.name), h.neighborhood_name && `בִּשְׁכוּנַת ${pr(h.neighborhood_name)}`,
-      `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${i + 1}`);
-  });
-  if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9');
-  if (s.hood) parts.push('לְחִיפּוּשׂ בִּשְׁכוּנָה נוֹסֶפֶת הַקֵּשׁ 0');
-  parts.push('לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 8');
-  return ask(s, parts, tap(1));
+      `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${h.extension} וְסוּלָמִית`);
+  }
+  if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9 וְסוּלָמִית');
+  if (s.hood) parts.push('לְחִיפּוּשׂ בִּשְׁכוּנָה נוֹסֶפֶת הַקֵּשׁ 0 וְסוּלָמִית');
+  parts.push('לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 8 וְסוּלָמִית');
+  return ask(s, parts, tap(4, 7)); // סולמית מסיימת מיד; בלעדיה - המתנה עד 7 שניות
 }
 
 // מספר ראשון מתוך הטקסט ("בערך 1,200 או 1300" -> 1200)
@@ -423,7 +422,7 @@ async function handle(s, q, val, raw) {
       return fail('בְּחִירָה לֹא תְּקִינָה');
 
     case 'results':
-      if (s.pageExts?.[Number(val) - 1]) return (await routeByExt(q, s.pageExts[Number(val) - 1])) ?? fail('בְּחִירָה לֹא תְּקִינָה');
+      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail(`שְׁלוּחָה ${val} לֹא קַיֶּימֶת`);
       if (val === '9') {
         if (s.more) { s.page++; return go('results'); }
         s.note = 'אֵין אוּלַמּוֹת נוֹסָפִים';
