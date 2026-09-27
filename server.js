@@ -104,14 +104,40 @@ async function logStart(q) {
 async function closeCall(callId) {
   if (!callId) return;
   const { data } = await supabase
-    .from('leads_log').select('created_at, answered, hall_id').eq('yemot_call_id', callId).maybeSingle();
-  if (!data) return;
+    .from('leads_log').select('created_at, answered, hall_id, caller_phone, ended_at').eq('yemot_call_id', callId).maybeSingle();
+  if (!data || data.ended_at) return; // כבר נסגרה - מונע מייל כפול
   const patch = {
     ended_at: new Date().toISOString(),
     duration_sec: Math.round((Date.now() - new Date(data.created_at).getTime()) / 1000),
   };
   if (data.hall_id && data.answered === null) patch.answered = true; // לא חזר לשלוחת "אין מענה"
   await supabase.from('leads_log').update(patch).eq('yemot_call_id', callId);
+  if (data.hall_id) await mailGabbai({ ...data, ...patch }).catch((e) => console.error('mail:', e.message));
+}
+
+// ---------- מייל לגבאי (Brevo) ----------
+async function mailGabbai(call) {
+  if (!process.env.BREVO_API_KEY || !process.env.MAIL_FROM) return;
+  const { data: hall } = await supabase.from('halls').select('name, gabbai_email').eq('id', call.hall_id).maybeSingle();
+  if (!hall?.gabbai_email) return;
+  const when = new Date(call.created_at).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
+  const status = call.answered ? 'השיחה הועברה אליך' : 'השיחה לא נענתה';
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      sender: { email: process.env.MAIL_FROM, name: 'גמ"ח אולם ברגע' },
+      to: [{ email: hall.gabbai_email }],
+      subject: `${call.answered ? 'שיחה' : 'שיחה שלא נענתה'} - ${hall.name}`,
+      htmlContent: `<div dir="rtl" style="font-family:Arial">
+        <p>שלום,</p>
+        <p>התקבלה שיחה דרך גמ"ח אולם ברגע לאולם <b>${hall.name}</b>.</p>
+        <p>מספר המתקשר: <b>${call.caller_phone || 'חסוי'}</b><br>מועד: ${when}<br>${status}</p>
+        ${call.answered ? '' : '<p>מומלץ לחזור למתקשר.</p>'}
+      </div>`,
+    }),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
 }
 
 // ---------- ניתוב לאולם ----------
