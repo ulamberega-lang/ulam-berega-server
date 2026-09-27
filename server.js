@@ -7,7 +7,7 @@ app.use(express.json());
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const WAIT_SEC = 20;         // זמן המתנה למענה הגבאי (לפני שהתא הקולי עונה)
+const WAIT_SEC = 35;         // זמן המתנה למענה הגבאי (לפני שהתא הקולי עונה)
 const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
 const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
 const MAX_TRIES = 3;         // ניסיונות לפני ניתוק
