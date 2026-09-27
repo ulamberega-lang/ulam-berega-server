@@ -10,7 +10,6 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 const WAIT_SEC = 35;         // זמן המתנה למענה הגבאי (לפני שהתא הקולי עונה)
 const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
 const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
-const MAX_TRIES = 3;         // ניסיונות לפני ניתוק
 
 // ---------- עזרי ימות ----------
 // ApiCallId מתחלף בכל מעבר שלוחה; ApiYFCallId קבוע לאורך כל השיחה
@@ -183,14 +182,13 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 const HOOD_PAGE = 8; // שכונות בכל עמוד (9 = עוד שכונות)
-const MAX_RESETS = 2; // כמה פעמים לחזור לתפריט לפני ניתוק
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
 
 // ימות כבר מקריאה את מה שזוהה — חוזרים על הערך רק אם תיקנו אותו (למשל "ירושלם" → ירושלים)
 const echo = (s, value, text) => norm(value) !== norm(s.heard) && text;
 
 function reset(s) {
-  Object.assign(s, { step: 'menu', tries: 0, page: 0, hoodPage: 0, guests: null, city: null, hood: null });
+  Object.assign(s, { step: 'menu', page: 0, hoodPage: 0, guests: null, city: null, hood: null });
 }
 
 async function prompt(s) {
@@ -270,21 +268,9 @@ function parseGuests(raw) {
 }
 
 async function handle(s, q, val, raw) {
-  const go = (step) => { s.step = step; s.tries = 0; return prompt(s); };
-  const toMenu = (note) => {
-    if (++s.resets > MAX_RESETS) {
-      sessions.delete(q.ApiCallId);
-      return bye('לֹא הִצְלַחְנוּ לְהָבִין', 'נַסֵּה שׁוּב מְאוּחָר יוֹתֵר');
-    }
-    reset(s);
-    s.note = note;
-    return prompt(s);
-  };
-  const fail = (note) => {
-    if (++s.tries >= MAX_TRIES) return toMenu('נַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי');
-    s.note = note;
-    return prompt(s);
-  };
+  const go = (step) => { s.step = step; return prompt(s); };
+  // טעות = הודעה ושאלה חוזרת, בלי הגבלה
+  const fail = (note) => { s.note = note; return prompt(s); };
   const confirm = (okStep, fixStep) => (val === '1' ? go(okStep) : val === '2' ? go(fixStep) : fail('לֹא הֵבַנְתִּי'));
 
   // כוכבית בכל שלב = חזרה לתפריט הראשי (לא נספר כטעות)
@@ -377,7 +363,7 @@ app.all('/api/ivr', async (req, res) => {
       const ext = last(q.ext);
       if (ext) return res.send((await routeByExt(q, ext)) ?? bye('שְׁלוּחָה לֹא קַיֶּימֶת'));
 
-      s = { n: 0, resets: 0, t: Date.now() };
+      s = { n: 0, t: Date.now() };
       reset(s);
       // אם השרת אותחל באמצע שיחה - ממשיכים ממספור המשתנים הקיים ומודיעים על חזרה לתפריט
       const used = Object.keys(q).map((k) => /^v(\d+)$/.exec(k)?.[1]).filter(Boolean).map(Number);
