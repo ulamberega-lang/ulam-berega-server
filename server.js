@@ -193,6 +193,7 @@ async function routeByExt(q, ext) {
     hall.neighborhood_name && `שְׁכוּנַת ${pr(hall.neighborhood_name)}`,
     hall.address,
     hall.max_guests && `עַד ${hall.max_guests} אוֹרְחִים`,
+    `מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם ${hall.extension}`, // כדי שבפעם הבאה יוכלו להקיש ישירות
     'מַעֲבִיר לָאוּלָם',
   ]);
   // ערכי routing לפי הסדר: 1 מספר ... 9 זמן המתנה, 10 מעבר בסיום
@@ -260,7 +261,9 @@ async function prompt(s) {
   switch (s.step) {
     case 'menu':
       return ask(s, ['בְּרוּכִים הַבָּאִים לֶגְמַ״ח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
-        'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ אוֹתוֹ עַכְשָׁיו'], tap(4, 3));
+        'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 2'], tap(1));
+    case 'extEntry':
+      return ask(s, ['הַקֵּשׁ אֶת מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם וּבְסִיּוּם סוּלָמִית'], tap(4, 7));
     case 'guests': {
       // הודעה חד-פעמית על כוכבית, לפני השאלה הראשונה בחיפוש
       const hint = !s.hinted && 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
@@ -326,14 +329,16 @@ async function resultsPrompt(s) {
 
   const parts = [];
   if (s.page === 0) parts.push(halls.length === 1 ? 'נִמְצָא אוּלָם אֶחָד' : `נִמְצְאוּ ${halls.length} אוּלַמּוֹת`);
-  for (const h of page) {
+  // כל אולם בעמוד מקבל מקש אחד (1-5) - תגובה מיידית בלי המתנה לספרות נוספות
+  s.pageExts = page.map((h) => h.extension);
+  page.forEach((h, i) => {
     parts.push(pr(h.name), h.neighborhood_name && `בִּשְׁכוּנַת ${pr(h.neighborhood_name)}`,
-      `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${h.extension}`); // "101" מושמע "מאה ואחת"
-  }
+      `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${i + 1}`);
+  });
   if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9');
   if (s.hood) parts.push('לְחִיפּוּשׂ בִּשְׁכוּנָה נוֹסֶפֶת הַקֵּשׁ 0');
   parts.push('לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 8');
-  return ask(s, parts, tap(4, 3));
+  return ask(s, parts, tap(1));
 }
 
 // מספר ראשון מתוך הטקסט ("בערך 1,200 או 1300" -> 1200)
@@ -355,8 +360,10 @@ async function handle(s, q, val, raw) {
   switch (s.step) {
     case 'menu':
       if (val === '1') return go('guests');
-      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מִסְפַּר שְׁלוּחָה לֹא קַיָּים');
+      if (val === '2') return go('extEntry');
       return fail('בְּחִירָה לֹא תְּקִינָה');
+    case 'extEntry':
+      return (await routeByExt(q, val)) ?? fail(`שְׁלוּחָה ${val} לֹא קַיֶּימֶת`);
 
     case 'guests': {
       const n = parseGuests(raw);
@@ -416,7 +423,7 @@ async function handle(s, q, val, raw) {
       return fail('בְּחִירָה לֹא תְּקִינָה');
 
     case 'results':
-      if (/^\d{2,}$/.test(val)) return (await routeByExt(q, val)) ?? fail('מִסְפַּר שְׁלוּחָה לֹא קַיָּים');
+      if (s.pageExts?.[Number(val) - 1]) return (await routeByExt(q, s.pageExts[Number(val) - 1])) ?? fail('בְּחִירָה לֹא תְּקִינָה');
       if (val === '9') {
         if (s.more) { s.page++; return go('results'); }
         s.note = 'אֵין אוּלַמּוֹת נוֹסָפִים';
@@ -457,7 +464,11 @@ app.all('/api/ivr', async (req, res) => {
     }
 
     // חזרה מ"אין מענה" - משמיעים שוב את רשימת האולמות
-    if (s.back) { s.back = false; s.routed = false; return res.send(await prompt(s)); }
+    if (s.back) {
+      s.back = false; s.routed = false;
+      if (s.step !== 'results') reset(s); // נכנס לפי מספר שלוחה - חוזר לתפריט הראשי
+      return res.send(await prompt(s));
+    }
 
     let raw = String(last(q[`v${s.n}`]) ?? '');
     // בשלבי דיבור ימות רק מקליטה - מתמללים בעצמנו
