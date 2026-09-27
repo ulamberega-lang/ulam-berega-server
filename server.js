@@ -21,12 +21,7 @@ const params = (req) => {
 };
 const last = (v) => [].concat(v ?? '').pop();
 const clean = (s) => String(s ?? '').replace(/[.,\-=&"'|\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
-// מספרים בטקסט מושמעים בהקלטות המובנות של ימות (n-) ולא במנוע ההקראה - נשמע טבעי יותר
-const seg = (p) => (typeof p === 'object'
-  ? `d-${p.d}`
-  : clean(p).split(/(\d+)/).map((x) => x.trim()).filter(Boolean)
-    .map((x) => (/^\d+$/.test(x) ? `n-${x}` : `t-${x}`)).join('.'));
-const say = (parts) => [].concat(parts).flat().filter(Boolean).map(seg).join('.');
+const say = (parts) => [].concat(parts).flat().filter(Boolean).map((p) => `t-${clean(p)}`).join('.');
 const bye = (...parts) => `id_list_message=${say([...parts, 'לְהִתְרָאוֹת'])}&go_to_folder=hangup`;
 
 // read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים (כוכבית מותרת = חזרה לתפריט)
