@@ -9,6 +9,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const WAIT_SEC = 35;         // זמן המתנה למענה הגבאי (לפני שהתא הקולי עונה)
 const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
+const REC_MAX_SEC = 5;       // אורך הקלטה מקסימלי לתשובה בדיבור
 const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
 
 // ---------- עזרי ימות ----------
@@ -26,8 +27,10 @@ const digits = (n) => String(n).split('').join(' '); // "101" -> "1 0 1" כדי 
 
 // read בהקשה: שם,להשתמש_בקיים,מקס,מינ,שניות,השמעה,חסימת*,חסימת0,החלפה,מקשים_מותרים (כוכבית מותרת = חזרה לתפריט)
 const tap = (max, sec = 7, allowed = '') => `${max},1,${sec},No,no,no,,${allowed}`;
-// read בזיהוי דיבור: שם,להשתמש_בקיים,voice,שפה,חסימת_הקשה('no' = דיבור בלבד),מקס_ספרות
-const stt = (maxDigits = '', voiceOnly = false) => `voice,,${voiceOnly ? 'no' : ''},${maxDigits}`;
+// read בהקלטה: שם,להשתמש_בקיים,record,תיקייה,קובץ,בלי_תפריט_אישור,שמירה_בניתוק,הוספה,מינ_שניות,מקס_שניות
+const REC_DIR = '/8';
+const recFile = (s) => `${s.id.slice(-8)}_${s.n + 1}`; // ask() מקדם את n, לכן +1
+const rec = (s) => `record,${REC_DIR},${recFile(s)},no,,,,${REC_MAX_SEC}`;
 
 // כל שאלה מקבלת שם משתנה חדש (v1, v2...) כי ימות שולחת בכל פנייה את כל מה שנאסף
 function ask(s, parts, ops) {
@@ -64,8 +67,6 @@ function bestMatch(text, options) {
   return best && bestD <= Math.max(1, Math.floor(norm(best).length / 4)) ? best : null;
 }
 
-const isNo = (v) => /^(לא|אין|כל העיר|לא תודה|0)$/.test(clean(v));
-const isYes = (v) => /^(כן|יש)$/.test(clean(v));
 
 // ---------- Supabase ----------
 const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
@@ -174,6 +175,39 @@ async function routeByExt(q, ext) {
   return `id_list_message=${info}&routing=${routing}`;
 }
 
+// ---------- תמלול (OpenAI) ----------
+const RECORD_STEPS = new Set(['city', 'hoodSay']);
+const YEMOT_API = process.env.YEMOT_API || 'https://private.call2all.co.il/ym/api';
+
+async function transcribe(s) {
+  const path = `ivr2:${REC_DIR}/${s.id.slice(-8)}_${s.n}.wav`;
+  const token = encodeURIComponent(process.env.YEMOT_TOKEN);
+  const file = await fetch(`${YEMOT_API}/DownloadFile?token=${token}&path=${encodeURIComponent(path)}`);
+  const type = file.headers.get('content-type') || '';
+  if (!file.ok || type.includes('json') || type.includes('text')) {
+    console.error('download:', file.status, (await file.text()).slice(0, 200));
+    return '';
+  }
+  const audio = await file.blob();
+  // מוחקים את ההקלטה מימות (לא קריטי אם נכשל)
+  fetch(`${YEMOT_API}/FileAction?token=${token}&action=delete&what=${encodeURIComponent(path)}`).catch(() => {});
+
+  // רשימת השמות האפשריים משפרת את הזיהוי
+  const names = s.step === 'city' ? await getCities() : s.hoods;
+  const form = new FormData();
+  form.append('file', audio, 'answer.wav');
+  form.append('model', 'gpt-4o-mini-transcribe');
+  form.append('language', 'he');
+  form.append('prompt', `שם של ${s.step === 'city' ? 'עיר' : 'שכונה'}, אחד מאלה: ${names.join(', ')}`);
+  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: form,
+  });
+  if (!res.ok) { console.error('openai:', res.status, await res.text()); return ''; }
+  return (await res.json()).text || '';
+}
+
 // ---------- מצב שיחה ----------
 const sessions = new Map(); // ApiCallId -> מצב
 setInterval(() => {
@@ -183,9 +217,6 @@ setInterval(() => {
 
 const HOOD_PAGE = 8; // שכונות בכל עמוד (9 = עוד שכונות)
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
-
-// ימות כבר מקריאה את מה שזוהה — חוזרים על הערך רק אם תיקנו אותו (למשל "ירושלם" → ירושלים)
-const echo = (s, value, text) => norm(value) !== norm(s.heard) && text;
 
 function reset(s) {
   Object.assign(s, { step: 'menu', page: 0, hoodPage: 0, guests: null, city: null, hood: null });
@@ -197,24 +228,25 @@ async function prompt(s) {
       return ask(s, ['בְּרוּכִים הַבָּאִים לֶגְמַ״ח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
         'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ אוֹתוֹ עַכְשָׁיו'], tap(4, 3));
     case 'guests':
-      return ask(s, ['מָה כַּמּוּת הַמּוּזְמָנִים הַמְּשׁוֹעֶרֶת'], stt(4));
+      return ask(s, ['הַקֵּשׁ אֶת כַּמּוּת הַמּוּזְמָנִים הַמְּשׁוֹעֶרֶת וּבְסִיּוּם סוּלָמִית'], tap(4, 7));
     case 'guestsOk': {
-      // ההודעה על כוכבית כאן ולא בשאלת המוזמנים, כי שם אין הקשה
       const hint = !s.hinted && 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
       s.hinted = true;
-      return ask(s, [echo(s, s.guests, `הֵבַנְתִּי ${s.guests} מוּזְמָנִים`), hint, ...CONFIRM], tap(1));
+      return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, hint, ...CONFIRM], tap(1));
     }
     case 'city':
-      return ask(s, ['בְּאֵיזוֹ עִיר'], stt());
+      return ask(s, ['בְּאֵיזוֹ עִיר', 'אֱמוֹר אֶת שֵׁם הָעִיר אַחֲרֵי הַצְּלִיל'], rec(s));
     case 'cityOk':
-      return ask(s, [echo(s, s.city, `הֵבַנְתִּי ${s.city}`), ...CONFIRM], tap(1));
+      return ask(s, [`הֵבַנְתִּי ${s.city}`, ...CONFIRM], tap(1));
     case 'hood':
       s.hoods = await getHoods(s.city);
       if (!s.hoods.length) { s.step = 'results'; s.page = 0; return prompt(s); }
-      return ask(s, ['הַאִם יֵשׁ שְׁכוּנָה מְסוּיֶּמֶת', 'אִם כֵּן אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה',
-        'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], stt(1));
+      return ask(s, ['לַאֲמִירַת שֵׁם הַשְּׁכוּנָה הַקֵּשׁ 1', 'לִבְחִירַת שְׁכוּנָה מֵרְשִׁימָה הַקֵּשׁ 2',
+        'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], tap(1));
+    case 'hoodSay':
+      return ask(s, ['אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה אַחֲרֵי הַצְּלִיל'], rec(s));
     case 'hoodOk':
-      return ask(s, [echo(s, s.hood, `הֵבַנְתִּי שְׁכוּנַת ${s.hood}`), ...CONFIRM], tap(1));
+      return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${s.hood}`, ...CONFIRM], tap(1));
     case 'hoodMenu': {
       const from = s.hoodPage * HOOD_PAGE;
       const page = s.hoods.slice(from, from + HOOD_PAGE);
@@ -287,7 +319,6 @@ async function handle(s, q, val, raw) {
       const n = parseGuests(raw);
       if (!(n >= 1 && n <= 5000)) return fail('לֹא הֵבַנְתִּי אֶת הַמִּסְפָּר');
       s.guests = n;
-      s.heard = raw;
       return go('guestsOk');
     }
     case 'guestsOk':
@@ -297,24 +328,26 @@ async function handle(s, q, val, raw) {
       const city = bestMatch(val, await getCities());
       if (!city) return fail('לֹא זִיהִיתִי אֶת הָעִיר אוֹ שֶׁאֵין בָּהּ אוּלַמּוֹת רְשׁוּמִים');
       s.city = city;
-      s.heard = val;
       return go('cityOk');
     }
     case 'cityOk':
       return confirm('hood', 'city');
 
-    case 'hood': {
+    case 'hood':
       s.page = 0;
       s.hoodPage = 0;
-      if (isNo(val)) { s.hood = null; return go('results'); }
-      if (isYes(val)) return go('hoodMenu');
+      if (val === '0') { s.hood = null; return go('results'); }
+      if (val === '1') return go('hoodSay');
+      if (val === '2') return go('hoodMenu');
+      return fail('בְּחִירָה לֹא תְּקִינָה');
+    case 'hoodSay': {
       const hood = bestMatch(val, s.hoods);
-      if (hood) { s.hood = hood; s.heard = val; return go('hoodOk'); }
+      if (hood) { s.hood = hood; return go('hoodOk'); }
       s.note = 'לֹא זִיהִיתִי אֶת הַשְּׁכוּנָה';
       return go('hoodMenu');
     }
     case 'hoodOk':
-      return confirm('results', 'hood');
+      return confirm('results', 'hoodSay');
     case 'hoodMenu': {
       s.page = 0;
       if (val === '0') { s.hood = null; return go('results'); }
@@ -363,7 +396,7 @@ app.all('/api/ivr', async (req, res) => {
       const ext = last(q.ext);
       if (ext) return res.send((await routeByExt(q, ext)) ?? bye('שְׁלוּחָה לֹא קַיֶּימֶת'));
 
-      s = { n: 0, t: Date.now() };
+      s = { id, n: 0, t: Date.now() };
       reset(s);
       // אם השרת אותחל באמצע שיחה - ממשיכים ממספור המשתנים הקיים ומודיעים על חזרה לתפריט
       const used = Object.keys(q).map((k) => /^v(\d+)$/.exec(k)?.[1]).filter(Boolean).map(Number);
@@ -372,8 +405,9 @@ app.all('/api/ivr', async (req, res) => {
       return res.send(await prompt(s));
     }
 
-    // בזיהוי דיבור, הקשה מגיעה כ-"Digits-1234" - מסירים את הקידומת
-    const raw = String(last(q[`v${s.n}`]) ?? '').replace(/^Digits-?/i, '');
+    let raw = String(last(q[`v${s.n}`]) ?? '');
+    // בשלבי דיבור ימות רק מקליטה - מתמללים בעצמנו
+    if (RECORD_STEPS.has(s.step) && !raw.includes('*')) raw = await transcribe(s).catch((e) => { console.error('transcribe:', e.message); return ''; });
     return res.send(await handle(s, q, clean(raw), raw));
   } catch (err) {
     console.error('שגיאה בשרת:', err);
