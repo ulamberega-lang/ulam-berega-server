@@ -7,14 +7,19 @@ app.use(express.json());
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const WAIT_SEC = 50;         // זמן המתנה למענה הגבאי
+const WAIT_SEC = 30;         // זמן המתנה למענה הגבאי
 const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
-const GUEST_MARGIN = 50;     // חריגה מותרת: אולם קטן עד 50 איש מכמות המוזמנים
+const GUEST_MARGIN = 30;     // חריגה מותרת: אולם קטן עד 30 איש מכמות המוזמנים
 const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
 const MAX_TRIES = 3;         // ניסיונות לפני ניתוק
 
 // ---------- עזרי ימות ----------
-const params = (req) => ({ ...req.query, ...req.body });
+// ApiCallId מתחלף בכל מעבר שלוחה; ApiYFCallId קבוע לאורך כל השיחה
+const params = (req) => {
+  const q = { ...req.query, ...req.body };
+  if (q.ApiYFCallId) q.ApiCallId = q.ApiYFCallId;
+  return q;
+};
 const last = (v) => [].concat(v ?? '').pop();
 const clean = (s) => String(s ?? '').replace(/[.,\-=&"'|\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
 const say = (parts) => [].concat(parts).flat().filter(Boolean).map((p) => `t-${clean(p)}`).join('.');
