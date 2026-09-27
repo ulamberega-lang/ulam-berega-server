@@ -9,7 +9,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const WAIT_SEC = 35;         // זמן המתנה למענה הגבאי (לפני שהתא הקולי עונה)
 const NO_ANSWER_EXT = '/9';  // שלוחת "אין מענה"
-const REC_MAX_SEC = 5;       // אורך הקלטה מקסימלי לתשובה בדיבור
+const REC_MAX_SEC = 5;       // אורך הקלטה מקסימלי (ההקלטה נעצרת רק בסולמית או בזמן הזה)
 const PAGE_SIZE = 5;         // כמה אולמות להקריא בכל פעם
 
 // ---------- עזרי ימות ----------
@@ -180,6 +180,9 @@ const RECORD_STEPS = new Set(['city', 'hoodSay']);
 const YEMOT_API = process.env.YEMOT_API || 'https://private.call2all.co.il/ym/api';
 
 async function transcribe(s) {
+  const t0 = Date.now();
+  // רשימת השמות נטענת במקביל להורדה
+  const namesP = s.step === 'city' ? getCities() : Promise.resolve(s.hoods);
   const path = `ivr2:${REC_DIR}/${s.id.slice(-8)}_${s.n}.wav`;
   const token = encodeURIComponent(process.env.YEMOT_TOKEN);
   const file = await fetch(`${YEMOT_API}/DownloadFile?token=${token}&path=${encodeURIComponent(path)}`);
@@ -189,11 +192,12 @@ async function transcribe(s) {
     return '';
   }
   const audio = await file.blob();
+  const t1 = Date.now();
   // מוחקים את ההקלטה מימות (לא קריטי אם נכשל)
   fetch(`${YEMOT_API}/FileAction?token=${token}&action=delete&what=${encodeURIComponent(path)}`).catch(() => {});
 
   // רשימת השמות האפשריים משפרת את הזיהוי
-  const names = s.step === 'city' ? await getCities() : s.hoods;
+  const names = await namesP;
   const form = new FormData();
   form.append('file', audio, 'answer.wav');
   form.append('model', 'gpt-4o-mini-transcribe');
@@ -205,7 +209,9 @@ async function transcribe(s) {
     body: form,
   });
   if (!res.ok) { console.error('openai:', res.status, await res.text()); return ''; }
-  return (await res.json()).text || '';
+  const text = (await res.json()).text || '';
+  console.log(`זמנים: מהשאלה ${t0 - s.t}ms | הורדה ${t1 - t0}ms | תמלול ${Date.now() - t1}ms | "${text}"`);
+  return text;
 }
 
 // ---------- מצב שיחה ----------
@@ -235,7 +241,7 @@ async function prompt(s) {
       return ask(s, [`הֵבַנְתִּי ${s.guests} מוּזְמָנִים`, hint, ...CONFIRM], tap(1));
     }
     case 'city':
-      return ask(s, ['בְּאֵיזוֹ עִיר', 'אֱמוֹר אֶת שֵׁם הָעִיר אַחֲרֵי הַצְּלִיל'], rec(s));
+      return ask(s, ['בְּאֵיזוֹ עִיר', 'אֱמוֹר אֶת שֵׁם הָעִיר אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], rec(s));
     case 'cityOk':
       return ask(s, [`הֵבַנְתִּי ${s.city}`, ...CONFIRM], tap(1));
     case 'hood':
@@ -244,7 +250,7 @@ async function prompt(s) {
       return ask(s, ['לַאֲמִירַת שֵׁם הַשְּׁכוּנָה הַקֵּשׁ 1', 'לִבְחִירַת שְׁכוּנָה מֵרְשִׁימָה הַקֵּשׁ 2',
         'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], tap(1));
     case 'hoodSay':
-      return ask(s, ['אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה אַחֲרֵי הַצְּלִיל'], rec(s));
+      return ask(s, ['אֱמוֹר אֶת שֵׁם הַשְּׁכוּנָה אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], rec(s));
     case 'hoodOk':
       return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${s.hood}`, ...CONFIRM], tap(1));
     case 'hoodMenu': {
