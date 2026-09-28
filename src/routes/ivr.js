@@ -21,6 +21,8 @@ ivrRouter.all('/', async (req, res) => {
       return res.send('');
     }
 
+    if (!id) return res.status(400).send('');
+
     let s = getSession(id);
     if (!s) return res.send(await startCall(q));
 
@@ -49,7 +51,7 @@ async function startCall(q) {
 
   // כניסה ישירה משלוחת אולם בימות (api_add_0=ext=101)
   const ext = lastValue(q.ext);
-  if (ext) return (await routeToHall(q, ext)) ?? hangup('שְׁלוּחָה לֹא קַיֶּימֶת');
+  if (ext) return (await routeToHall(q, ext, { brief: true })) ?? hangup('שְׁלוּחָה לֹא קַיֶּימֶת');
 
   const s = createSession(q.ApiCallId);
   // השרת אותחל באמצע שיחה - ממשיכים ממספור המשתנים הקיים ומודיעים על חזרה לתפריט

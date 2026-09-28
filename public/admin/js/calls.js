@@ -3,9 +3,10 @@ import { api } from './api.js';
 import { $, escapeHtml } from './dom.js';
 import { formatDateTime, hebrewOf } from './dates.js';
 
-export async function loadCalls(range, halls) {
+export async function loadCalls(range, halls, isCurrent = () => true) {
   const byId = new Map(halls.map((h) => [h.id, h]));
   const calls = await api.listCalls(range, $('#callsHall').value);
+  if (!isCurrent()) return;
 
   $('#callsList').innerHTML = calls.length ? calls.map((c) => {
     const hall = byId.get(c.hall_id);

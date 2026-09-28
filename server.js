@@ -4,6 +4,9 @@ import { config } from './src/config.js';
 import { startNikudRefresh } from './src/services/nikud.js';
 import { startKeepAlive } from './src/services/keep-alive.js';
 
+// שגיאה שנשכחה בלי טיפול לא תפיל את השרת (ואת הקו הטלפוני) - רק תירשם בלוג
+process.on('unhandledRejection', (err) => console.error('unhandled:', err));
+
 startNikudRefresh();
 startKeepAlive();
 

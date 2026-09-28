@@ -28,6 +28,13 @@ export async function findByCallId(callId) {
     .eq('yemot_call_id', callId).maybeSingle());
 }
 
+// מסמן "לא נענה" רק אם הניסיון הנוכחי עוד פתוח; מחזיר null אם כבר סומן
+export async function markNotAnswered(callId) {
+  return unwrap(await supabase.from(TABLE).update({ answered: false })
+    .eq('yemot_call_id', callId).is('answered', null)
+    .select('created_at, answered, hall_id, caller_phone').maybeSingle());
+}
+
 export async function updateByCallId(callId, patch) {
   return unwrap(await supabase.from(TABLE).update(patch).eq('yemot_call_id', callId)
     .select('created_at, answered, hall_id, caller_phone').maybeSingle());

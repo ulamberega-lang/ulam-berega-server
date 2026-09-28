@@ -15,7 +15,7 @@ export function callRouted(callId, callerPhone, hall, calledPhone) {
 
 // האולם לא ענה → מייל מיידי על שיחה שלא נענתה
 export async function callNotAnswered(callId) {
-  const row = await calls.updateByCallId(callId, { answered: false });
+  const row = await calls.markNotAnswered(callId);
   if (row?.hall_id) {
     notifyHall({ hallId: row.hall_id, callerPhone: row.caller_phone, startedAt: row.created_at, answered: false })
       .catch(logError('mail'));

@@ -3,11 +3,12 @@ import { IVR } from '../config.js';
 import { routeCall } from '../lib/yemot.js';
 import * as halls from '../repositories/halls.js';
 import { callRouted } from '../services/call-log.js';
-import { withNikud } from '../services/nikud.js';
+import { withNikud, withPrefix } from '../services/nikud.js';
 import { getSession } from './sessions.js';
 
-// מחזיר תשובה לימות, או null אם אין אולם פעיל בשלוחה הזו
-export async function routeToHall(q, extension) {
+// מחזיר תשובה לימות, או null אם אין אולם פעיל בשלוחה הזו.
+// "מעביר לאולם X" ואחריו הכתובת; brief (שלוחות 2 ו-3) - בלי הכתובת
+export async function routeToHall(q, extension, { brief = false } = {}) {
   const hall = await halls.findActiveByExtension(extension);
   if (!hall) return null;
 
@@ -18,11 +19,7 @@ export async function routeToHall(q, extension) {
   await callRouted(q.ApiCallId, q.ApiPhone, hall, phone);
 
   return routeCall([
-    withNikud(hall.name),
-    hall.neighborhood_name && `שְׁכוּנַת ${withNikud(hall.neighborhood_name)}`,
-    withNikud(hall.address), // מילה-מילה: "רחוב הרב קוק 5"
-    hall.max_guests && `עַד ${hall.max_guests} אוֹרְחִים`,
-    `מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם ${hall.extension}`, // כדי שבפעם הבאה יוכלו להקיש ישירות
-    'מַעֲבִיר לָאוּלָם',
+    `מַעֲבִיר ${withPrefix('ל', hall.name)}`,
+    !brief && withNikud(hall.address), // מילה-מילה: "רחוב הרב קוק 5"
   ], phone, IVR.WAIT_SEC, IVR.NO_ANSWER_EXT);
 }

@@ -1,13 +1,16 @@
 // זרימת השיחה: מה שואלים בכל שלב (prompt) ואיך מטפלים בתשובה (handleAnswer).
 //
-// שלבים:  menu → guests → guestsOk → city → cityOk → hood → (hoodSay → hoodOk | hoodMenu) → results
-//         menu → extEntry (הקשת מספר שלוחה ישירה)
-//         cityMenu / hoodMenu - בחירה מרשימה (גם כשהתמלול נכשל)
+// שלבים:
+//   1 חיפוש לפי כמות ומיקום:  guests → guestsOk → city → cityOk → hood → (hoodSay → hoodOk | hoodMenu) → results
+//   2 מספר שלוחה:             extEntry
+//   3 חיפוש לפי שם:            hallCitySay (שם האולם והעיר בהקלטה אחת) → hallOk | hallMenu
+//                              אם העיר לא זוהתה: city → cityOk → hallSay → hallOk | hallMenu
+//   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
 import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
-import { bestMatch, parseNumber } from '../lib/text-match.js';
+import { bestMatch, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../repositories/halls.js';
-import { withNikud } from '../services/nikud.js';
+import { withNikud, withPrefix } from '../services/nikud.js';
 import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';
 import { routeToHall } from './route-to-hall.js';
@@ -31,23 +34,82 @@ function ask(s, parts, options) {
 const recordingFile = (s, n) => `${s.id.slice(-8)}_${n}`;
 const recordAnswer = (s) => recordOptions(IVR.REC_DIR, recordingFile(s, s.n + 1), IVR.REC_MAX_SEC); // ask() מקדם את n
 
-export const isSpeechStep = (s) => s.step === 'city' || s.step === 'hoodSay';
+const SPEECH_STEPS = {
+  city: { kind: 'עיר', hints: () => halls.getActiveCities(), list: 'cityMenu' },
+  hoodSay: { kind: 'שכונה', hints: (s) => s.hoods, list: 'hoodMenu' },
+  hallSay: { kind: 'אולם אירועים', hints: (s) => uniqueNames(s.cityHalls), list: 'hallMenu' },
+  hallCitySay: { kind: 'אולם אירועים ועיר', hints: hallAndCityNames, list: 'cityMenu' },
+};
+
+export const isSpeechStep = (s) => s.step in SPEECH_STEPS;
 
 // מחזיר את מה שנאמר, או null אם התמלול נכשל
 export async function transcribeAnswer(s) {
-  const isCity = s.step === 'city';
+  const step = SPEECH_STEPS[s.step];
+  // הרמזים נטענים במקביל להורדה; catch ריק מונע קריסה אם הם נכשלים לפני שממתינים להם
+  const hints = Promise.resolve().then(() => step.hints(s));
+  hints.catch(() => {});
   return transcribeRecording({
     path: `ivr2:${IVR.REC_DIR}/${recordingFile(s, s.n)}.wav`,
-    hints: isCity ? await halls.getActiveCities() : s.hoods,
-    kind: isCity ? 'עיר' : 'שכונה',
+    hints,
+    kind: step.kind,
   }).catch((e) => { console.error('transcribe:', e.message); return null; });
 }
 
 // התמלול נכשל (למשל נגמרה היתרה ב-OpenAI) - בחירה מרשימה בהקשה
 export function fallbackToList(s) {
   s.note = 'בְּחַר מֵהָרְשִׁימָה';
-  if (s.step === 'city') { s.cityPage = 0; s.step = 'cityMenu'; } else { s.hoodPage = 0; s.step = 'hoodMenu'; }
+  s.listPage = 0;
+  s.cityPage = 0;
+  s.hoodPage = 0;
+  if (s.step === 'hallSay') s.hallChoices = s.cityHalls;
+  if (s.step === 'hallCitySay') s.nameStep = 'hallSay'; // התמלול לא עובד - לא לבקש שוב הקלטה משולבת
+  s.step = SPEECH_STEPS[s.step].list;
   return prompt(s);
+}
+
+async function hallAndCityNames() {
+  const all = await halls.getActiveHalls();
+  return [...new Set([...all.map((h) => h.city_name), ...all.map((h) => h.name)])];
+}
+
+// מוריד את שם העיר ממה שנאמר ("כתר בירושלים" → "כתר"), כולל אות שימוש לפניו (בירושלים)
+function withoutCity(text, city) {
+  const words = String(text).split(' ').filter(Boolean);
+  const cityWords = city.split(' ');
+  for (let i = 0; i + cityWords.length <= words.length; i++) {
+    const candidate = words.slice(i, i + cityWords.length).join(' ').replace(/^[בלמו]/, '');
+    if (normalize(candidate) === normalize(city) || normalize(words.slice(i, i + cityWords.length).join(' ')) === normalize(city)) {
+      return [...words.slice(0, i), ...words.slice(i + cityWords.length)].join(' ');
+    }
+  }
+  return text;
+}
+
+// אחרי שנמצא שם: אולם אחד → אישור; כמה באותו שם → בחירה ביניהם; אף אחד → כל אולמות העיר
+function chooseHall(s, name, pool, spoken) {
+  const matches = name ? pool.filter((h) => h.name === name) : [];
+  if (matches.length === 1) { s.hall = matches[0]; s.step = 'hallOk'; return prompt(s); }
+  s.listPage = 0;
+  s.hallChoices = matches.length ? matches : pool;
+  if (!matches.length && spoken.trim()) {
+    s.note = `לֹא נִמְצָא אוּלָם בְּשֵׁם ${spoken}${s.city ? ` ${withPrefix('ב', s.city)}` : ''}`;
+  }
+  s.step = 'hallMenu';
+  return prompt(s);
+}
+
+// אחרי בחירת עיר: חיפוש לפי שם → שאלת שם האולם; אחרת → שכונה
+const afterCity = (s) => (s.mode === 'name' ? 'hallSay' : 'hood');
+
+const uniqueNames = (list) => [...new Set(list.map((h) => h.name))];
+
+// שם אולם להקראה. העיר - באישור, או כשברשימה יש כמה ערים; השכונה - כשיש בעיר שני אולמות באותו שם
+function hallLabel(hall, list, withCity = new Set(list.map((h) => h.city_name)).size > 1, prefix = '') {
+  const twin = list.some((h) => h !== hall && h.name === hall.name && h.city_name === hall.city_name);
+  return (prefix ? withPrefix(prefix, hall.name) : withNikud(hall.name))
+    + (withCity ? ` ${withPrefix('ב', hall.city_name)}` : '')
+    + (twin && hall.neighborhood_name ? ` בִּשְׁכוּנַת ${withNikud(hall.neighborhood_name)}` : '');
 }
 
 // ---------- מה שואלים בכל שלב ----------
@@ -56,7 +118,8 @@ export async function prompt(s) {
   switch (s.step) {
     case 'menu':
       return ask(s, ['בְּרוּכִים הַבָּאִים לֶגְמַ״ח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
-        'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 2'], tapOptions(1));
+        'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 2',
+        'לְחִיפּוּשׂ לְפִי שֵׁם הָאוּלָם הַקֵּשׁ 3'], tapOptions(1));
 
     case 'extEntry':
       return ask(s, ['הַקֵּשׁ אֶת מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם וּבְסִיּוּם סוּלָמִית'], tapOptions(4, 7));
@@ -78,8 +141,25 @@ export async function prompt(s) {
       const from = s.cityPage * IVR.MENU_PAGE;
       s.cityMore = s.cities.length > from + IVR.MENU_PAGE;
       return ask(s, ['בְּאֵיזוֹ עִיר',
-        ...s.cities.slice(from, from + IVR.MENU_PAGE).map((c, i) => `לְ${withNikud(c)} הַקֵּשׁ ${i + 1}`),
+        ...s.cities.slice(from, from + IVR.MENU_PAGE).map((c, i) => `${withPrefix('ל', c)} הַקֵּשׁ ${i + 1}`),
         s.cityMore && 'לְעָרִים נוֹסָפוֹת הַקֵּשׁ 9'], tapOptions(1));
+    }
+
+    case 'hallCitySay':
+      return ask(s, ['אֱמוֹר אֶת שֵׁם הָאוּלָם וְהָעִיר אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], recordAnswer(s));
+    case 'hallSay':
+      s.cityHalls = await halls.getActiveHallsInCity(s.city);
+      return ask(s, ['אֱמוֹר אֶת שֵׁם הָאוּלָם אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], recordAnswer(s));
+    case 'hallOk':
+      return ask(s, [`הֵבַנְתִּי ${hallLabel(s.hall, s.cityHalls, true)}`, 'לְמַעֲבָר לָאוּלָם הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tapOptions(1));
+    case 'hallMenu': {
+      const list = s.hallChoices;
+      const from = s.listPage * IVR.MENU_PAGE;
+      s.listMore = list.length > from + IVR.MENU_PAGE;
+      return ask(s, ['לְאֵיזֶה אוּלָם',
+        ...list.slice(from, from + IVR.MENU_PAGE).map((h, i) => `${hallLabel(h, list, undefined, 'ל')} הַקֵּשׁ ${i + 1}`),
+        s.listMore && 'לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9',
+        'לַאֲמִירַת הַשֵּׁם שׁוּב הַקֵּשׁ 0'], tapOptions(1));
     }
 
     case 'hood':
@@ -95,13 +175,13 @@ export async function prompt(s) {
       const from = s.hoodPage * IVR.MENU_PAGE;
       s.hoodMore = s.hoods.length > from + IVR.MENU_PAGE;
       return ask(s, ['בְּאֵיזוֹ שְׁכוּנָה',
-        ...s.hoods.slice(from, from + IVR.MENU_PAGE).map((h, i) => `לְ${withNikud(h)} הַקֵּשׁ ${i + 1}`),
+        ...s.hoods.slice(from, from + IVR.MENU_PAGE).map((h, i) => `${withPrefix('ל', h)} הַקֵּשׁ ${i + 1}`),
         s.hoodMore && 'לִשְׁכוּנוֹת נוֹסָפוֹת הַקֵּשׁ 9',
         'לְכָל הָעִיר הַקֵּשׁ 0'], tapOptions(1));
     }
 
     case 'noResults':
-      return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${withNikud(s.city)} לְ${s.guests} מוּזְמָנִים`,
+      return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת ${withPrefix('ב', s.city)} לְ${s.guests} מוּזְמָנִים`,
         'לְשִׁינּוּי כַּמּוּת הַמּוּזְמָנִים הַקֵּשׁ 1', 'לְשִׁינּוּי הָעִיר הַקֵּשׁ 2',
         'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ כּוֹכָבִית'], tapOptions(1));
 
@@ -159,11 +239,12 @@ export async function handleAnswer(s, q, val, raw) {
 
   switch (s.step) {
     case 'menu':
-      if (val === '1') return go('guests');
+      if (val === '1') { s.mode = 'filters'; return go('guests'); }
       if (val === '2') return go('extEntry');
+      if (val === '3') { s.mode = 'name'; s.nameStep = 'hallCitySay'; return go('hallCitySay'); }
       return invalid();
     case 'extEntry':
-      return (await routeToHall(q, val)) ?? retry(`שְׁלוּחָה ${val} לֹא קַיֶּימֶת`);
+      return (await routeToHall(q, val, { brief: true })) ?? retry(`שְׁלוּחָה ${val} לֹא קַיֶּימֶת`);
 
     case 'guests': {
       const n = parseNumber(raw);
@@ -181,13 +262,56 @@ export async function handleAnswer(s, q, val, raw) {
       return go('cityOk');
     }
     case 'cityOk':
-      return confirm('hood', 'city');
+      return confirm(afterCity(s), 'city');
     case 'cityMenu': {
       if (val === '9' && s.cityMore) { s.cityPage++; return go('cityMenu'); }
       const city = pickFromPage(s.cities, s.cityPage);
       if (!city) return invalid();
       s.city = city;
-      return go('hood');
+      return go(afterCity(s));
+    }
+
+    case 'hallCitySay': {
+      const all = await halls.getActiveHalls();
+      const city = bestMatch(val, [...new Set(all.map((h) => h.city_name))]);
+      if (city) {
+        s.city = city;
+        s.cityHalls = all.filter((h) => h.city_name === city);
+        const rest = withoutCity(val, city);
+        const name = bestMatch(rest, uniqueNames(s.cityHalls));
+        // שם העיר זוהה בטעות מתוך שם האולם ("היכל ירושלים") - מחפשים בכל הערים
+        const elsewhere = !name && bestMatch(val, uniqueNames(all));
+        if (elsewhere) {
+          s.city = null;
+          s.cityHalls = all.filter((h) => h.name === elsewhere);
+          return chooseHall(s, elsewhere, s.cityHalls, val);
+        }
+        return chooseHall(s, name, s.cityHalls, rest);
+      }
+      // העיר לא זוהתה - מחפשים את שם האולם בכל הערים
+      const name = bestMatch(val, uniqueNames(all));
+      if (name) {
+        s.cityHalls = all.filter((h) => h.name === name);
+        return chooseHall(s, name, s.cityHalls, val);
+      }
+      s.note = 'לֹא זִיהִיתִי נַעֲבוֹר שָׁלָב אַחַר שָׁלָב';
+      s.nameStep = 'hallSay';
+      return go('city');
+    }
+    case 'hallSay': {
+      s.nameStep = 'hallSay';
+      return chooseHall(s, bestMatch(val, uniqueNames(s.cityHalls)), s.cityHalls, val);
+    }
+    case 'hallOk':
+      if (val === '1') return (await routeToHall(q, s.hall.extension, { brief: true })) ?? invalid();
+      if (val === '2') return go(s.nameStep);
+      return retry('לֹא הֵבַנְתִּי');
+    case 'hallMenu': {
+      if (val === '0') return go(s.nameStep);
+      if (val === '9' && s.listMore) { s.listPage++; return go('hallMenu'); }
+      const hall = pickFromPage(s.hallChoices, s.listPage);
+      if (!hall) return invalid();
+      return (await routeToHall(q, hall.extension, { brief: true })) ?? invalid();
     }
 
     case 'hood':

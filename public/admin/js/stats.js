@@ -7,12 +7,13 @@ let rows = [];                                  // שורה לכל אולם: פ�
 let sort = { key: 'total', dir: 'descending' };
 let selectedHall = null;
 
-export async function loadStats(range, halls) {
+export async function loadStats(range, halls, isCurrent = () => true) {
   const [byHall, allDays, hallDays] = await Promise.all([
     api.statsByHall(range),
     api.statsByDay(range),
     selectedHall ? api.statsByDay(range, selectedHall.id) : null,
   ]);
+  if (!isCurrent()) return;
   const stats = new Map(byHall.map((r) => [r.hall_id, r]));
   rows = halls.map((h) => {
     const s = stats.get(h.id) || { total: 0, answered: 0, unanswered: 0 };

@@ -8,14 +8,18 @@ import { initHalls, renderHalls } from './halls.js';
 
 const state = { tab: 'stats', range: preset('month'), halls: [] };
 
+let requestId = 0;
+
 async function refresh() {
   showError('');
+  const current = ++requestId;
+  const isCurrent = () => current === requestId; // תשובה ישנה (לחיצות מהירות) לא דורסת חדשה
   try {
-    if (state.tab === 'stats') await loadStats(state.range, state.halls);
-    if (state.tab === 'calls') await loadCalls(state.range, state.halls);
+    if (state.tab === 'stats') await loadStats(state.range, state.halls, isCurrent);
+    if (state.tab === 'calls') await loadCalls(state.range, state.halls, isCurrent);
     if (state.tab === 'halls') renderHalls(state.halls);
   } catch (err) {
-    showError(err.message);
+    if (isCurrent()) showError(err.message);
   }
 }
 
