@@ -9,7 +9,7 @@
 import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
 import { bestMatch, normalize, parseNumber } from '../lib/text-match.js';
-import * as halls from '../repositories/halls.js';
+import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix } from '../services/nikud.js';
 import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';

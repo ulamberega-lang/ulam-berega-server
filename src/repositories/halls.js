@@ -1,47 +1,14 @@
 // גישה לטבלת halls.
 import { supabase, unwrap, selectAll } from '../lib/supabase.js';
 
-const uniqueSorted = (arr) => [...new Set(arr.filter(Boolean))].sort();
-
 // כמה אולם מותר להיות קטן מכמות המוזמנים ועדיין להופיע בתוצאות
 export const guestMargin = (guests) => (guests <= 100 ? 30 : guests <= 250 ? 50 : guests <= 500 ? 100 : 200);
 
-// ---------- למערכת הטלפונית (אולמות פעילים בלבד) ----------
-
-export async function getActiveCities() {
-  const rows = await selectAll(() => supabase.from('halls').select('city_name').eq('is_active', true).order('id'));
-  return uniqueSorted(rows.map((r) => r.city_name));
-}
-
-export async function getActiveNeighborhoods(city) {
-  const rows = unwrap(await supabase.from('halls').select('neighborhood_name')
-    .eq('is_active', true).eq('city_name', city));
-  return uniqueSorted(rows.map((r) => r.neighborhood_name));
-}
-
-export async function searchHalls({ city, neighborhood, guests }) {
-  let query = supabase.from('halls').select('*')
-    .eq('is_active', true).eq('city_name', city)
-    .gte('max_guests', guests - guestMargin(guests))
-    .not('extension', 'is', null)
-    .order('max_guests').order('name');
-  if (neighborhood) query = query.eq('neighborhood_name', neighborhood);
-  return unwrap(await query);
-}
+// ---------- למערכת הטלפונית (נטען לזיכרון דרך services/hall-directory.js) ----------
 
 export async function getActiveHalls() {
   return selectAll(() => supabase.from('halls').select('*')
     .eq('is_active', true).not('extension', 'is', null).order('name').order('id'));
-}
-
-export async function getActiveHallsInCity(city) {
-  return unwrap(await supabase.from('halls').select('*')
-    .eq('is_active', true).eq('city_name', city).not('extension', 'is', null).order('name'));
-}
-
-export async function findActiveByExtension(extension) {
-  return unwrap(await supabase.from('halls').select('*')
-    .eq('is_active', true).eq('extension', String(extension)).maybeSingle());
 }
 
 export async function findById(id) {

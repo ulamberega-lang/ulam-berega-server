@@ -1,6 +1,7 @@
 // API לאתר הניהול (/admin/api). תאריכים בפורמט YYYY-MM-DD לפי שעון ישראל.
 import { Router } from 'express';
 import * as halls from '../repositories/halls.js';
+import { hallsChanged } from '../services/hall-directory.js';
 import * as calls from '../repositories/calls.js';
 
 export const adminApi = Router();
@@ -48,8 +49,10 @@ function hallFromBody(body, isNew) {
 }
 
 adminApi.get('/halls', handle(() => halls.listAll()));
-adminApi.post('/halls', handle((req) => halls.create(hallFromBody(req.body, true))));
-adminApi.put('/halls/:id', handle((req) => halls.update(req.params.id, hallFromBody(req.body, false))));
+// אחרי שמירה - מרעננים את הרשימה שהמערכת הטלפונית משתמשת בה
+const saved = (hall) => { hallsChanged(); return hall; };
+adminApi.post('/halls', handle(async (req) => saved(await halls.create(hallFromBody(req.body, true)))));
+adminApi.put('/halls/:id', handle(async (req) => saved(await halls.update(req.params.id, hallFromBody(req.body, false)))));
 
 // ---------- שיחות וסטטיסטיקה ----------
 

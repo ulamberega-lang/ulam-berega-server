@@ -1,7 +1,7 @@
 // העברת המתקשר לאולם לפי מספר שלוחה.
 import { IVR } from '../config.js';
 import { routeCall } from '../lib/yemot.js';
-import * as halls from '../repositories/halls.js';
+import * as halls from '../services/hall-directory.js';
 import { callRouted } from '../services/call-log.js';
 import { withNikud, withPrefix } from '../services/nikud.js';
 import { getSession } from './sessions.js';
