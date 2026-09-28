@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ניהול אולם ברגע</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <h1>אולם ברגע, ניהול</h1>
+      <nav role="tablist">
+        <button role="tab" data-tab="stats" aria-selected="true">שיחות לפי אולם</button>
+        <button role="tab" data-tab="calls" aria-selected="false">יומן שיחות</button>
+        <button role="tab" data-tab="halls" aria-selected="false">ניהול אולמות</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="error"></div>
+
+    <!-- טווח תאריכים: משותף לסטטיסטיקה וליומן -->
+    <section id="range" class="range">
+      <div class="presets" role="group" aria-label="תקופה">
+        <button data-preset="today">היום</button>
+        <button data-preset="yesterday">אתמול</button>
+        <button data-preset="week">7 ימים</button>
+        <button data-preset="month" aria-pressed="true">30 ימים</button>
+        <button data-preset="thisMonth">החודש</button>
+        <button data-preset="lastMonth">חודש שעבר</button>
+      </div>
+      <div class="dates">
+        <label>מתאריך <input type="date" id="from"></label>
+        <label>עד תאריך <input type="date" id="to"></label>
+      </div>
+    </section>
+
+    <!-- שיחות לפי אולם -->
+    <section id="tab-stats" role="tabpanel">
+      <dl class="totals" id="totals"></dl>
+
+      <div class="section-head">
+        <h2>לפי אולם</h2>
+        <input type="search" id="statsSearch" placeholder="חיפוש אולם או עיר">
+        <label class="check"><input type="checkbox" id="showIdle"> גם אולמות בלי שיחות</label>
+      </div>
+      <div class="table-box">
+        <table class="stats-table">
+          <thead><tr>
+            <th data-sort="name">אולם</th>
+            <th data-sort="city">עיר</th>
+            <th data-sort="total" class="num">סה"כ</th>
+            <th data-sort="answered" class="num">נענו</th>
+            <th data-sort="unanswered" class="num">לא נענו</th>
+            <th data-sort="rate" class="num">אחוז מענה</th>
+          </tr></thead>
+          <tbody id="hallStats"></tbody>
+        </table>
+      </div>
+      <p class="note">לחיצה על אולם מציגה את השיחות שלו לפי יום.</p>
+
+      <div class="section-head">
+        <h2 id="daysTitle">לפי יום</h2>
+        <button class="chip" id="clearHall" hidden>הצג את כל האולמות</button>
+      </div>
+      <div class="table-box">
+        <table>
+          <thead><tr>
+            <th>יום</th><th class="num">סה"כ</th><th class="num">נענו</th><th class="num">לא נענו</th><th class="bar-col"></th>
+          </tr></thead>
+          <tbody id="dayStats"></tbody>
+        </table>
+      </div>
+      <p class="legend"><span><i class="y" style="background:var(--yes)"></i>נענו</span>
+        <span><i style="background:var(--no)"></i>לא נענו</span>
+        <span><i style="background:var(--line)"></i>לא הגיעו לאולם</span></p>
+    </section>
+
+    <!-- יומן שיחות -->
+    <section id="tab-calls" role="tabpanel" hidden>
+      <div class="section-head">
+        <h2>יומן שיחות</h2>
+        <select id="callsHall" aria-label="אולם"><option value="">כל האולמות</option></select>
+      </div>
+      <div class="table-box">
+        <table>
+          <thead><tr><th>מתי</th><th>מתקשר</th><th>אולם</th><th>מצב</th><th class="num">משך</th></tr></thead>
+          <tbody id="callsList"></tbody>
+        </table>
+      </div>
+      <p class="note">מוצגות עד 500 השיחות האחרונות בטווח.</p>
+    </section>
+
+    <!-- ניהול אולמות -->
+    <section id="tab-halls" role="tabpanel" hidden>
+      <div class="section-head">
+        <input type="search" id="hallsSearch" placeholder="חיפוש לפי שם, עיר, שכונה או שלוחה">
+        <button class="btn" id="addHall">הוסף אולם</button>
+      </div>
+      <div class="list" id="hallsList"></div>
+    </section>
+  </main>
+
+  <dialog id="hallDialog">
+    <form id="hallForm" method="dialog">
+      <h2 id="hallFormTitle">אולם חדש</h2>
+      <label class="full">שם האולם<input name="name" required></label>
+      <label>עיר<input name="city_name" required list="cityOptions"></label>
+      <label>שכונה<input name="neighborhood_name" list="hoodOptions"></label>
+      <p class="hint">כדאי לבחור עיר ושכונה מהרשימה, כדי שהזיהוי בטלפון יתאים לאולמות הקיימים.</p>
+      <label class="full">כתובת<input name="address"></label>
+      <label>מקסימום אורחים<input name="max_guests" type="number" min="1" inputmode="numeric" required></label>
+      <label>מספר שלוחה<input name="extension" inputmode="numeric" pattern="\d{2,4}" required title="2 עד 4 ספרות"></label>
+      <label>טלפון להעברה<input name="gabbai_phone" type="tel" inputmode="tel" required></label>
+      <label>מייל לעדכונים<input name="gabbai_email" type="email"></label>
+      <label class="check full"><input type="checkbox" name="is_active" checked> האולם פעיל ומופיע בחיפוש</label>
+      <div id="hallFormError" class="full"></div>
+      <div class="actions">
+        <button class="btn" value="save">שמור</button>
+        <button class="btn ghost" value="cancel" formnovalidate>ביטול</button>
+      </div>
+    </form>
+  </dialog>
+  <datalist id="cityOptions"></datalist>
+  <datalist id="hoodOptions"></datalist>
+</body>
+</html>

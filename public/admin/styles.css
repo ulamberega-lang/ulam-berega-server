@@ -1,0 +1,113 @@
+:root {
+  --ink: #1E2B3A;
+  --muted: #66727F;
+  --line: #D8DEE5;
+  --mist: #EEF1F4;
+  --paper: #FFFFFF;
+  --yes: #2E6B57;
+  --no: #B5472F;
+  --focus: #3B6FD8;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 Rubik, "Segoe UI", Arial, sans-serif; color: var(--ink); background: var(--mist); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+a { color: inherit; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+main.wrap { padding-bottom: 48px; }
+[hidden] { display: none !important; }
+
+/* כותרת ולשוניות */
+.topbar { position: sticky; top: 0; z-index: 5; background: var(--ink); color: #fff; }
+.topbar h1 { font-size: 1.15rem; margin: 0; padding: 12px 0 8px; }
+.topbar nav { display: flex; overflow-x: auto; }
+.topbar nav button { background: none; border: 0; color: #C9D2DC; font-weight: 500; padding: 8px 14px 12px; white-space: nowrap;
+  border-bottom: 3px solid transparent; cursor: pointer; }
+.topbar nav button:first-child { padding-right: 0; }
+.topbar nav button[aria-selected="true"] { color: #fff; border-bottom-color: #fff; }
+
+/* טווח תאריכים */
+.range { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: end; justify-content: space-between; margin: 18px 0 6px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button, .chip { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 5px 13px; cursor: pointer; font-size: .92rem; }
+.presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.dates { display: flex; gap: 10px; }
+.dates label { display: grid; font-size: .82rem; color: var(--muted); }
+input, select { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+
+/* סיכום */
+.totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 18px 0 8px; background: var(--line);
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.totals div { background: var(--paper); padding: 12px 14px; }
+.totals dt { font-size: .85rem; color: var(--muted); }
+.totals dd { margin: 0; font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.totals .yes dd { color: var(--yes); }
+.totals .no dd { color: var(--no); }
+@media (max-width: 560px) { .totals { grid-template-columns: repeat(2, 1fr); } }
+
+/* כותרות מקטעים */
+.section-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 26px 0 10px; }
+.section-head h2 { font-size: 1.1rem; margin: 0; margin-left: auto; }
+.section-head input[type=search] { min-width: 200px; flex: 0 1 280px; }
+.check { display: flex; align-items: center; gap: 6px; font-size: .92rem; }
+.note { font-size: .85rem; color: var(--muted); margin: 6px 2px 0; }
+
+/* טבלאות */
+.table-box { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+th, td { padding: 9px 12px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
+thead th { border-top: 0; font-weight: 500; color: var(--muted); font-size: .88rem; }
+th[data-sort] { cursor: pointer; user-select: none; }
+th[aria-sort="descending"]::after { content: " ▾"; }
+th[aria-sort="ascending"]::after { content: " ▴"; }
+.num { text-align: left; font-variant-numeric: tabular-nums; }
+.digits { font-variant-numeric: tabular-nums; }
+#daysTitle { scroll-margin-top: 120px; }
+.legend { display: flex; gap: 14px; font-size: .82rem; color: var(--muted); margin: 6px 2px 0; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 5px; vertical-align: -1px; }
+tbody tr.clickable { cursor: pointer; }
+tbody tr.clickable:hover, tbody tr.selected { background: #F3F6F9; }
+tbody tr.selected td:first-child { box-shadow: inset -3px 0 var(--ink); }
+tbody tr.idle { color: var(--muted); }
+td.total { font-weight: 700; }
+td.yes { color: var(--yes); }
+td.no { color: var(--no); }
+tr.weekend td:first-child { color: var(--muted); }
+.bar-col { width: 34%; }
+.bar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; }
+.bar i { display: block; }
+.bar .y { background: var(--yes); }
+.bar .n { background: var(--no); }
+.bar .o { background: var(--line); }
+.status-yes { color: var(--yes); font-weight: 500; }
+.status-no { color: var(--no); font-weight: 500; }
+.status-none { color: var(--muted); }
+.empty { padding: 26px; text-align: center; color: var(--muted); white-space: normal; }
+
+/* ניהול אולמות */
+.btn { border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 500; cursor: pointer; background: var(--ink); color: #fff; }
+.btn.ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+#tab-halls .section-head input[type=search] { flex: 1 1 260px; }
+.list { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.hall-row { display: block; width: 100%; text-align: right; padding: 12px 14px; border: 0; border-top: 1px solid var(--line); background: none; cursor: pointer; }
+.hall-row:first-child { border-top: 0; }
+.hall-row:hover { background: #F7F9FB; }
+.hall-row.off { opacity: .55; }
+.hall-row .name { font-weight: 500; }
+.hall-row .meta { color: var(--muted); font-size: .88rem; }
+.tag { font-size: .78rem; background: var(--mist); border-radius: 4px; padding: 1px 6px; margin-right: 6px; }
+.error-box { background: #FBEAE6; color: var(--no); border-radius: 8px; padding: 10px 12px; margin: 12px 0; }
+
+/* טופס אולם */
+dialog { border: 0; border-radius: 12px; padding: 0; width: min(540px, 94vw); max-height: 92vh; overflow: auto; color: var(--ink); }
+dialog::backdrop { background: rgba(30, 43, 58, .45); }
+dialog form { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+dialog h2 { grid-column: 1 / -1; margin: 0; font-size: 1.15rem; }
+dialog label { display: grid; gap: 4px; font-size: .88rem; color: var(--muted); }
+dialog label input { color: var(--ink); font-size: 1rem; }
+dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
+.full { grid-column: 1 / -1; }
+.hint { grid-column: 1 / -1; font-size: .82rem; color: var(--muted); margin: -4px 0 0; }
+.actions { grid-column: 1 / -1; display: flex; gap: 8px; position: sticky; bottom: -20px; background: var(--paper); padding: 10px 0 20px; margin-bottom: -20px; }
+@media (max-width: 520px) { dialog form { grid-template-columns: 1fr; } }

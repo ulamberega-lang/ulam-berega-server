@@ -1,13 +1,17 @@
 {
   "name": "ulam-berega-server",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "מערכת טלפונית וניהול לגמ\"ח אולם ברגע",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "express": "^4.18.2"
+    "@supabase/supabase-js": "^2.45.0",
+    "express": "^4.19.2"
   }
 }
