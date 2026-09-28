@@ -63,6 +63,8 @@ th[aria-sort="descending"]::after { content: " ▾"; }
 th[aria-sort="ascending"]::after { content: " ▴"; }
 .num { text-align: left; font-variant-numeric: tabular-nums; }
 .digits { font-variant-numeric: tabular-nums; }
+.heb { color: var(--muted); font-size: .85rem; margin-right: 6px; }
+.hebrew-range { flex-basis: 100%; margin: 0; font-size: .9rem; color: var(--muted); text-align: left; }
 #daysTitle { scroll-margin-top: 120px; }
 .legend { display: flex; gap: 14px; font-size: .82rem; color: var(--muted); margin: 6px 2px 0; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 5px; vertical-align: -1px; }

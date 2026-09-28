@@ -1,7 +1,7 @@
 // הרכבת הדף: לשוניות, טווח תאריכים וטעינת הנתונים.
 import { api } from './api.js';
 import { $, $$, showError } from './dom.js';
-import { preset } from './dates.js';
+import { preset, hebrewRange } from './dates.js';
 import { initStats, loadStats } from './stats.js';
 import { initCalls, loadCalls, fillHallFilter } from './calls.js';
 import { initHalls, renderHalls } from './halls.js';
@@ -23,6 +23,7 @@ function setRange(range, presetName = null) {
   state.range = range;
   $('#from').value = range.from;
   $('#to').value = range.to;
+  $('#hebrewRange').textContent = hebrewRange(range);
   $$('.presets button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.preset === presetName));
   refresh();
 }
@@ -56,6 +57,7 @@ function init() {
 
   $('#from').value = state.range.from;
   $('#to').value = state.range.to;
+  $('#hebrewRange').textContent = hebrewRange(state.range);
   loadHalls().then(refresh).catch((err) => showError(err.message));
 }
 

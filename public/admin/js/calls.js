@@ -1,7 +1,7 @@
 // לשונית "יומן שיחות".
 import { api } from './api.js';
 import { $, escapeHtml } from './dom.js';
-import { formatDateTime } from './dates.js';
+import { formatDateTime, hebrewOf } from './dates.js';
 
 export async function loadCalls(range, halls) {
   const byId = new Map(halls.map((h) => [h.id, h]));
@@ -17,7 +17,7 @@ export async function loadCalls(range, halls) {
       ? `${Math.floor(c.duration_sec / 60)}:${String(c.duration_sec % 60).padStart(2, '0')}` : '';
     const phone = c.caller_phone ? `<a href="tel:${escapeHtml(c.caller_phone)}">${escapeHtml(c.caller_phone)}</a>` : 'חסוי';
     return `<tr>
-      <td class="digits">${formatDateTime(c.created_at)}</td>
+      <td class="digits">${formatDateTime(c.created_at)} <span class="heb">${hebrewOf(c.created_at)}</span></td>
       <td class="digits">${phone}</td>
       <td>${hall ? escapeHtml(hall.name) : ''}</td>
       <td>${status}</td>

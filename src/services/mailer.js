@@ -1,6 +1,7 @@
 // מייל לאולם על כל שיחה שהועברה אליו (דרך Brevo).
 import { config } from '../config.js';
 import * as halls from '../repositories/halls.js';
+import { hebrewDate } from '../lib/hebrew-date.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -21,7 +22,7 @@ export async function notifyHall({ hallId, callerPhone, startedAt, answered }) {
       htmlContent: `<div dir="rtl" style="font-family:Arial">
         <p>שלום,</p>
         <p>התקבלה שיחה דרך גמ"ח אולם ברגע לאולם <b>${name}</b>.</p>
-        <p>מספר המתקשר: <b>${escapeHtml(callerPhone) || 'חסוי'}</b><br>מועד: ${when}<br>
+        <p>מספר המתקשר: <b>${escapeHtml(callerPhone) || 'חסוי'}</b><br>מועד: ${hebrewDate(startedAt)}, ${when}<br>
         ${answered ? 'השיחה הועברה אליך' : 'השיחה לא נענתה'}</p>
         ${answered ? '' : '<p>מומלץ לחזור למתקשר.</p>'}
       </div>`,

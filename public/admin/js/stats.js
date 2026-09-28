@@ -1,7 +1,7 @@
 // לשונית "שיחות לפי אולם": סיכום, טבלה לפי אולם וטבלה לפי יום.
 import { api } from './api.js';
 import { $, $$, escapeHtml, formatNumber, percent } from './dom.js';
-import { daysBetween, formatDay, isWeekend } from './dates.js';
+import { daysBetween, formatDay, hebrewDay, isWeekend } from './dates.js';
 
 let rows = [];                                  // שורה לכל אולם: פרטים + מספרים
 let sort = { key: 'total', dir: 'descending' };
@@ -82,7 +82,7 @@ function renderDays(range, byDay) {
     const other = Math.max(0, total - answered - unanswered); // לא הגיעו לאולם / בתהליך
     const w = (n) => `${(n / max) * 100}%`;
     return `<tr class="${isWeekend(day) ? 'weekend' : ''}">
-      <td>${formatDay(day)}</td>
+      <td>${formatDay(day)} <span class="heb">${hebrewDay(day)}</span></td>
       <td class="num total">${formatNumber(total)}</td>
       <td class="num yes">${formatNumber(answered)}</td>
       <td class="num no">${formatNumber(unanswered)}</td>
