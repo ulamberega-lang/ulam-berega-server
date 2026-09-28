@@ -3,6 +3,9 @@ import { api } from './api.js';
 import { $, escapeHtml } from './dom.js';
 import { formatDateTime, hebrewOf } from './dates.js';
 
+// פירוט "לא נענה" לפי מה שימות דיווחה
+const NOT_ANSWERED = { CANCEL: 'המתקשר ניתק לפני מענה', BUSY: 'תפוס', CONGESTION: 'תקלה בחיוג' };
+
 export async function loadCalls(range, halls, isCurrent = () => true) {
   const byId = new Map(halls.map((h) => [h.id, h]));
   const calls = await api.listCalls(range, $('#callsHall').value);
@@ -11,7 +14,7 @@ export async function loadCalls(range, halls, isCurrent = () => true) {
   $('#callsList').innerHTML = calls.length ? calls.map((c) => {
     const hall = byId.get(c.hall_id);
     const status = !c.hall_id ? '<span class="status-none">לא הגיע לאולם</span>'
-      : c.answered === false ? '<span class="status-no">לא נענה</span>'
+      : c.answered === false ? `<span class="status-no">${NOT_ANSWERED[c.dial_status] || 'לא נענה'}</span>`
       : c.answered ? '<span class="status-yes">נענה</span>'
       : '<span class="status-none">בתהליך</span>';
     const duration = c.duration_sec != null

@@ -19,13 +19,30 @@ export async function recordRouting(callId, callerPhone, hallId, calledPhone) {
     hall_id: hallId,
     called_phone: calledPhone,
     answered: null,
+    dial_status: null,
+    answer_sec: null,
   }, { onConflict: 'yemot_call_id' }));
 }
 
 export async function findByCallId(callId) {
   return unwrap(await supabase.from(TABLE)
-    .select('created_at, answered, hall_id, caller_phone, ended_at')
+    .select('created_at, answered, hall_id, caller_phone, ended_at, dial_status')
     .eq('yemot_call_id', callId).maybeSingle());
+}
+
+// השיחה האחרונה של המתקשר שהועברה לאולם ועוד לא התקבלה לה תוצאת חיוג (ב-3 השעות האחרונות)
+export async function findOpenRoutingByCaller(callerPhone) {
+  const since = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+  return unwrap(await supabase.from(TABLE).select('yemot_call_id')
+    .eq('caller_phone', callerPhone).not('hall_id', 'is', null).is('dial_status', null)
+    .gte('created_at', since).order('created_at', { ascending: false }).limit(1).maybeSingle());
+}
+
+// מסמן "נענה" רק אם הניסיון הנוכחי עוד פתוח; מחזיר null אם כבר סומן
+export async function markAnswered(callId) {
+  return unwrap(await supabase.from(TABLE).update({ answered: true })
+    .eq('yemot_call_id', callId).is('answered', null)
+    .select('created_at, answered, hall_id, caller_phone').maybeSingle());
 }
 
 // מסמן "לא נענה" רק אם הניסיון הנוכחי עוד פתוח; מחזיר null אם כבר סומן

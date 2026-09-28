@@ -1,12 +1,13 @@
 // נתיבים שימות המשיח פונה אליהם:
 //   /api/ivr            - השלוחה הראשית (כל שלבי השיחה)
 //   /api/ivr/no-answer  - שלוחה 9, כשהאולם לא ענה
+//   /api/ivr/routing-status - תוצאת החיוג לאולם (נענה / לא נענה / תפוס / המתקשר ניתק)
 import { Router } from 'express';
 import { readParams, lastValue, clean, hangup, goToFolder } from '../lib/yemot.js';
 import { getSession, createSession, deleteSession, resetSession } from '../ivr/sessions.js';
 import { prompt, handleAnswer, isSpeechStep, transcribeAnswer, fallbackToList } from '../ivr/flow.js';
 import { routeToHall } from '../ivr/route-to-hall.js';
-import { callStarted, callEnded, callNotAnswered } from '../services/call-log.js';
+import { callStarted, callEnded, callNotAnswered, routingFinished } from '../services/call-log.js';
 
 export const ivrRouter = Router();
 
@@ -85,4 +86,11 @@ ivrRouter.all('/no-answer', async (req, res) => {
     console.error('no-answer:', err);
     return res.send(hangup('אֵין מַעֲנֶה בָּאוּלָם'));
   }
+});
+
+// תוצאת החיוג לאולם - ימות שולחת לכאן בסיום כל חיוג (routing_api_send בשלוחה הראשית)
+ivrRouter.all('/routing-status', async (req, res) => {
+  const q = readParams(req);
+  res.type('text/plain; charset=utf-8').send('ok');
+  routingFinished(q, lastValue).catch((e) => console.error('routing-status:', e.message));
 });
