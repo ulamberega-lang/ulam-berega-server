@@ -2,7 +2,12 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1F3A5F">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ניהול אולם">
+  <meta name="format-detection" content="telephone=no">
   <title>ניהול אולם ברגע</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
@@ -10,13 +15,35 @@
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+      <symbol id="i-hall" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.500"/><path d="M2.500 20a6.500 6.500 0 0 1 13 0M16 4.500a3.500 3.500 0 0 1 0 7M18 14a6.500 6.500 0 0 1 3.500 6"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="progress" id="progress" hidden></div>
+  <div class="loading-chip" id="loadingChip" role="status" hidden><span class="spinner" aria-hidden="true"></span>טוען…</div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
   <header class="topbar">
-    <div class="wrap">
-      <h1>אולם ברגע, ניהול</h1>
-      <nav role="tablist">
-        <button role="tab" data-tab="stats" aria-selected="true">שיחות לפי אולם</button>
-        <button role="tab" data-tab="calls" aria-selected="false">יומן שיחות</button>
-        <button role="tab" data-tab="halls" aria-selected="false">ניהול אולמות</button>
+    <div class="wrap topbar-inner">
+      <h1>אולם ברגע<small>ניהול</small></h1>
+      <nav role="tablist" aria-label="לשוניות">
+        <button role="tab" data-tab="stats" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><span>שיחות לפי אולם</span></button>
+        <button role="tab" data-tab="calls" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><span>יומן שיחות</span></button>
+        <button role="tab" data-tab="halls" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-hall"/></svg><span>ניהול אולמות</span></button>
       </nav>
     </div>
   </header>
@@ -24,8 +51,8 @@
   <main class="wrap">
     <div id="error"></div>
 
-    <!-- טווח תאריכים: משותף לסטטיסטיקה וליומן -->
-    <section id="range" class="range">
+    <!-- טווח תאריכים: משותף לכל הלשוניות -->
+    <section id="range" class="card range" aria-label="טווח תאריכים">
       <div class="presets" role="group" aria-label="תקופה">
         <button data-preset="today">היום</button>
         <button data-preset="yesterday">אתמול</button>
@@ -37,24 +64,46 @@
       <div class="dates">
         <label>מתאריך <input type="date" id="from"></label>
         <label>עד תאריך <input type="date" id="to"></label>
+        <button class="icon-btn" id="refresh" title="רענון" aria-label="רענון"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
       </div>
-      <p class="hebrew-range" id="hebrewRange"></p>
+      <p class="hebrew-range"><span id="hebrewRange"></span><span id="updated"></span></p>
     </section>
 
     <!-- שיחות לפי אולם -->
     <section id="tab-stats" role="tabpanel">
       <dl class="totals" id="totals"></dl>
+      <div class="insights" id="insights"></div>
 
-      <div class="section-head">
-        <h2>לפי אולם</h2>
-        <input type="search" id="statsSearch" placeholder="חיפוש אולם או עיר">
-        <label class="check"><input type="checkbox" id="showIdle"> גם אולמות בלי שיחות</label>
+      <div class="section-head"><h2>לפי אולם</h2><span class="count" id="statsCount"></span></div>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="statsSearch" placeholder="חיפוש אולם, עיר או שכונה" aria-label="חיפוש" enterkeyhint="search" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי חיפוש"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <select id="statsCity" aria-label="עיר"><option value="">כל הערים</option></select>
+        <select id="statsHood" aria-label="שכונה"><option value="">כל השכונות</option></select>
+        <select id="statsGroup" aria-label="קיבוץ">
+          <option value="">בלי קיבוץ</option><option value="city">קבץ לפי עיר</option><option value="hood">קבץ לפי שכונה</option>
+        </select>
+        <div class="sortbox" id="statsSort">
+          <select aria-label="מיון לפי"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+        <div class="chips" id="statsView" role="group" aria-label="הצגה">
+          <button data-value="all">הכל<span class="n"></span></button>
+          <button data-value="calls">עם שיחות<span class="n"></span></button>
+          <button data-value="missed">עם שיחות שלא נענו<span class="n"></span></button>
+          <button data-value="idle">בלי שיחות<span class="n"></span></button>
+        </div>
+        <button class="btn ghost export" id="statsExport" title="ייצוא לאקסל" aria-label="ייצוא לאקסל"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span>ייצוא לאקסל</span></button>
       </div>
       <div class="table-box">
-        <table class="stats-table">
+        <table class="rt stats-table">
           <thead><tr>
             <th data-sort="name">אולם</th>
             <th data-sort="city">עיר</th>
+            <th data-sort="hood">שכונה</th>
             <th data-sort="total" class="num">סה"כ</th>
             <th data-sort="answered" class="num">נענו</th>
             <th data-sort="unanswered" class="num">לא נענו</th>
@@ -65,45 +114,104 @@
       </div>
       <p class="note">לחיצה על אולם מציגה את השיחות שלו לפי יום.</p>
 
-      <div class="section-head">
+      <div class="section-head" id="daysHead">
         <h2 id="daysTitle">לפי יום</h2>
+        <button class="chip" id="openCalls" hidden>יומן השיחות של האולם</button>
         <button class="chip" id="clearHall" hidden>הצג את כל האולמות</button>
       </div>
+      <div class="toolbar">
+        <label class="check"><input type="checkbox" id="hideEmptyDays"> הסתר ימים בלי שיחות</label>
+        <div class="sortbox" id="daysSort">
+          <select aria-label="מיון ימים"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+      </div>
       <div class="table-box">
-        <table>
+        <table class="rt days-table">
           <thead><tr>
-            <th>יום</th><th class="num">סה"כ</th><th class="num">נענו</th><th class="num">לא נענו</th><th class="bar-col"></th>
+            <th data-sort="day">יום</th>
+            <th data-sort="total" class="num">סה"כ</th>
+            <th data-sort="answered" class="num">נענו</th>
+            <th data-sort="unanswered" class="num">לא נענו</th>
+            <th class="bar-col"></th>
           </tr></thead>
           <tbody id="dayStats"></tbody>
         </table>
       </div>
-      <p class="legend"><span><i class="y" style="background:var(--yes)"></i>נענו</span>
+      <p class="legend"><span><i style="background:var(--yes)"></i>נענו</span>
         <span><i style="background:var(--no)"></i>לא נענו</span>
         <span><i style="background:var(--line)"></i>לא הגיעו לאולם</span></p>
     </section>
 
     <!-- יומן שיחות -->
     <section id="tab-calls" role="tabpanel" hidden>
-      <div class="section-head">
-        <h2>יומן שיחות</h2>
-        <select id="callsHall" aria-label="אולם"><option value="">כל האולמות</option></select>
+      <div class="section-head"><h2>יומן שיחות</h2><span class="count" id="callsCount"></span></div>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="callsSearch" placeholder="חיפוש לפי טלפון, אולם או עיר" aria-label="חיפוש" enterkeyhint="search" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי חיפוש"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-hall"/></svg>
+          <input type="search" id="callsHall" list="callsHallOptions" placeholder="סינון לפי אולם (הקלדה או בחירה)" aria-label="אולם" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי אולם"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="sortbox" id="callsSort">
+          <select aria-label="מיון לפי"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+        <div class="chips" id="callsView" role="group" aria-label="מצב שיחה">
+          <button data-value="all">הכל<span class="n"></span></button>
+          <button data-value="yes">נענו<span class="n"></span></button>
+          <button data-value="no">לא נענו<span class="n"></span></button>
+          <button data-value="none">לא הגיעו לאולם<span class="n"></span></button>
+        </div>
+        <button class="btn ghost export" id="callsExport" title="ייצוא לאקסל" aria-label="ייצוא לאקסל"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span>ייצוא לאקסל</span></button>
       </div>
       <div class="table-box">
-        <table>
-          <thead><tr><th>מתי</th><th>מתקשר</th><th>אולם</th><th>מצב</th><th class="num">משך</th></tr></thead>
+        <table class="rt calls-table">
+          <thead><tr>
+            <th data-sort="when">מתי</th>
+            <th data-sort="phone">מתקשר</th>
+            <th data-sort="hall">אולם</th>
+            <th data-sort="city">עיר</th>
+            <th data-sort="status">מצב</th>
+            <th data-sort="duration" class="num">משך</th>
+          </tr></thead>
           <tbody id="callsList"></tbody>
         </table>
       </div>
-      <p class="note">מוצגות עד 500 השיחות האחרונות בטווח.</p>
+      <p class="note" id="callsNote"></p>
     </section>
 
     <!-- ניהול אולמות -->
     <section id="tab-halls" role="tabpanel" hidden>
       <div class="section-head">
-        <input type="search" id="hallsSearch" placeholder="חיפוש לפי שם, עיר, שכונה או שלוחה">
-        <button class="btn" id="addHall">הוסף אולם</button>
+        <h2>אולמות</h2><span class="count" id="hallsCount"></span>
+        <button class="btn" id="addHall"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>הוסף אולם</button>
       </div>
-      <div class="list" id="hallsList"></div>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="hallsSearch" placeholder="חיפוש לפי שם, עיר, שכונה, כתובת או שלוחה" aria-label="חיפוש" enterkeyhint="search" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי חיפוש"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <select id="hallsCity" aria-label="עיר"><option value="">כל הערים</option></select>
+        <select id="hallsHood" aria-label="שכונה"><option value="">כל השכונות</option></select>
+        <div class="sortbox" id="hallsSort">
+          <select aria-label="מיון לפי"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+        <div class="chips" id="hallsView" role="group" aria-label="הצגה">
+          <button data-value="all">הכל<span class="n"></span></button>
+          <button data-value="active">פעילים<span class="n"></span></button>
+          <button data-value="off">מושבתים<span class="n"></span></button>
+          <button data-value="idle">בלי שיחות<span class="n"></span></button>
+        </div>
+        <button class="btn ghost export" id="hallsExport" title="ייצוא לאקסל" aria-label="ייצוא לאקסל"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span>ייצוא לאקסל</span></button>
+      </div>
+      <div class="cards" id="hallsList"></div>
     </section>
   </main>
 
@@ -111,14 +219,14 @@
     <form id="hallForm" method="dialog">
       <h2 id="hallFormTitle">אולם חדש</h2>
       <label class="full">שם האולם<input name="name" required></label>
-      <label>עיר<input name="city_name" required list="cityOptions"></label>
-      <label>שכונה<input name="neighborhood_name" list="hoodOptions"></label>
+      <label>עיר<input name="city_name" required list="cityOptions" autocomplete="off"></label>
+      <label>שכונה<input name="neighborhood_name" list="hoodOptions" autocomplete="off"></label>
       <p class="hint">כדאי לבחור עיר ושכונה מהרשימה, כדי שהזיהוי בטלפון יתאים לאולמות הקיימים.</p>
       <label class="full">כתובת<input name="address"></label>
       <label>מקסימום אורחים<input name="max_guests" type="number" min="1" inputmode="numeric" required></label>
       <label>מספר שלוחה<input name="extension" inputmode="numeric" pattern="\d{2,4}" required title="2 עד 4 ספרות"></label>
       <label>טלפון להעברה<input name="gabbai_phone" type="tel" inputmode="tel" required></label>
-      <label>מייל לעדכונים<input name="gabbai_email" type="email"></label>
+      <label>מייל לעדכונים<input name="gabbai_email" type="email" inputmode="email"></label>
       <label class="check full"><input type="checkbox" name="is_active" checked> האולם פעיל ומופיע בחיפוש</label>
       <div id="hallFormError" class="full"></div>
       <div class="actions">
@@ -129,5 +237,6 @@
   </dialog>
   <datalist id="cityOptions"></datalist>
   <datalist id="hoodOptions"></datalist>
+  <datalist id="callsHallOptions"></datalist>
 </body>
 </html>
