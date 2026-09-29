@@ -208,6 +208,10 @@ function exportCsv() {
     list.map((r) => [r.name, r.city, r.hood, r.total, r.answered, r.unanswered, r.rate == null ? '' : `${Math.round(r.rate * 100)}%`]));
 }
 
+export const getSelectedHall = () => selectedHall;
+// משחזר בחירת אולם (בחזרה אחורה) בלי לטעון; הטעינה נעשית אחר כך ב-refresh
+export function setSelectedHall(hall) { selectedHall = hall; }
+
 export function initStats(reload) {
   const remember = () => savePref('statsFilters', { city: '', hood: '', group: filters.group });
   initSearch($('#statsSearch'), (value) => { filters.term = value; renderHallTable(); });
@@ -253,7 +257,7 @@ export function initStats(reload) {
     }
   });
 
-  $('#clearHall').addEventListener('click', () => { selectedHall = null; reload(); });
+  $('#clearHall').addEventListener('click', () => { selectedHall = null; document.dispatchEvent(new CustomEvent('stats-select')); });
   $('#openCalls').addEventListener('click', () => {
     if (selectedHall) document.dispatchEvent(new CustomEvent('open-calls', { detail: { hall: selectedHall } }));
   });

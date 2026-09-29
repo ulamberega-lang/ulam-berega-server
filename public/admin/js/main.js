@@ -2,8 +2,8 @@
 import { api } from './api.js';
 import { $, $$, showError } from './dom.js';
 import { preset, hebrewRange } from './dates.js';
-import { initStats, loadStats } from './stats.js';
-import { initCalls, loadCalls, setHallFilter } from './calls.js';
+import { initStats, loadStats, getSelectedHall, setSelectedHall } from './stats.js';
+import { initCalls, loadCalls, setHallFilter, getHallFilter, restoreHallFilter } from './calls.js';
 import { initHalls, loadHalls } from './halls.js';
 
 const TABS = ['stats', 'calls', 'halls'];
@@ -45,11 +45,36 @@ function setRange(range, presetName = null) {
   refresh();
 }
 
-function setTab(tab, { push = true, load = true } = {}) {
+// היסטוריית ניווט: כל מעבר בין לשוניות או בחירת אולם הוא "מקום", וכפתור חזרה מחזיר למקום הקודם
+// (כולל האולם שנבחר והגלילה). אותו מנגנון משמש גם את כפתור החזרה של הדפדפן והאייפון.
+const snapshot = (n) => ({ n, tab: state.tab, hall: getSelectedHall()?.id ?? null, callsHall: getHallFilter() });
+
+function updateBack() {
+  $('#back').hidden = !(history.state?.n > 0);
+}
+
+function pushPlace() {
+  const n = history.state?.n ?? 0;
+  history.replaceState({ ...history.state, y: window.scrollY }, '');
+  history.pushState(snapshot(n + 1), '', `#${state.tab}`);
+  updateBack();
+}
+
+async function restorePlace(place) {
+  setSelectedHall(place.hall == null ? null : state.halls.find((h) => h.id === place.hall) ?? null);
+  restoreHallFilter(place.callsHall || '');
+  setTab(place.tab, { record: false, load: false });
+  updateBack();
+  await refresh();
+  if (place.y) window.scrollTo({ top: place.y });
+}
+
+function setTab(tab, { record = true, load = true } = {}) {
+  const changed = tab !== state.tab;
   state.tab = tab;
   $$('.topbar nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
   for (const name of TABS) $(`#tab-${name}`).hidden = name !== tab;
-  if (push && location.hash.slice(1) !== tab) history.replaceState(null, '', `#${tab}`);
+  if (record && changed) pushPlace();
   window.scrollTo({ top: 0 });
   if (load) refresh();
 }
@@ -71,11 +96,14 @@ function init() {
     try { await loadHallList(); } catch (err) { showError(err.message); return; }
     refresh();
   });
-  window.addEventListener('hashchange', () => { if (fromHash() !== state.tab) setTab(fromHash(), { push: false }); });
+  $('#back').addEventListener('click', () => history.back());
+  window.addEventListener('popstate', (e) => { if (e.state) restorePlace(e.state); });
+  window.addEventListener('hashchange', () => { if (fromHash() !== state.tab) setTab(fromHash(), { record: false }); });
 
   initStats(refresh);
   initCalls(refresh);
   initHalls(async () => { await loadHallList(); refresh(); });
+  document.addEventListener('stats-select', pushPlace); // בחירת אולם / ניקוי הבחירה
 
   // קישורים בין לשוניות: "יומן השיחות של האולם"
   document.addEventListener('open-calls', (e) => {
@@ -86,7 +114,10 @@ function init() {
   $('#from').value = state.range.from;
   $('#to').value = state.range.to;
   $('#hebrewRange').textContent = hebrewRange(state.range);
-  setTab(state.tab, { push: false, load: false });
+  history.scrollRestoration = 'manual';
+  if (!history.state) history.replaceState(snapshot(0), '', `#${state.tab}`);
+  setTab(state.tab, { record: false, load: false });
+  updateBack();
   setBusy(true);
   loadHallList().then(refresh).catch((err) => { setBusy(false); showError(err.message); });
 }
