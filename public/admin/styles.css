@@ -75,6 +75,13 @@ body.busy main { opacity: .72; transition: opacity .2s; }
 .topbar nav button:hover { background: rgba(255, 255, 255, .1); color: #fff; }
 .topbar nav button[aria-selected="true"] { background: rgba(255, 255, 255, .18); color: #fff; }
 
+/* כפתור חזרה */
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.back { display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, .16); color: #fff; border: 0; border-radius: 999px;
+  padding: 7px 14px 7px 12px; min-height: 38px; font-weight: 500; white-space: nowrap; }
+.back:hover { background: rgba(255, 255, 255, .28); }
+@media (max-width: 700px) { .back span { display: none; } .back { width: 40px; height: 40px; padding: 0; justify-content: center; } }
+
 /* כרטיס כללי */
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
 

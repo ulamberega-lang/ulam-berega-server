@@ -27,6 +27,7 @@ let hallIds = new Map();  // תווית אולם ← מזהה, לסינון בש
 let term = '';
 let view, sort;
 let fetchedHall = '';
+let hallSearch;
 
 const statusOf = (c) => (!c.hall_id ? 'none' : c.answered === false ? 'no' : c.answered ? 'yes' : 'progress');
 const STATUS_LABEL = (c) => ({
@@ -116,11 +117,14 @@ export function setHallFilter(hall) {
   input.dispatchEvent(new Event('input'));
 }
 
+export const getHallFilter = () => $('#callsHall').value;
+export function restoreHallFilter(text) { hallSearch.set(text); }
+
 export function initCalls(reload) {
   initSearch($('#callsSearch'), (value) => { term = value; renderCalls(); });
 
   // אולם מדויק (בחירה מהרשימה) נשלח לשרת, כדי שמגבלת 500 השיחות תחול רק עליו. הקלדה חלקית מסננת בדף.
-  initSearch($('#callsHall'), () => {
+  hallSearch = initSearch($('#callsHall'), () => {
     if (exactHall() !== fetchedHall) reload();
     else renderCalls();
   });
