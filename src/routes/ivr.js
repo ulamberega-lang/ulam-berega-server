@@ -11,6 +11,16 @@ import { callStarted, callEnded, callNotAnswered, routingFinished } from '../ser
 
 export const ivrRouter = Router();
 
+// מדידה: כל תשובה שלקחה לשרת יותר משנייה נרשמת בלוג, עם השלב בשיחה
+ivrRouter.use((req, res, next) => {
+  const started = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - started;
+    if (ms > 1000) console.log(`slow: ${req.path} step=${res.locals.step ?? '-'} ${ms}ms`);
+  });
+  next();
+});
+
 ivrRouter.all('/', async (req, res) => {
   const q = readParams(req);
   const id = q.ApiCallId;
@@ -35,6 +45,7 @@ ivrRouter.all('/', async (req, res) => {
       return res.send(await prompt(s));
     }
 
+    res.locals.step = s.step;
     let raw = String(lastValue(q[`v${s.n}`]) ?? '');
     if (isSpeechStep(s) && !raw.includes('*')) {
       raw = await transcribeAnswer(s); // בשלבי דיבור ימות רק מקליטה - מתמללים בעצמנו
@@ -48,7 +59,7 @@ ivrRouter.all('/', async (req, res) => {
 });
 
 async function startCall(q) {
-  await callStarted(q.ApiCallId, q.ApiPhone);
+  callStarted(q.ApiCallId, q.ApiPhone); // ברקע - לא מעכב את הפתיח
 
   // כניסה ישירה משלוחת אולם בימות (api_add_0=ext=101)
   const ext = lastValue(q.ext);

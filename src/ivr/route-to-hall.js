@@ -16,7 +16,7 @@ export async function routeToHall(q, extension, { brief = false } = {}) {
   if (session) session.routed = true; // אם האולם לא יענה - נחזור לשלב הקודם
 
   const phone = (hall.gabbai_phone || '').replace(/\D/g, '');
-  await callRouted(q.ApiCallId, q.ApiPhone, hall, phone);
+  callRouted(q.ApiCallId, q.ApiPhone, hall, phone); // ברקע - לא מעכב את ההעברה
 
   return routeCall([
     `מַעֲבִיר ${withPrefix('ל', hall.name)}`,
