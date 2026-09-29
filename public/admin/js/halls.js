@@ -1,6 +1,6 @@
 // לשונית "ניהול אולמות": כרטיסים עם חיפוש, סינון, מיון, הוספה ועריכה.
 import { api } from './api.js';
-import { $, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
+import { $, toast, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
 
@@ -112,15 +112,20 @@ async function save(e) {
   for (const el of form.elements) if (el.name) data[el.name] = el.type === 'checkbox' ? el.checked : el.value;
 
   const button = e.submitter;
+  const label = button.textContent;
+  const wasEditing = Boolean(editing);
   button.disabled = true;
+  button.textContent = 'שומר…';
   try {
     const saved = editing ? await api.updateHall(editing.id, data) : await api.createHall(data);
     $('#hallDialog').close();
+    toast(wasEditing ? 'השינויים באולם נשמרו בהצלחה' : 'האולם נוסף בהצלחה');
     onSaved(saved);
   } catch (err) {
     $('#hallFormError').innerHTML = `<div class="error-box">${escapeHtml(err.message)}</div>`;
   } finally {
     button.disabled = false;
+    button.textContent = label;
   }
 }
 

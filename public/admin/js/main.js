@@ -31,6 +31,7 @@ async function refresh() {
 
 function setBusy(busy) {
   $('#progress').hidden = !busy;
+  $('#loadingChip').hidden = !busy;
   document.body.classList.toggle('busy', busy);
   $('#refresh').disabled = busy;
 }

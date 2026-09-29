@@ -57,3 +57,13 @@ export function fillSelect(select, values, allLabel) {
 }
 
 export const uniqueSorted = (values) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'he'));
+
+// הודעה קצרה שנעלמת לבד (למשל "האולם נשמר")
+export function toast(message, kind = 'ok') {
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  el.textContent = message;
+  $('#toasts').append(el);
+  setTimeout(() => el.classList.add('out'), 3200);
+  setTimeout(() => el.remove(), 3600);
+}
