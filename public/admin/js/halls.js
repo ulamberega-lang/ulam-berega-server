@@ -2,7 +2,7 @@
 import { api } from './api.js';
 import { $, toast, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
-import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
+import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location, suggestExtension } from './data.js';
 
 const SORTS = [...HALL_SORTS,
   { key: 'guests', label: 'מקסימום אורחים' },
@@ -18,6 +18,7 @@ const VIEWS = {
 let halls = [];
 let rows = [];
 let editing = null;
+let autoExt = '';   // ההצעה האחרונה שמולאה אוטומטית (מחליפים אותה רק אם לא נערכה ידנית)
 let onSaved = () => {};
 const filters = { term: '', city: '', hood: '' };
 let view, sort;
@@ -88,8 +89,28 @@ function fillSuggestions() {
   $('#hoodOptions').innerHTML = options(uniqueSorted(halls.map((h) => h.neighborhood_name)));
 }
 
+// אולם חדש: ממלא בשדה השלוחה את המספר הבא במאה של העיר
+function suggestForCity() {
+  const ext = $('#hallForm [name=extension]');
+  const hint = $('#extHint');
+  if (editing) { hint.hidden = true; return; }
+  const suggestion = suggestExtension(halls, $('#hallForm [name=city_name]').value);
+  if (ext.value === '' || ext.value === autoExt) {
+    autoExt = suggestion ? String(suggestion.ext) : '';
+    ext.value = autoExt;
+  }
+  hint.hidden = !suggestion || ext.value !== autoExt;
+  if (suggestion) {
+    hint.textContent = suggestion.existing
+      ? `שלוחה מוצעת לפי העיר: המשך של מאה ${suggestion.hundred}`
+      : `עיר חדשה: מוצעת מאה ${suggestion.hundred} פנויה. אפשר לשנות`;
+  }
+}
+
 function openForm(hall) {
   editing = hall || null;
+  autoExt = '';
+  $('#extHint').hidden = true;
   const form = $('#hallForm');
   form.reset();
   $('#hallFormError').innerHTML = '';
@@ -102,6 +123,7 @@ function openForm(hall) {
     }
   }
   $('#hallDialog').showModal();
+  suggestForCity();
 }
 
 async function save(e) {
@@ -158,4 +180,6 @@ export function initHalls(savedCallback) {
     else openForm(hall);
   });
   $('#hallForm').addEventListener('submit', save);
+  $('#hallForm [name=city_name]').addEventListener('input', suggestForCity);
+  $('#hallForm [name=extension]').addEventListener('input', () => { $('#extHint').hidden = true; });
 }
