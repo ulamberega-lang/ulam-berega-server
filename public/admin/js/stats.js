@@ -1,11 +1,29 @@
-// לשונית "שיחות לפי אולם": סיכום, טבלה לפי אולם וטבלה לפי יום.
+// לשונית "שיחות לפי אולם": סיכום, תובנות, טבלה לפי אולם (חיפוש, סינון, קיבוץ, מיון) וטבלה לפי יום.
 import { api } from './api.js';
-import { $, $$, escapeHtml, formatNumber, percent } from './dom.js';
+import { $, escapeHtml, formatNumber, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
+import { initSearch, initChips, initSort, sortBy } from './controls.js';
+import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
 import { daysBetween, formatDay, hebrewDay, isWeekend } from './dates.js';
 
-let rows = [];                                  // שורה לכל אולם: פרטים + מספרים
-let sort = { key: 'total', dir: 'descending' };
+const DAY_SORTS = [
+  { key: 'day', label: 'תאריך', first: 'desc' },
+  { key: 'total', label: 'סה"כ שיחות' },
+  { key: 'answered', label: 'שיחות שנענו' },
+  { key: 'unanswered', label: 'שיחות שלא נענו' },
+];
+
+const VIEWS = {
+  all: () => true,
+  calls: (r) => r.total > 0,
+  missed: (r) => r.unanswered > 0,
+  idle: (r) => r.total === 0,
+};
+
+let rows = [];
+let lastRange = null, lastDays = [], lastHallDays = null;
 let selectedHall = null;
+const filters = { term: '', city: '', hood: '', group: '', ...pref('statsFilters', {}) };
+let view, hallSort, daySort, hideEmptyDays = false;
 
 export async function loadStats(range, halls, isCurrent = () => true) {
   const [byHall, allDays, hallDays] = await Promise.all([
@@ -14,18 +32,23 @@ export async function loadStats(range, halls, isCurrent = () => true) {
     selectedHall ? api.statsByDay(range, selectedHall.id) : null,
   ]);
   if (!isCurrent()) return;
-  const stats = new Map(byHall.map((r) => [r.hall_id, r]));
-  rows = halls.map((h) => {
-    const s = stats.get(h.id) || { total: 0, answered: 0, unanswered: 0 };
-    return {
-      hall: h, name: h.name, city: h.city_name,
-      total: Number(s.total), answered: Number(s.answered), unanswered: Number(s.unanswered),
-      rate: s.total ? s.answered / s.total : -1,
-    };
-  });
+  rows = buildRows(halls, byHall);
+  lastRange = range; lastDays = allDays; lastHallDays = hallDays;
+  if (selectedHall && !rows.some((r) => r.id === selectedHall.id)) selectedHall = null;
+
+  fillSelect($('#statsCity'), uniqueSorted(rows.map((r) => r.city)), 'כל הערים');
+  filters.city = $('#statsCity').value;
+  fillHoods();
   renderTotals(allDays);
+  renderInsights();
   renderHallTable();
-  renderDays(range, hallDays ?? allDays);
+  renderDays();
+}
+
+function fillHoods() {
+  const pool = filters.city ? rows.filter((r) => r.city === filters.city) : rows;
+  fillSelect($('#statsHood'), uniqueSorted(pool.map((r) => r.hood)), 'כל השכונות');
+  filters.hood = $('#statsHood').value;
 }
 
 function renderTotals(byDay) {
@@ -38,81 +61,200 @@ function renderTotals(byDay) {
     <div class="no"><dt>לא נענו</dt><dd>${formatNumber(unanswered)}</dd></div>`;
 }
 
+// כמה נקודות עיקריות בלי לחפש בטבלה; לחיצה על תובנה פותחת את האולם או מסננת
+function renderInsights() {
+  const cards = [];
+  const withCalls = rows.filter((r) => r.total > 0);
+  if (withCalls.length) {
+    const top = sortBy(withCalls, { key: 'total', dir: 'desc' }, HALL_GETTERS, byName)[0];
+    cards.push(insight('האולם הכי פעיל', top.name, `${formatNumber(top.total)} שיחות`, { hall: top.id }));
+
+    const missed = sortBy(withCalls.filter((r) => r.unanswered > 0), { key: 'unanswered', dir: 'desc' }, HALL_GETTERS, byName)[0];
+    if (missed) cards.push(insight('הכי הרבה שיחות שלא נענו', missed.name, `${formatNumber(missed.unanswered)} שיחות`, { hall: missed.id }, 'no'));
+
+    const worst = sortBy(withCalls.filter((r) => r.total >= 3), { key: 'rate', dir: 'asc' }, HALL_GETTERS, byName)[0];
+    if (worst && worst.rate < 1) cards.push(insight('אחוז המענה הנמוך ביותר', worst.name, `${Math.round(worst.rate * 100)}% מתוך ${formatNumber(worst.total)}`, { hall: worst.id }, 'no'));
+
+    const cities = new Map();
+    for (const r of withCalls) cities.set(r.city, (cities.get(r.city) || 0) + r.total);
+    const [city, count] = [...cities].sort((a, b) => b[1] - a[1])[0];
+    cards.push(insight('העיר הפעילה ביותר', city || 'ללא עיר', `${formatNumber(count)} שיחות`, { city }));
+  }
+  const idle = rows.filter((r) => r.total === 0 && r.active).length;
+  if (idle) cards.push(insight('אולמות פעילים בלי שיחות', formatNumber(idle), 'בתקופה שנבחרה', { view: 'idle' }));
+  $('#insights').innerHTML = cards.join('');
+}
+
+function insight(label, value, sub, target, tone = '') {
+  const attrs = Object.entries(target).map(([k, v]) => `data-${k}="${escapeHtml(v)}"`).join(' ');
+  return `<button class="insight ${tone}" ${attrs}><span class="label">${label}</span><strong>${escapeHtml(value)}</strong><span class="sub">${sub}</span></button>`;
+}
+
+function visibleRows() {
+  const kind = VIEWS[view.get()];
+  return rows.filter((r) => kind(r)
+    && (!filters.city || r.city === filters.city)
+    && (!filters.hood || r.hood === filters.hood)
+    && matches(searchText(r), filters.term));
+}
+
+const sum = (list, key) => list.reduce((acc, r) => acc + r[key], 0);
+const rateOf = (list) => { const t = sum(list, 'total'); return t ? sum(list, 'answered') / t : null; };
+
+function statCells(total, answered, unanswered, rate) {
+  return `<td class="num total" data-label="סה&quot;כ">${formatNumber(total)}</td>
+      <td class="num yes" data-label="נענו">${formatNumber(answered)}</td>
+      <td class="num no" data-label="לא נענו">${formatNumber(unanswered)}</td>
+      <td class="num" data-label="אחוז מענה">${rate == null ? '<span class="dash">-</span>' : `<span class="pct">${Math.round(rate * 100)}%</span><span class="meter" aria-hidden="true"><i style="width:${rate * 100}%"></i></span>`}</td>`;
+}
+
+function hallRow(r) {
+  return `<tr class="clickable${r.total ? '' : ' idle'}${selectedHall?.id === r.id ? ' selected' : ''}${r.active ? '' : ' off'}" data-id="${r.id}" tabindex="0">
+      <td class="span-all name">${escapeHtml(r.name)}${r.active ? '' : ' <span class="tag">מושבת</span>'}<span class="loc">${location(r)}</span></td>
+      <td class="hide-sm">${escapeHtml(r.city)}</td>
+      <td class="hide-sm">${escapeHtml(r.hood)}</td>
+      ${statCells(r.total, r.answered, r.unanswered, r.rate)}
+    </tr>`;
+}
+
+function groupRow(label, list) {
+  return `<tr class="group-row"><td colspan="7"><strong>${escapeHtml(label)}</strong>
+    <span>${list.length} אולמות · ${formatNumber(sum(list, 'total'))} שיחות · ${formatNumber(sum(list, 'answered'))} נענו · ${formatNumber(sum(list, 'unanswered'))} לא נענו</span></td></tr>`;
+}
+
 function renderHallTable() {
-  const term = $('#statsSearch').value.trim();
-  const showIdle = $('#showIdle').checked;
-  const visible = rows
-    .filter((r) => (showIdle || r.total > 0) && (!term || r.name.includes(term) || r.city.includes(term)))
-    .sort(compare);
+  const visible = visibleRows();
+  const sorted = sortBy(visible, hallSort.state, HALL_GETTERS, byName);
 
-  $$('.stats-table th[data-sort]').forEach((th) =>
-    th.setAttribute('aria-sort', th.dataset.sort === sort.key ? sort.dir : 'none'));
+  let html = '';
+  if (filters.group) {
+    const groupKey = filters.group;
+    const groups = new Map();
+    for (const r of sorted) {
+      const label = r[groupKey] || (groupKey === 'city' ? 'ללא עיר' : 'ללא שכונה');
+      (groups.get(label) ?? groups.set(label, []).get(label)).push(r);
+    }
+    // סדר הקבוצות: לפי הערך המצטבר כשממיינים לפי מספרים, אחרת לפי שם
+    const numeric = ['total', 'answered', 'unanswered', 'rate'].includes(hallSort.state.key);
+    const list = [...groups].map(([label, items]) => ({ label, items }));
+    const getters = {
+      label: (g) => g.label, total: (g) => sum(g.items, 'total'), answered: (g) => sum(g.items, 'answered'),
+      unanswered: (g) => sum(g.items, 'unanswered'), rate: (g) => rateOf(g.items),
+    };
+    const order = numeric ? hallSort.state : { key: 'label', dir: hallSort.state.key === groupKey ? hallSort.state.dir : 'asc' };
+    html = sortBy(list, order, getters, (a, b) => a.label.localeCompare(b.label, 'he'))
+      .map((g) => groupRow(g.label, g.items) + g.items.map(hallRow).join('')).join('');
+  } else {
+    html = sorted.map(hallRow).join('');
+  }
 
-  $('#hallStats').innerHTML = visible.length ? visible.map((r) => `
-    <tr class="clickable${r.total ? '' : ' idle'}${selectedHall?.id === r.hall.id ? ' selected' : ''}" data-id="${r.hall.id}">
-      <td>${escapeHtml(r.name)}</td>
-      <td>${escapeHtml(r.city)}</td>
-      <td class="num total">${formatNumber(r.total)}</td>
-      <td class="num yes">${formatNumber(r.answered)}</td>
-      <td class="num no">${formatNumber(r.unanswered)}</td>
-      <td class="num">${percent(r.answered, r.total)}</td>
-    </tr>`).join('')
-    : `<tr><td colspan="6" class="empty">${rows.some((r) => r.total)
-      ? 'אין אולמות שמתאימים לחיפוש.' : 'אין שיחות לאולמות בתקופה הזו.'}</td></tr>`;
+  if (visible.length > 1) {
+    html += `<tr class="sum-row"><td class="span-all name">סה"כ במה שמוצג</td><td class="hide-sm"></td><td class="hide-sm"></td>
+      ${statCells(sum(visible, 'total'), sum(visible, 'answered'), sum(visible, 'unanswered'), rateOf(visible))}</tr>`;
+  }
+
+  $('#hallStats').innerHTML = visible.length ? html
+    : `<tr><td colspan="7" class="empty">${rows.length ? 'אין אולמות שמתאימים לחיפוש או לסינון.' : 'עוד אין אולמות.'}</td></tr>`;
+  $('#statsCount').textContent = rows.length ? `${formatNumber(visible.length)} מתוך ${formatNumber(rows.length)} אולמות` : '';
+
+  const counts = {};
+  const scoped = rows.filter((r) => (!filters.city || r.city === filters.city) && (!filters.hood || r.hood === filters.hood) && matches(searchText(r), filters.term));
+  for (const name of Object.keys(VIEWS)) counts[name] = scoped.filter(VIEWS[name]).length;
+  view.counts(counts);
 }
 
-function compare(a, b) {
-  const dir = sort.dir === 'ascending' ? 1 : -1;
-  const va = a[sort.key], vb = b[sort.key];
-  const diff = typeof va === 'string' ? va.localeCompare(vb, 'he') : va - vb;
-  return diff * dir || a.name.localeCompare(b.name, 'he');
-}
-
-function renderDays(range, byDay) {
+function renderDays() {
+  const byDay = lastHallDays ?? lastDays;
   $('#daysTitle').textContent = selectedHall ? `לפי יום: ${selectedHall.name}` : 'לפי יום, כל האולמות';
   $('#clearHall').hidden = !selectedHall;
+  $('#openCalls').hidden = !selectedHall;
 
   const data = new Map(byDay.map((d) => [d.day, d]));
-  const days = daysBetween(range.from, range.to).reverse(); // החדש למעלה
   const max = Math.max(1, ...byDay.map((d) => Number(selectedHall ? d.reached : d.calls)));
-
-  $('#dayStats').innerHTML = days.map((day) => {
+  let list = daysBetween(lastRange.from, lastRange.to).map((day) => {
     const d = data.get(day) || { calls: 0, reached: 0, answered: 0, unanswered: 0 };
     const total = Number(selectedHall ? d.reached : d.calls);
-    const answered = Number(d.answered), unanswered = Number(d.unanswered);
-    const other = Math.max(0, total - answered - unanswered); // לא הגיעו לאולם / בתהליך
+    return { day, total, answered: Number(d.answered), unanswered: Number(d.unanswered) };
+  });
+  if (hideEmptyDays) list = list.filter((d) => d.total > 0);
+  list = sortBy(list, daySort.state, { day: (d) => d.day, total: (d) => d.total, answered: (d) => d.answered, unanswered: (d) => d.unanswered },
+    (a, b) => b.day.localeCompare(a.day));
+
+  $('#dayStats').innerHTML = list.length ? list.map((d) => {
+    const other = Math.max(0, d.total - d.answered - d.unanswered); // לא הגיעו לאולם / בתהליך
     const w = (n) => `${(n / max) * 100}%`;
-    return `<tr class="${isWeekend(day) ? 'weekend' : ''}">
-      <td>${formatDay(day)} <span class="heb">${hebrewDay(day)}</span></td>
-      <td class="num total">${formatNumber(total)}</td>
-      <td class="num yes">${formatNumber(answered)}</td>
-      <td class="num no">${formatNumber(unanswered)}</td>
-      <td><span class="bar" aria-hidden="true"><i class="y" style="width:${w(answered)}"></i><i class="n" style="width:${w(unanswered)}"></i><i class="o" style="width:${w(other)}"></i></span></td>
+    return `<tr class="${isWeekend(d.day) ? 'weekend' : ''}">
+      <td class="span-all name">${formatDay(d.day)} <span class="heb">${hebrewDay(d.day)}</span></td>
+      <td class="num total" data-label="סה&quot;כ">${formatNumber(d.total)}</td>
+      <td class="num yes" data-label="נענו">${formatNumber(d.answered)}</td>
+      <td class="num no" data-label="לא נענו">${formatNumber(d.unanswered)}</td>
+      <td class="span-all"><span class="bar" aria-hidden="true"><i class="y" style="width:${w(d.answered)}"></i><i class="n" style="width:${w(d.unanswered)}"></i><i class="o" style="width:${w(other)}"></i></span></td>
     </tr>`;
-  }).join('');
+  }).join('') : '<tr><td colspan="5" class="empty">אין שיחות בתקופה הזו.</td></tr>';
+}
+
+function selectHall(id) {
+  const row = rows.find((r) => String(r.id) === String(id));
+  if (!row) return;
+  selectedHall = selectedHall?.id === row.id ? null : row.hall;
+  document.dispatchEvent(new CustomEvent('stats-select'));
+  $('#daysHead').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function exportCsv() {
+  const list = sortBy(visibleRows(), hallSort.state, HALL_GETTERS, byName);
+  downloadCsv(`שיחות-לפי-אולם-${lastRange.from}-${lastRange.to}.csv`,
+    ['אולם', 'עיר', 'שכונה', 'סה"כ שיחות', 'נענו', 'לא נענו', 'אחוז מענה'],
+    list.map((r) => [r.name, r.city, r.hood, r.total, r.answered, r.unanswered, r.rate == null ? '' : `${Math.round(r.rate * 100)}%`]));
 }
 
 export function initStats(reload) {
-  $('#statsSearch').addEventListener('input', renderHallTable);
-  $('#showIdle').addEventListener('change', renderHallTable);
+  const remember = () => savePref('statsFilters', { city: '', hood: '', group: filters.group });
+  initSearch($('#statsSearch'), (value) => { filters.term = value; renderHallTable(); });
 
-  $$('.stats-table th[data-sort]').forEach((th) => th.addEventListener('click', () => {
-    const key = th.dataset.sort;
-    const textual = key === 'name' || key === 'city';
-    sort = sort.key === key
-      ? { key, dir: sort.dir === 'ascending' ? 'descending' : 'ascending' }
-      : { key, dir: textual ? 'ascending' : 'descending' };
-    renderHallTable();
-  }));
+  $('#statsCity').addEventListener('change', (e) => { filters.city = e.target.value; fillHoods(); renderHallTable(); });
+  $('#statsHood').addEventListener('change', (e) => { filters.hood = e.target.value; renderHallTable(); });
+  $('#statsGroup').value = filters.group;
+  $('#statsGroup').addEventListener('change', (e) => { filters.group = e.target.value; remember(); renderHallTable(); });
 
-  $('#hallStats').addEventListener('click', (e) => {
+  view = initChips($('#statsView'), pref('statsView', { value: 'all' }).value, (value) => { savePref('statsView', { value }); renderHallTable(); });
+  hallSort = initSort({
+    box: $('#statsSort'), table: $('.stats-table'), options: HALL_SORTS,
+    initial: pref('statsSort', { key: 'total', dir: 'desc' }),
+    onChange: (state) => { savePref('statsSort', state); renderHallTable(); },
+  });
+  daySort = initSort({
+    box: $('#daysSort'), table: $('.days-table'), options: DAY_SORTS,
+    initial: pref('daysSort', { key: 'day', dir: 'desc' }),
+    onChange: (state) => { savePref('daysSort', state); renderDays(); },
+  });
+  $('#hideEmptyDays').addEventListener('change', (e) => { hideEmptyDays = e.target.checked; renderDays(); });
+  $('#statsExport').addEventListener('click', exportCsv);
+
+  const onRow = (e) => {
     const tr = e.target.closest('tr[data-id]');
-    if (!tr) return;
-    const hall = rows.find((r) => String(r.hall.id) === tr.dataset.id).hall;
-    selectedHall = selectedHall?.id === hall.id ? null : hall;
-    reload();
-    $('#daysTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (tr) selectHall(tr.dataset.id);
+  };
+  $('#hallStats').addEventListener('click', onRow);
+  $('#hallStats').addEventListener('keydown', (e) => { if (e.key === 'Enter') onRow(e); });
+  document.addEventListener('stats-select', reload);
+
+  $('#insights').addEventListener('click', (e) => {
+    const card = e.target.closest('.insight');
+    if (!card) return;
+    if (card.dataset.hall) selectHall(card.dataset.hall);
+    else if (card.dataset.view) view.set(card.dataset.view);
+    else if (card.dataset.city != null) {
+      $('#statsCity').value = card.dataset.city;
+      filters.city = $('#statsCity').value;
+      fillHoods();
+      renderHallTable();
+      $('#statsSearch').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   });
 
   $('#clearHall').addEventListener('click', () => { selectedHall = null; reload(); });
+  $('#openCalls').addEventListener('click', () => {
+    if (selectedHall) document.dispatchEvent(new CustomEvent('open-calls', { detail: { hall: selectedHall } }));
+  });
 }

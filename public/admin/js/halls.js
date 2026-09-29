@@ -1,33 +1,91 @@
-// לשונית "ניהול אולמות": רשימה, הוספה ועריכה.
+// לשונית "ניהול אולמות": כרטיסים עם חיפוש, סינון, מיון, הוספה ועריכה.
 import { api } from './api.js';
-import { $, escapeHtml } from './dom.js';
+import { $, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
+import { initSearch, initChips, initSort, sortBy } from './controls.js';
+import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
+
+const SORTS = [...HALL_SORTS,
+  { key: 'guests', label: 'מקסימום אורחים' },
+  { key: 'ext', label: 'מספר שלוחה', text: true, first: 'asc' }];
+
+const VIEWS = {
+  all: () => true,
+  active: (r) => r.active,
+  off: (r) => !r.active,
+  idle: (r) => r.total === 0,
+};
 
 let halls = [];
+let rows = [];
 let editing = null;
 let onSaved = () => {};
+const filters = { term: '', city: '', hood: '' };
+let view, sort;
 
-export function renderHalls(list) {
+export async function loadHalls(range, list, isCurrent = () => true) {
+  const byHall = await api.statsByHall(range);
+  if (!isCurrent()) return;
   halls = list;
+  rows = buildRows(halls, byHall);
   fillSuggestions();
-  const term = $('#hallsSearch').value.trim();
-  const visible = halls
-    .filter((h) => !term || [h.name, h.city_name, h.neighborhood_name, h.extension].some((v) => String(v ?? '').includes(term)))
-    .sort((a, b) => a.city_name.localeCompare(b.city_name, 'he') || a.name.localeCompare(b.name, 'he'));
+  fillSelect($('#hallsCity'), uniqueSorted(rows.map((r) => r.city)), 'כל הערים');
+  filters.city = $('#hallsCity').value;
+  fillHoods();
+  renderHalls();
+}
 
-  $('#hallsList').innerHTML = visible.length ? visible.map((h) => `
-    <button class="hall-row${h.is_active ? '' : ' off'}" data-id="${h.id}">
-      <span class="name">${escapeHtml(h.name)}</span>${h.is_active ? '' : '<span class="tag">מושבת</span>'}
-      <div class="meta">${escapeHtml(h.city_name)}${h.neighborhood_name ? `, ${escapeHtml(h.neighborhood_name)}` : ''},
-        עד ${h.max_guests ?? '?'} אורחים, שלוחה ${escapeHtml(h.extension)}, טלפון ${escapeHtml(h.gabbai_phone)}</div>
-    </button>`).join('')
-    : `<div class="empty">${halls.length ? 'לא נמצאו אולמות שמתאימים לחיפוש.' : 'עוד אין אולמות. לחץ על "הוסף אולם" כדי להתחיל.'}</div>`;
+function fillHoods() {
+  const pool = filters.city ? rows.filter((r) => r.city === filters.city) : rows;
+  fillSelect($('#hallsHood'), uniqueSorted(pool.map((r) => r.hood)), 'כל השכונות');
+  filters.hood = $('#hallsHood').value;
+}
+
+function visibleRows() {
+  return rows.filter((r) => VIEWS[view.get()](r)
+    && (!filters.city || r.city === filters.city)
+    && (!filters.hood || r.hood === filters.hood)
+    && matches(searchText(r), filters.term));
+}
+
+function card(r) {
+  const h = r.hall;
+  return `<article class="hall-card${r.active ? '' : ' off'}" data-id="${r.id}">
+    <header>
+      <h3>${escapeHtml(r.name)}</h3>${r.active ? '' : '<span class="tag">מושבת</span>'}
+      <button class="icon-btn edit" data-id="${r.id}" aria-label="עריכת ${escapeHtml(r.name)}" title="עריכה">${icon('edit')}</button>
+    </header>
+    <p class="loc">${icon('pin')}${location(r) || '<span class="muted">בלי עיר</span>'}${h.address ? `<span class="addr"> · ${escapeHtml(h.address)}</span>` : ''}</p>
+    <ul class="facts">
+      <li>${icon('users')}עד ${h.max_guests ?? '?'} אורחים</li>
+      <li>${icon('list')}שלוחה ${escapeHtml(h.extension)}</li>
+      <li>${icon('phone')}<a href="tel:${escapeHtml(h.gabbai_phone)}">${escapeHtml(h.gabbai_phone)}</a></li>
+    </ul>
+    <dl class="mini">
+      <div><dt>שיחות</dt><dd>${formatNumber(r.total)}</dd></div>
+      <div class="yes"><dt>נענו</dt><dd>${formatNumber(r.answered)}</dd></div>
+      <div class="no"><dt>לא נענו</dt><dd>${formatNumber(r.unanswered)}</dd></div>
+      <div><dt>מענה</dt><dd>${r.rate == null ? '-' : `${Math.round(r.rate * 100)}%`}</dd></div>
+    </dl>
+    ${r.total ? `<span class="bar" aria-hidden="true"><i class="y" style="width:${(r.answered / r.total) * 100}%"></i><i class="n" style="width:${(r.unanswered / r.total) * 100}%"></i></span>` : ''}
+    <button class="link calls-link" data-id="${r.id}">יומן השיחות של האולם</button>
+  </article>`;
+}
+
+export function renderHalls() {
+  const visible = visibleRows();
+  const sorted = sortBy(visible, sort.state, { ...HALL_GETTERS }, byName);
+  $('#hallsList').innerHTML = sorted.length ? sorted.map(card).join('')
+    : `<div class="empty">${rows.length ? 'לא נמצאו אולמות שמתאימים לחיפוש או לסינון.' : 'עוד אין אולמות. לחץ על "הוסף אולם" כדי להתחיל.'}</div>`;
+  $('#hallsCount').textContent = rows.length ? `${formatNumber(visible.length)} מתוך ${formatNumber(rows.length)}` : '';
+
+  const scoped = rows.filter((r) => (!filters.city || r.city === filters.city) && (!filters.hood || r.hood === filters.hood) && matches(searchText(r), filters.term));
+  view.counts(Object.fromEntries(Object.entries(VIEWS).map(([name, test]) => [name, scoped.filter(test).length])));
 }
 
 function fillSuggestions() {
-  const unique = (values) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'he'));
   const options = (values) => values.map((v) => `<option value="${escapeHtml(v)}">`).join('');
-  $('#cityOptions').innerHTML = options(unique(halls.map((h) => h.city_name)));
-  $('#hoodOptions').innerHTML = options(unique(halls.map((h) => h.neighborhood_name)));
+  $('#cityOptions').innerHTML = options(uniqueSorted(halls.map((h) => h.city_name)));
+  $('#hoodOptions').innerHTML = options(uniqueSorted(halls.map((h) => h.neighborhood_name)));
 }
 
 function openForm(hall) {
@@ -66,13 +124,33 @@ async function save(e) {
   }
 }
 
+function exportCsv() {
+  const list = sortBy(visibleRows(), sort.state, HALL_GETTERS, byName);
+  downloadCsv('אולמות.csv', ['אולם', 'עיר', 'שכונה', 'כתובת', 'מקסימום אורחים', 'שלוחה', 'טלפון להעברה', 'פעיל', 'שיחות', 'נענו', 'לא נענו'],
+    list.map((r) => [r.name, r.city, r.hood, r.hall.address, r.guests, r.ext, r.hall.gabbai_phone, r.active ? 'כן' : 'לא', r.total, r.answered, r.unanswered]));
+}
+
 export function initHalls(savedCallback) {
   onSaved = savedCallback;
-  $('#hallsSearch').addEventListener('input', () => renderHalls(halls));
+  initSearch($('#hallsSearch'), (value) => { filters.term = value; renderHalls(); });
+  $('#hallsCity').addEventListener('change', (e) => { filters.city = e.target.value; fillHoods(); renderHalls(); });
+  $('#hallsHood').addEventListener('change', (e) => { filters.hood = e.target.value; renderHalls(); });
+  view = initChips($('#hallsView'), pref('hallsView', { value: 'all' }).value, (value) => { savePref('hallsView', { value }); renderHalls(); });
+  sort = initSort({
+    box: $('#hallsSort'), options: SORTS,
+    initial: pref('hallsSort', { key: 'name', dir: 'asc' }),
+    onChange: (state) => { savePref('hallsSort', state); renderHalls(); },
+  });
+  $('#hallsExport').addEventListener('click', exportCsv);
+
   $('#addHall').addEventListener('click', () => openForm());
   $('#hallsList').addEventListener('click', (e) => {
-    const row = e.target.closest('.hall-row');
-    if (row) openForm(halls.find((h) => String(h.id) === row.dataset.id));
+    if (e.target.closest('a')) return;                  // חיוג לא פותח עריכה
+    const id = e.target.closest('[data-id]')?.dataset.id;
+    if (!id) return;
+    const hall = halls.find((h) => String(h.id) === id);
+    if (e.target.closest('.calls-link')) document.dispatchEvent(new CustomEvent('open-calls', { detail: { hall } }));
+    else openForm(hall);
   });
   $('#hallForm').addEventListener('submit', save);
 }
