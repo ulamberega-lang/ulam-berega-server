@@ -1,0 +1,84 @@
+// בדיקת דפדפן לאתר הניהול מול שרת הדמה (dev/mock-admin.mjs). דורש Playwright.
+// הרצה: node dev/mock-admin.mjs &   ואז   node dev/smoke-admin.mjs
+// אם Playwright מותקן גלובלית: NODE_PATH=$(npm root -g) node dev/smoke-admin.mjs
+import { createRequire } from 'node:module';
+
+const require = createRequire(`${process.env.NODE_PATH || ''}/`);
+const { chromium, devices } = require('playwright');
+const base = process.env.SITE_URL || 'http://localhost:4173/admin/';
+
+const browser = await chromium.launch();
+let failed = 0;
+const check = (ok, message) => { if (!ok) failed++; console.log(ok ? 'PASS' : 'FAIL', message); };
+
+async function open(options) {
+  const page = await (await browser.newContext(options)).newPage();
+  page.on('pageerror', (e) => { failed++; console.log('FAIL page error:', e.message); });
+  await page.route(/fonts\.(googleapis|gstatic)/, (r) => r.abort());
+  return page;
+}
+
+// ---- מחשב ----
+const p = await open({ viewport: { width: 1280, height: 900 } });
+await p.goto(`${base}#stats`);
+await p.waitForSelector('#hallStats tr.clickable');
+const rows = () => p.$$eval('#hallStats tr.clickable', (t) => t.length);
+check(await rows() === 20, 'לפי אולם: 20 אולמות');
+
+await p.fill('#statsSearch', 'בני ברק'); check(await rows() === 4, 'חיפוש לפי עיר');
+await p.fill('#statsSearch', 'זכרון'); check(await rows() === 2, 'חיפוש לפי שכונה');
+await p.click('#statsSearch ~ .clear'); check(await rows() === 20, 'ניקוי חיפוש');
+
+await p.click('th[data-sort=unanswered]');
+const unanswered = await p.$$eval('#hallStats tr.clickable td.no', (t) => t.map((x) => Number(x.textContent.replace(/,/g, ''))));
+check(unanswered.every((v, i) => !i || unanswered[i - 1] >= v), 'מיון לפי לא נענו (כותרת)');
+check(await p.inputValue('#statsSort select') === 'unanswered', 'רשימת המיון מסונכרנת עם הכותרת');
+
+await p.selectOption('#statsCity', 'ירושלים'); check(await rows() === 8, 'סינון לפי עיר');
+await p.selectOption('#statsCity', '');
+await p.selectOption('#statsGroup', 'city'); check(await p.$$eval('tr.group-row', (t) => t.length) === 5, 'קיבוץ לפי עיר');
+await p.selectOption('#statsGroup', '');
+
+// בחירת אולם, מעבר ליומן, וכפתור חזרה
+check(await p.isHidden('#back'), 'אין כפתור חזרה במקום הראשון');
+await p.click('#hallStats tr.clickable >> nth=1'); await p.waitForTimeout(400);
+const title = await p.textContent('#daysTitle');
+check(title.startsWith('לפי יום: '), 'בחירת אולם מציגה ימים');
+await p.click('#openCalls'); await p.waitForTimeout(600);
+check(await p.evaluate(() => location.hash) === '#calls', 'מעבר ליומן השיחות');
+const hallFilter = await p.inputValue('#callsHall');
+await p.click('button[data-tab=halls]'); await p.waitForSelector('.hall-card');
+await p.click('#back'); await p.waitForTimeout(500);
+check(await p.inputValue('#callsHall') === hallFilter, 'חזרה: יומן עם אותו סינון אולם');
+await p.click('#back'); await p.waitForTimeout(600);
+check(await p.textContent('#daysTitle') === title, 'חזרה: האולם עדיין נבחר');
+
+// יומן שיחות
+await p.click('button[data-tab=calls]'); await p.waitForSelector('#callsList tr');
+await p.fill('#callsHall', ''); await p.waitForTimeout(400);
+await p.click('#callsView button[data-value=no]');
+const badges = await p.$$eval('#callsList .badge', (t) => [...new Set(t.map((x) => x.className))]);
+check(badges.length === 1 && badges[0].includes('no'), 'יומן: סינון לפי לא נענו');
+
+// אולמות, הצעת שלוחה ושמירה
+await p.click('button[data-tab=halls]'); await p.waitForSelector('.hall-card');
+await p.fill('#hallsSearch', 'אלעד'); check(await p.$$eval('.hall-card', (t) => t.length) === 2, 'אולמות: חיפוש לפי עיר');
+await p.fill('#hallsSearch', '');
+await p.click('#addHall');
+await p.fill('#hallForm [name=city_name]', 'חיפה');
+check(await p.inputValue('#hallForm [name=extension]') === '201', 'עיר חדשה מקבלת הצעה 201');
+for (const [name, value] of Object.entries({ name: 'אולם בדיקה', max_guests: '200', gabbai_phone: '0501234567' })) await p.fill(`#hallForm [name=${name}]`, value);
+await p.click('.actions .btn[value=save]');
+await p.waitForSelector('.toast');
+check((await p.textContent('.toast')).includes('נוסף בהצלחה'), 'הודעת שמירה');
+
+// ---- אייפון ----
+const m = await open(devices['iPhone 14']);
+for (const tab of ['stats', 'calls', 'halls']) {
+  await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
+  check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
+}
+
+await browser.close();
+console.log(failed ? `${failed} נכשלו` : 'הכול עבר');
+process.exit(failed ? 1 : 0);
