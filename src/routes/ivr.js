@@ -1,12 +1,14 @@
 // נתיבים שימות המשיח פונה אליהם:
 //   /api/ivr            - השלוחה הראשית (כל שלבי השיחה)
 //   /api/ivr/no-answer  - שלוחה 9, כשהאולם לא ענה
+//   /api/ivr/owner      - שלוחת "בעל אולם" (אופציונלית, הקראה איטית)
 //   /api/ivr/routing-status - תוצאת החיוג לאולם (נענה / לא נענה / תפוס / המתקשר ניתק)
 import { Router } from 'express';
 import { readParams, lastValue, clean, hangup, goToFolder } from '../lib/yemot.js';
 import { getSession, createSession, deleteSession, resetSession } from '../ivr/sessions.js';
 import { prompt, handleAnswer, isSpeechStep, transcribeAnswer, fallbackToList } from '../ivr/flow.js';
 import { routeToHall } from '../ivr/route-to-hall.js';
+import { ownerReply, ownerRestart } from '../ivr/owner-info.js';
 import { callStarted, callEnded, callNotAnswered, routingFinished } from '../services/call-log.js';
 
 export const ivrRouter = Router();
@@ -96,6 +98,25 @@ ivrRouter.all('/no-answer', async (req, res) => {
   } catch (err) {
     console.error('no-answer:', err);
     return res.send(hangup('אֵין מַעֲנֶה בָּאוּלָם'));
+  }
+});
+
+// שלוחת "בעל אולם" (OWNER_EXT, למשל 7): הקראה איטית יותר של ההסבר איך מוסיפים אולם, ואז חזרה לתפריט הראשי
+ivrRouter.all('/owner', async (req, res) => {
+  const q = readParams(req);
+  const id = q.ApiCallId;
+  res.type('text/plain; charset=utf-8');
+  try {
+    if (q.hangup === 'yes') {
+      deleteSession(id);
+      await callEnded(id);
+      return res.send('');
+    }
+    const s = getSession(id);
+    return res.send(s ? ownerReply(s, q) : ownerRestart());
+  } catch (err) {
+    console.error('owner:', err);
+    return res.send(hangup('תַּקָּלָה בַּמַּעֲרֶכֶת נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
   }
 });
 
