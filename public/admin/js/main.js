@@ -17,10 +17,11 @@ async function refresh() {
   const current = ++requestId;
   const isCurrent = () => current === requestId; // תשובה ישנה (לחיצות מהירות) לא דורסת חדשה
   setBusy(true);
+  const tab = state.tab; // נקבע פעם אחת: מעבר לשונית באמצע לא ימשיך לטעינה של הלשונית החדשה
   try {
-    if (state.tab === 'stats') await loadStats(state.range, state.halls, isCurrent);
-    if (state.tab === 'calls') await loadCalls(state.range, state.halls, isCurrent);
-    if (state.tab === 'halls') await loadHalls(state.range, state.halls, isCurrent);
+    if (tab === 'stats') await loadStats(state.range, state.halls, isCurrent);
+    else if (tab === 'calls') await loadCalls(state.range, state.halls, isCurrent);
+    else await loadHalls(state.range, state.halls, isCurrent);
     if (isCurrent()) $('#updated').textContent = `עודכן ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
   } catch (err) {
     if (isCurrent()) showError(err.message);
@@ -53,10 +54,15 @@ function updateBack() {
   $('#back').hidden = !(history.state?.n > 0);
 }
 
+// לפני שעוזבים מקום: שומרים בו את מה שהשתנה בלי מעבר (מיקום גלילה, וסינון האולם אם זה מקום ביומן השיחות)
+function saveCurrent() {
+  const here = history.state ?? {};
+  history.replaceState({ ...here, ...(here.tab === 'calls' && { callsHall: getHallFilter() }), y: window.scrollY }, '');
+}
+
+// מקום חדש בהיסטוריה (אחרי saveCurrent)
 function pushPlace() {
-  const n = history.state?.n ?? 0;
-  history.replaceState({ ...history.state, y: window.scrollY }, '');
-  history.pushState(snapshot(n + 1), '', `#${state.tab}`);
+  history.pushState(snapshot((history.state?.n ?? 0) + 1), '', `#${state.tab}`);
   updateBack();
 }
 
@@ -71,6 +77,7 @@ async function restorePlace(place) {
 
 function setTab(tab, { record = true, load = true } = {}) {
   const changed = tab !== state.tab;
+  if (record && changed) saveCurrent();
   state.tab = tab;
   $$('.topbar nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
   for (const name of TABS) $(`#tab-${name}`).hidden = name !== tab;
@@ -103,7 +110,7 @@ function init() {
   initStats(refresh);
   initCalls(refresh);
   initHalls(async () => { await loadHallList(); refresh(); });
-  document.addEventListener('stats-select', pushPlace); // בחירת אולם / ניקוי הבחירה
+  document.addEventListener('stats-select', () => { saveCurrent(); pushPlace(); }); // בחירת אולם / ניקוי הבחירה
 
   // קישורים בין לשוניות: "יומן השיחות של האולם"
   document.addEventListener('open-calls', (e) => {

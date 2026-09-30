@@ -106,8 +106,10 @@ function renderCalls() {
 
 function exportCsv() {
   const list = sortBy(visibleCalls().filter((c) => view.get() === 'all' || c.status === view.get()), sort.state, GETTERS);
-  downloadCsv('יומן-שיחות.csv', ['תאריך ושעה', 'מתקשר', 'אולם', 'עיר', 'מצב', 'משך'],
-    list.map((c) => [formatDateTime(c.created_at), c.caller_phone || 'חסוי', c.hallName, c.city, STATUS_LABEL(c), duration(c.duration_sec)]));
+  const rows = list.map((c) => [formatDateTime(c.created_at), c.caller_phone || 'חסוי', c.hallName, c.city, STATUS_LABEL(c), duration(c.duration_sec)]);
+  // הקובץ לא כולל שיחות ישנות יותר; מסמנים את זה כדי שהמספרים לא יתפרשו כסך כל השיחות
+  if (calls.length >= LIMIT) rows.push([`הקובץ כולל רק את ${LIMIT} השיחות האחרונות בטווח`, '', '', '', '', '']);
+  downloadCsv('יומן-שיחות.csv', ['תאריך ושעה', 'מתקשר', 'אולם', 'עיר', 'מצב', 'משך'], rows);
 }
 
 // מעבר מלשוניות אחרות: פותח את היומן כשהוא מסונן לאולם מסוים

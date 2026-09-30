@@ -1,12 +1,12 @@
 // ניקוד לשמות מה-DB, כדי שמנוע ההקראה יגה אותם נכון (טבלת pronunciations).
-import { supabase } from '../lib/supabase.js';
+import { supabase, selectAll } from '../lib/supabase.js';
 
 const REFRESH_MS = 10 * 60 * 1000;
 let dictionary = new Map();
 
 async function load() {
-  const { data, error } = await supabase.from('pronunciations').select('word, nikud');
-  if (error) return console.error('nikud:', error.message);
+  // selectAll: Supabase מחזיר עד 1,000 שורות בבקשה. שגיאה נזרקת ונתפסת ב-safeLoad, והמילון הקודם נשאר
+  const data = await selectAll(() => supabase.from('pronunciations').select('word, nikud').order('word'));
   dictionary = new Map(data.map((r) => [r.word.trim(), r.nikud]));
 }
 

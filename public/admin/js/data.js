@@ -35,7 +35,8 @@ export const byName = (a, b) => a.name.localeCompare(b.name, 'he');
 // כל מה שאפשר לחפש באולם
 export const searchText = (r) => [r.name, r.city, r.hood, r.hall.address, r.ext, r.hall.gabbai_phone].join(' ');
 
-export const hallLabel = (h) => `${h.name}, ${h.city_name}`;
+// כולל שלוחה, כדי שלאולמות עם אותו שם ואותה עיר תהיה תווית שונה (אחרת אחד מהם לא נבחר ביומן)
+export const hallLabel = (h) => `${h.name}, ${h.city_name} (שלוחה ${h.extension ?? '?'})`;
 
 export const location = (r) => [r.city, r.hood].filter(Boolean).map(escapeHtml).join(' · ');
 

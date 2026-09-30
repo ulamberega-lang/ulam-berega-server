@@ -88,3 +88,95 @@ test('buildRows: מחבר סטטיסטיקה לאולם, ואחוז מענה ר�
   assert.equal(rows[1].total, 0);
   assert.equal(rows[1].rate, null);
 });
+
+// ---------- תיקונים מסקירת הקוד ----------
+import { csvCell } from '../public/admin/js/dom.js';
+import { daysBetween, MAX_DAYS } from '../public/admin/js/dates.js';
+import { hallLabel } from '../public/admin/js/data.js';
+import { requireJson } from '../src/middleware/admin-guard.js';
+import { basicAuth, samePassword } from '../src/middleware/basic-auth.js';
+
+test('csvCell: מירכאות, ומניעת נוסחאות באקסל', () => {
+  assert.equal(csvCell('שלום "עולם"'), '"שלום ""עולם"""');
+  assert.equal(csvCell('=HYPERLINK("http://x")'), '"\'=HYPERLINK(""http://x"")"');
+  for (const bad of ['+972501234567', '-1', '@cmd', '\tx']) assert.ok(csvCell(bad).startsWith('"\''), bad);
+  assert.equal(csvCell('0501234567'), '"0501234567"');
+  assert.equal(csvCell(null), '""');
+});
+
+test('daysBetween: כל הימים בטווח קצר, מהישן לחדש', () => {
+  assert.deepEqual(daysBetween('2026-09-28', '2026-09-30'), ['2026-09-28', '2026-09-29', '2026-09-30']);
+});
+
+test('daysBetween: בטווח ארוך נשארים הימים החדשים', () => {
+  const days = daysBetween('2024-01-01', '2025-12-31');
+  assert.equal(days.length, MAX_DAYS);
+  assert.equal(days.at(-1), '2025-12-31');
+  assert.ok(days[0] > '2024-01-01');
+});
+
+test('hallLabel: אולמות עם אותו שם ועיר מקבלים תווית שונה', () => {
+  const a = { name: 'פאר', city_name: 'ירושלים', extension: '101' };
+  const b = { name: 'פאר', city_name: 'ירושלים', extension: '102' };
+  assert.notEqual(hallLabel(a), hallLabel(b));
+});
+
+// ---------- בדיקות למידלוור (בלי Express: אובייקטים מזויפים) ----------
+function run(middleware, req) {
+  const out = { status: null, body: null, headers: {}, nexted: false };
+  const res = {
+    status(code) { out.status = code; return this; },
+    json(body) { out.body = body; return this; },
+    send(body) { out.body = body; return this; },
+    set(name, value) { out.headers[name] = value; return this; },
+  };
+  middleware({ headers: {}, method: 'GET', ip: '1.1.1.1', is: () => false, ...req }, res, () => { out.nexted = true; });
+  return out;
+}
+const jsonReq = (extra) => ({ method: 'POST', is: (t) => t === 'json', headers: { host: 'site.example' }, ...extra });
+
+test('requireJson: GET עובר, טופס רגיל נחסם, JSON עובר', () => {
+  assert.ok(run(requireJson, { method: 'GET' }).nexted);
+  assert.equal(run(requireJson, { method: 'POST', headers: { host: 'site.example' } }).status, 415);
+  assert.ok(run(requireJson, jsonReq()).nexted);
+});
+
+test('requireJson: Origin של אתר אחר נחסם, של האתר עצמו עובר', () => {
+  assert.equal(run(requireJson, jsonReq({ headers: { host: 'site.example', origin: 'https://evil.example' } })).status, 403);
+  assert.ok(run(requireJson, jsonReq({ headers: { host: 'site.example', origin: 'https://site.example' } })).nexted);
+  assert.equal(run(requireJson, jsonReq({ headers: { host: 'site.example', origin: 'לא-כתובת' } })).status, 403);
+});
+
+const basic = (password) => ({ headers: { authorization: `Basic ${Buffer.from(`x:${password}`).toString('base64')}` } });
+
+test('basicAuth: סיסמה נכונה עוברת, שגויה או חסרה נדחית', () => {
+  const auth = basicAuth('סוד');
+  assert.ok(run(auth, basic('סוד')).nexted);
+  assert.equal(run(auth, basic('שגוי')).status, 401);
+  assert.equal(run(auth, {}).status, 401);
+  assert.equal(run(basicAuth(''), {}).status, 503);
+});
+
+test('basicAuth: אחרי 10 סיסמאות שגויות חוסמים, ובסיום החלון חוזרים לעבוד', () => {
+  let time = 0;
+  const auth = basicAuth('סוד', () => time);
+  for (let i = 0; i < 10; i++) assert.equal(run(auth, basic('שגוי')).status, 401);
+  const blocked = run(auth, basic('סוד')); // גם סיסמה נכונה נחסמת בזמן החסימה
+  assert.equal(blocked.status, 429);
+  assert.ok(Number(blocked.headers['Retry-After']) > 0);
+  assert.equal(run(auth, { ip: '2.2.2.2', ...basic('סוד') }).nexted, true); // כתובת אחרת לא מושפעת
+  time = 11 * 60 * 1000;
+  assert.ok(run(auth, basic('סוד')).nexted);
+});
+
+test('basicAuth: בקשה בלי סיסמה לא נספרת בהגבלה', () => {
+  const auth = basicAuth('סוד');
+  for (let i = 0; i < 30; i++) run(auth, {});
+  assert.ok(run(auth, basic('סוד')).nexted);
+});
+
+test('samePassword', () => {
+  assert.ok(samePassword('abc', 'abc'));
+  assert.ok(!samePassword('abc', 'abd'));
+  assert.ok(!samePassword('abc', 'abcd'));
+});

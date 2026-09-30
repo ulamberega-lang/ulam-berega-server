@@ -10,10 +10,13 @@ export function addDays(iso, days) {
   return d.toISOString().slice(0, 10);
 }
 
-export function daysBetween(from, to) {
+export const MAX_DAYS = 400;
+
+// ימי הטווח מהישן לחדש. בטווח ארוך מ-MAX_DAYS נשארים הימים האחרונים (החדשים)
+export function daysBetween(from, to, max = MAX_DAYS) {
   const list = [];
-  for (let d = from; d <= to && list.length <= 400; d = addDays(d, 1)) list.push(d);
-  return list;
+  for (let d = to; d >= from && list.length < max; d = addDays(d, -1)) list.push(d);
+  return list.reverse();
 }
 
 export function preset(name) {

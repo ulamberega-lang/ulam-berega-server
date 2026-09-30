@@ -36,7 +36,9 @@ export async function routingFinished(q, lastValue) {
 
   // מזהים את השיחה לפי מזהה ימות, ואם לא נשלח - לפי מספר המתקשר
   let callId = (q.ApiCallId && await calls.findByCallId(q.ApiCallId)) ? q.ApiCallId : null;
-  if (!callId) callId = (await calls.findOpenRoutingByCaller(localPhone(lastValue(q.Phone) || q.ApiPhone)))?.yemot_call_id;
+  // בלי מספר מתקשר (חסוי) אי אפשר לזהות לפי מספר: היה תופס שיחה חסומה אחרת שפתוחה באותו זמן
+  const phone = localPhone(lastValue(q.Phone) || q.ApiPhone);
+  if (!callId && phone) callId = (await calls.findOpenRoutingByCaller(phone))?.yemot_call_id;
   if (!callId) return console.error('routing-status: call not found', JSON.stringify(q).slice(0, 300));
 
   await calls.updateByCallId(callId, { dial_status: status, answer_sec: toSeconds(lastValue(q.AnswerTime)) });
