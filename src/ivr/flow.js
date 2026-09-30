@@ -7,6 +7,7 @@
 //   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
 //   noMatch - נאמר שם שלא נמצא: לנסות שוב (1) או לבחור מרשימה (2)
 //   4 בעל אולם:               ownerInfo (הסבר איך מוסיפים אולם, בלי חיפוש)
+//   5 אנגלית (ניסוי):         english (אותיות לטיניות, לבדוק איך מנוע ההקראה קורא אותן)
 import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
 import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
@@ -16,6 +17,9 @@ import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';
 import { OWNER_PARTS, OWNER_OPTIONS } from './owner-info.js';
 import { routeToHall } from './route-to-hall.js';
+
+// ניסוי: האם מנוע ההקראה מקריא אותיות לטיניות. אם כן - אפשר לאיית בהן את כתובת המייל.
+const ENGLISH_LETTERS = ['A', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
 const STAR_HINT = 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
@@ -125,7 +129,11 @@ export async function prompt(s) {
       return ask(s, ['בְּרוּכִים הַבָּאִים לֶגְמַ״ח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
         'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 2',
         'לְחִיפּוּשׂ לְפִי שֵׁם הָאוּלָם הַקֵּשׁ 3',
-        'לְהוֹסָפַת אוּלָם לַמַּעֲרֶכֶת הַקֵּשׁ 4'], tapOptions(1));
+        'לְהוֹסָפַת אוּלָם לַמַּעֲרֶכֶת הַקֵּשׁ 4',
+        'לְאַנְגְּלִית הַקֵּשׁ 5'], tapOptions(1));
+
+    case 'english':
+      return ask(s, [...ENGLISH_LETTERS, 'לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 1', 'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ 2'], tapOptions(1));
 
     case 'ownerInfo':
       return ask(s, [...OWNER_PARTS, ...OWNER_OPTIONS], tapOptions(1));
@@ -253,6 +261,11 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '2') return go('extEntry');
       if (val === '3') { s.mode = 'name'; return go('city'); }
       if (val === '4') return go('ownerInfo');
+      if (val === '5') return go('english');
+      return invalid();
+    case 'english':
+      if (val === '1') return go('english');
+      if (val === '2') { resetSession(s); return prompt(s); }
       return invalid();
     case 'ownerInfo':
       if (val === '1') return go('ownerInfo');
