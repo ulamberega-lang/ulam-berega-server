@@ -10,6 +10,7 @@ export const config = {
   brevoKey: process.env.BREVO_API_KEY,
   mailFrom: process.env.MAIL_FROM,
   adminPassword: process.env.ADMIN_PASSWORD,
+  ownerExt: process.env.OWNER_EXT,                      // אופציונלי, למשל /7: שלוחת ההקראה האיטית של "בעל אולם" (בלי זה - מקריאים בשלוחה הראשית)
   publicUrl: process.env.RENDER_EXTERNAL_URL,           // Render מגדיר אוטומטית
 };
 
