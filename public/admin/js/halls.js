@@ -1,6 +1,6 @@
 // לשונית "ניהול אולמות": כרטיסים עם חיפוש, סינון, מיון, הוספה ועריכה.
 import { api } from './api.js';
-import { $, toast, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
+import { $, toast, showError, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location, suggestExtension } from './data.js';
 
@@ -23,8 +23,17 @@ let onSaved = () => {};
 const filters = { term: '', city: '', hood: '' };
 let view, sort;
 
+let statsOk = true; // אם חישוב הסטטיסטיקה נכשל, האולמות עדיין מוצגים (ואפשר לערוך אותם), בלי מספרי שיחות
+
 export async function loadHalls(range, list, isCurrent = () => true) {
-  const byHall = await api.statsByHall(range);
+  let byHall = [];
+  statsOk = true;
+  try {
+    byHall = await api.statsByHall(range);
+  } catch (err) {
+    statsOk = false;
+    if (isCurrent()) showError(`מספרי השיחות לא נטענו, האולמות מוצגים בלעדיהם. ${err.message}`);
+  }
   if (!isCurrent()) return;
   halls = list;
   rows = buildRows(halls, byHall);
@@ -61,13 +70,13 @@ function card(r) {
       <li>${icon('list')}שלוחה ${escapeHtml(h.extension)}</li>
       <li>${icon('phone')}<a href="tel:${escapeHtml(h.gabbai_phone)}">${escapeHtml(h.gabbai_phone)}</a></li>
     </ul>
-    <dl class="mini">
+    ${statsOk ? `<dl class="mini">
       <div><dt>שיחות</dt><dd>${formatNumber(r.total)}</dd></div>
       <div class="yes"><dt>נענו</dt><dd>${formatNumber(r.answered)}</dd></div>
       <div class="no"><dt>לא נענו</dt><dd>${formatNumber(r.unanswered)}</dd></div>
       <div><dt>מענה</dt><dd>${r.rate == null ? '-' : `${Math.round(r.rate * 100)}%`}</dd></div>
     </dl>
-    ${r.total ? `<span class="bar" aria-hidden="true"><i class="y" style="width:${(r.answered / r.total) * 100}%"></i><i class="n" style="width:${(r.unanswered / r.total) * 100}%"></i></span>` : ''}
+    ${r.total ? `<span class="bar" aria-hidden="true"><i class="y" style="width:${(r.answered / r.total) * 100}%"></i><i class="n" style="width:${(r.unanswered / r.total) * 100}%"></i></span>` : ''}` : ''}
     <button class="link calls-link" data-id="${r.id}">יומן השיחות של האולם</button>
   </article>`;
 }
@@ -138,16 +147,22 @@ async function save(e) {
   const wasEditing = Boolean(editing);
   button.disabled = true;
   button.textContent = 'שומר…';
+  let saved;
   try {
-    const saved = editing ? await api.updateHall(editing.id, data) : await api.createHall(data);
-    $('#hallDialog').close();
-    toast(wasEditing ? 'השינויים באולם נשמרו בהצלחה' : 'האולם נוסף בהצלחה');
-    onSaved(saved);
+    saved = editing ? await api.updateHall(editing.id, data) : await api.createHall(data);
   } catch (err) {
     $('#hallFormError').innerHTML = `<div class="error-box">${escapeHtml(err.message)}</div>`;
+    return;
   } finally {
     button.disabled = false;
     button.textContent = label;
+  }
+
+  $('#hallDialog').close();
+  toast(wasEditing ? 'השינויים באולם נשמרו בהצלחה' : 'האולם נוסף בהצלחה');
+  // השמירה הצליחה; אם רענון הרשימה נכשל אומרים את זה במפורש (אחרת נראה שהאולם לא נשמר ואפשר לשמור כפול)
+  try { await onSaved(saved); } catch (err) {
+    toast('האולם נשמר, אבל רענון הרשימה נכשל. לחץ על כפתור הרענון', 'error');
   }
 }
 

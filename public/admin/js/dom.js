@@ -36,10 +36,16 @@ export function savePref(name, value) {
   } catch { /* אחסון חסום */ }
 }
 
+// תא ב-CSV: מירכאות, וגם הגנה מפני נוסחאות באקסל (תא שמתחיל ב- = + - @ נשמר כטקסט עם גרש בהתחלה).
+// מספרי מתקשרים מגיעים מהמערכת הטלפונית ללא אימות, ולכן אסור שיתפרשו כנוסחה.
+export const csvCell = (v) => {
+  const text = String(v ?? '');
+  return `"${(/^[=+\-@\t\r]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`;
+};
+
 // CSV שנפתח נכון באקסל בעברית (BOM + מירכאות)
 export function downloadCsv(filename, header, rows) {
-  const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const text = [header, ...rows].map((r) => r.map(cell).join(',')).join('\r\n');
+  const text = [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob(['﻿', text], { type: 'text/csv;charset=utf-8' }));
   const a = Object.assign(document.createElement('a'), { href: url, download: filename });
   document.body.append(a);

@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { $, escapeHtml, formatNumber, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
-import { daysBetween, formatDay, hebrewDay, isWeekend } from './dates.js';
+import { daysBetween, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.js';
 
 const DAY_SORTS = [
   { key: 'day', label: 'תאריך', first: 'desc' },
@@ -34,7 +34,8 @@ export async function loadStats(range, halls, isCurrent = () => true) {
   if (!isCurrent()) return;
   rows = buildRows(halls, byHall);
   lastRange = range; lastDays = allDays; lastHallDays = hallDays;
-  if (selectedHall && !rows.some((r) => r.id === selectedHall.id)) selectedHall = null;
+  // האולם הנבחר מתעדכן לגרסה העדכנית (שם או עיר שהשתנו), ואם נמחק - הבחירה מתבטלת
+  if (selectedHall) selectedHall = rows.find((r) => r.id === selectedHall.id)?.hall ?? null;
 
   fillSelect($('#statsCity'), uniqueSorted(rows.map((r) => r.city)), 'כל הערים');
   filters.city = $('#statsCity').value;
@@ -164,6 +165,7 @@ function renderHallTable() {
 }
 
 function renderDays() {
+  if (!lastRange) return; // עוד לא נטען
   const byDay = lastHallDays ?? lastDays;
   $('#daysTitle').textContent = selectedHall ? `לפי יום: ${selectedHall.name}` : 'לפי יום, כל האולמות';
   $('#clearHall').hidden = !selectedHall;
@@ -171,7 +173,10 @@ function renderDays() {
 
   const data = new Map(byDay.map((d) => [d.day, d]));
   const max = Math.max(1, ...byDay.map((d) => Number(selectedHall ? d.reached : d.calls)));
-  let list = daysBetween(lastRange.from, lastRange.to).map((day) => {
+  const allDays = daysBetween(lastRange.from, lastRange.to);
+  $('#daysNote').hidden = allDays[0] <= lastRange.from;
+  $('#daysNote').textContent = `הטווח ארוך: מוצגים ${MAX_DAYS} הימים האחרונים בו. הסיכומים למעלה כוללים את כל הטווח.`;
+  let list = allDays.map((day) => {
     const d = data.get(day) || { calls: 0, reached: 0, answered: 0, unanswered: 0 };
     const total = Number(selectedHall ? d.reached : d.calls);
     return { day, total, answered: Number(d.answered), unanswered: Number(d.unanswered) };
@@ -202,6 +207,7 @@ function selectHall(id) {
 }
 
 function exportCsv() {
+  if (!lastRange) return; // עוד לא נטען
   const list = sortBy(visibleRows(), hallSort.state, HALL_GETTERS, byName);
   downloadCsv(`שיחות-לפי-אולם-${lastRange.from}-${lastRange.to}.csv`,
     ['אולם', 'עיר', 'שכונה', 'סה"כ שיחות', 'נענו', 'לא נענו', 'אחוז מענה'],

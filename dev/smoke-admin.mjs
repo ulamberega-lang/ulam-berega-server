@@ -72,6 +72,47 @@ await p.click('.actions .btn[value=save]');
 await p.waitForSelector('.toast');
 check((await p.textContent('.toast')).includes('נוסף בהצלחה'), 'הודעת שמירה');
 
+// חזרה שומרת את סינון האולם שהוקלד ביומן (גם כשהוקלד אחרי הכניסה ללשונית)
+await p.click('button[data-tab=calls]'); await p.waitForSelector('#callsList tr');
+await p.fill('#callsHall', 'בני ברק'); await p.waitForTimeout(200);
+await p.click('button[data-tab=stats]'); await p.waitForTimeout(400);
+await p.click('#back'); await p.waitForTimeout(600);
+check(await p.inputValue('#callsHall') === 'בני ברק', 'חזרה: סינון האולם ביומן נשמר');
+await p.fill('#callsHall', '');
+
+// אולמות: אם הסטטיסטיקה נכשלת, הרשימה עדיין מוצגת ואפשר לערוך
+const q = await open({ viewport: { width: 1280, height: 900 } });
+await q.route('**/admin/api/stats/halls*', (r) => r.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"תקלה"}' }));
+await q.goto(`${base}#halls`); await q.waitForSelector('.hall-card');
+check(await q.$$eval('.hall-card', (t) => t.length) === 20, 'אולמות: הרשימה מוצגת גם כשהסטטיסטיקה נכשלת');
+check(await q.$$eval('.hall-card .mini', (t) => t.length) === 0, 'אולמות: בלי מספרי שיחות מטעים כשהסטטיסטיקה נכשלה');
+check((await q.textContent('#error')).includes('לא נטענו'), 'אולמות: מוצגת הודעת שגיאה');
+
+// יומן: לאולמות עם אותו שם ועיר יש תוויות שונות, וכל אחד מסנן את השיחות של עצמו
+const t = await open({ viewport: { width: 1280, height: 900 } });
+const twins = [
+  { id: 1, name: 'פאר', city_name: 'ירושלים', neighborhood_name: 'גאולה', extension: '101', is_active: true, max_guests: 100, gabbai_phone: '0501111111' },
+  { id: 2, name: 'פאר', city_name: 'ירושלים', neighborhood_name: 'רמות', extension: '102', is_active: true, max_guests: 100, gabbai_phone: '0502222222' },
+];
+await t.route('**/admin/api/halls', (r) => r.request().method() === 'GET' ? r.fulfill({ contentType: 'application/json', body: JSON.stringify(twins) }) : r.continue());
+const asked = [];
+await t.route('**/admin/api/calls*', (r) => { asked.push(new URL(r.request().url()).searchParams.get('hall')); r.fulfill({ contentType: 'application/json', body: '[]' }); });
+await t.goto(`${base}#calls`); await t.waitForSelector('#callsHallOptions option', { state: 'attached' });
+const labels = await t.$$eval('#callsHallOptions option', (o) => o.map((x) => x.value));
+check(new Set(labels).size === 2, 'יומן: שתי תוויות שונות לאולמות תאומים');
+await t.fill('#callsHall', labels[0]); await t.waitForTimeout(500);
+check(asked.at(-1) === '1', 'יומן: האולם הראשון מסנן לפי המזהה שלו');
+await t.fill('#callsHall', labels[1]); await t.waitForTimeout(500);
+check(asked.at(-1) === '2', 'יומן: האולם השני מסנן לפי המזהה שלו');
+
+// לחיצה על בקרים בזמן טעינה ראשונה איטית לא גורמת לשגיאות (open() סופר שגיאות דף ככישלון)
+const slow = await open({ viewport: { width: 1280, height: 900 } });
+await slow.route('**/admin/api/stats/**', async (r) => { await new Promise((ok) => setTimeout(ok, 800)); r.continue(); });
+await slow.goto(`${base}#stats`);
+await slow.click('#hideEmptyDays'); await slow.click('.days-table th[data-sort=total]'); await slow.click('#statsExport');
+await slow.waitForSelector('#hallStats tr.clickable');
+check(true, 'לחיצה על בקרים לפני שהנתונים נטענו: בלי שגיאות');
+
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
 for (const tab of ['stats', 'calls', 'halls']) {
