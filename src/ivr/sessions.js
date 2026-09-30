@@ -21,5 +21,5 @@ export function createSession(id) {
 
 // חזרה לתפריט הראשי
 export function resetSession(s) {
-  Object.assign(s, { step: 'menu', mode: null, page: 0, hoodPage: 0, cityPage: 0, listPage: 0, guests: null, city: null, hood: null, hall: null });
+  Object.assign(s, { step: 'menu', mode: null, page: 0, hoodPage: 0, cityPage: 0, listPage: 0, guests: null, city: null, hood: null, hall: null, noMatch: null });
 }
