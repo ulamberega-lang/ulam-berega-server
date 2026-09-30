@@ -149,7 +149,7 @@ export async function prompt(s) {
     }
 
     case 'noMatch':
-      return ask(s, ['לְנַסּוֹת לוֹמַר שׁוּב הַקֵּשׁ 1', 'לִבְחִירָה מֵרְשִׁימָה הַקֵּשׁ 2'], tapOptions(1));
+      return ask(s, ['לְנִסָּיוֹן נוֹסָף הַקֵּשׁ 1', 'לִרְשִׁימָה הַקֵּשׁ 2'], tapOptions(1));
 
     case 'hallSay':
       s.cityHalls = await halls.getActiveHallsInCity(s.city);
