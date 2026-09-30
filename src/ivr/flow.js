@@ -6,6 +6,7 @@
 //   3 חיפוש לפי שם:            city → cityOk → hallSay → hallOk | hallMenu
 //   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
 //   noMatch - נאמר שם שלא נמצא: לנסות שוב (1) או לבחור מרשימה (2)
+//   4 בעל אולם:               ownerInfo (הסבר איך מוסיפים אולם, בלי חיפוש)
 import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
 import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
@@ -14,6 +15,11 @@ import { withNikud, withPrefix } from '../services/nikud.js';
 import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';
 import { routeToHall } from './route-to-hall.js';
+
+// כתובת המייל להוספת אולם (ulamberega@gmail.com), כפי שמקריאים אותה: קודם כמילים, ואחר כך איות באנגלית.
+// האיות בשמות האותיות באנגלית, בכתיב עברי, כי מנוע ההקראה קורא עברית: u l a m b e r e g a
+const OWNER_EMAIL_SPOKEN = 'אוּלַם בֶּרֶגַע שְׂטְרוּדֶל גִּ׳ימֵייל נְקֻדָּה קוֹם';
+const OWNER_EMAIL_LETTERS = ['יוּ', 'אֶל', 'אֵי', 'אֶם', 'בִּי', 'אִי', 'אָר', 'אִי', 'גִּ׳י', 'אֵי', 'שְׂטְרוּדֶל', 'גִּ׳ימֵייל', 'נְקֻדָּה', 'קוֹם'];
 
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
 const STAR_HINT = 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
@@ -122,7 +128,14 @@ export async function prompt(s) {
     case 'menu':
       return ask(s, ['בְּרוּכִים הַבָּאִים לֶגְמַ״ח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
         'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 2',
-        'לְחִיפּוּשׂ לְפִי שֵׁם הָאוּלָם הַקֵּשׁ 3'], tapOptions(1));
+        'לְחִיפּוּשׂ לְפִי שֵׁם הָאוּלָם הַקֵּשׁ 3',
+        'בַּעַל אוּלָם הַקֵּשׁ 4'], tapOptions(1));
+
+    case 'ownerInfo':
+      return ask(s, ['לְהוֹסָפַת הָאוּלָם לַמַּעֲרֶכֶת יֵשׁ לִשְׁלוֹחַ מֵייל לַכְּתוֹבֶת', OWNER_EMAIL_SPOKEN,
+        'וְלִרְשׁוֹם שָׁם אֶת שֵׁם הָאוּלָם וּמִסְפַּר פֶּלֶאפוֹן לְהַזְמָנָה וּכְתוֹבֶת מְדֻיֶּקֶת וּשְׁכוּנָה',
+        'וְכָךְ מְאֻיֶּתֶת הַכְּתוֹבֶת בְּאַנְגְּלִית', ...OWNER_EMAIL_LETTERS,
+        'לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 1', 'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ 2'], tapOptions(1));
 
     case 'extEntry':
       return ask(s, ['הַקֵּשׁ אֶת מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם וּבְסִיּוּם סוּלָמִית'], tapOptions(4, 7));
@@ -246,6 +259,11 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '1') { s.mode = 'filters'; return go('guests'); }
       if (val === '2') return go('extEntry');
       if (val === '3') { s.mode = 'name'; return go('city'); }
+      if (val === '4') return go('ownerInfo');
+      return invalid();
+    case 'ownerInfo':
+      if (val === '1') return go('ownerInfo');
+      if (val === '2') { resetSession(s); return prompt(s); }
       return invalid();
     case 'extEntry':
       return (await routeToHall(q, val, { brief: true })) ?? retry(`שְׁלוּחָה ${val} לֹא קַיֶּימֶת`);
