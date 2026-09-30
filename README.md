@@ -46,4 +46,4 @@ sql/                          קבצי SQL להרצה ב-Supabase
 
 ## אתר הניהול
 
-`https://ulam-berega-server.onrender.com/admin`. שם המשתמש לא נבדק, הסיסמה היא `ADMIN_PASSWORD`.
+`https://ulam-berega.onrender.com/admin`. שם המשתמש לא נבדק, הסיסמה היא `ADMIN_PASSWORD`.
