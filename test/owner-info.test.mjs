@@ -10,7 +10,7 @@ test('ההודעה כוללת את כל מה שצריך לכלול במייל', 
 
 test('איות המייל: 10 אותיות ואחריהן שטרודל ג׳ימייל נקודה קום', () => {
   const start = OWNER_PARTS.findIndex((p) => p.startsWith('אִיּוּת'));
-  assert.deepEqual(OWNER_PARTS.slice(start + 1, start + 11), ['יוּ', 'אֶל', 'אֵיי', 'אֶם', 'בִּי', 'אִי', 'אָר', 'אִי', 'גִּ׳י', 'אֵיי']);
+  assert.deepEqual(OWNER_PARTS.slice(start + 1, start + 11), ['יוּ', 'אֶל', 'הֵיי', 'אֶמם', 'בִּ', 'אִ', 'אָר', 'אִ', 'גִּ׳י', 'הֵיי']);
   assert.equal(OWNER_PARTS.length, start + 15);
 });
 
