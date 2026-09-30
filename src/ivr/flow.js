@@ -7,7 +7,7 @@
 //   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
 import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
-import { bestMatch, parseNumber } from '../lib/text-match.js';
+import { bestMatch, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix } from '../services/nikud.js';
 import { transcribeRecording } from '../services/transcriber.js';
@@ -16,6 +16,13 @@ import { routeToHall } from './route-to-hall.js';
 
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
 const STAR_HINT = 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
+
+// התאמה של מה שנאמר לרשימת שמות. התאמה לא מדויקת נרשמת בלוג (מה נאמר ומה נבחר), כדי לזהות טעויות זיהוי
+function matchName(step, said, options) {
+  const found = bestMatch(said, options);
+  if (found && normalize(found) !== normalize(said)) console.log(`heard: ${step} "${said}" → "${found}"`);
+  return found;
+}
 
 // ---------- שאלה למתקשר ----------
 
@@ -236,7 +243,7 @@ export async function handleAnswer(s, q, val, raw) {
       return confirm('city', 'guests');
 
     case 'city': {
-      const city = bestMatch(val, await halls.getActiveCities());
+      const city = matchName('city', val, await halls.getActiveCities());
       if (!city) return retry(`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${val}`); // חוזרים על מה שנשמע
       s.city = city;
       return go('cityOk');
@@ -252,7 +259,7 @@ export async function handleAnswer(s, q, val, raw) {
     }
 
     case 'hallSay': {
-      return chooseHall(s, bestMatch(val, uniqueNames(s.cityHalls)), s.cityHalls, val);
+      return chooseHall(s, matchName('hallSay', val, uniqueNames(s.cityHalls)), s.cityHalls, val);
     }
     case 'hallOk':
       if (val === '1') return (await routeToHall(q, s.hall.extension, { brief: true })) ?? invalid();
@@ -274,7 +281,7 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '2') return go('hoodMenu');
       return invalid();
     case 'hoodSay': {
-      const hood = bestMatch(val, s.hoods);
+      const hood = matchName('hoodSay', val, s.hoods);
       if (hood) { s.hood = hood; return go('hoodOk'); }
       s.note = `לֹא נִמְצְאוּ אוּלַמּוֹת בִּשְׁכוּנַת ${val}`;
       return go('hoodMenu');
