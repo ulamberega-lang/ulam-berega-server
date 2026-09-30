@@ -7,14 +7,14 @@
 //   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
 //   noMatch - נאמר שם שלא נמצא: לנסות שוב (1) או לבחור מרשימה (2)
 //   4 בעל אולם:               ownerInfo (הסבר איך מוסיפים אולם, בלי חיפוש)
-import { config, IVR } from '../config.js';
+import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
 import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix } from '../services/nikud.js';
 import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';
-import { OWNER_PARTS, OWNER_OPTIONS, goToOwnerExt } from './owner-info.js';
+import { OWNER_PARTS, OWNER_OPTIONS } from './owner-info.js';
 import { routeToHall } from './route-to-hall.js';
 
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
@@ -252,7 +252,7 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '1') { s.mode = 'filters'; return go('guests'); }
       if (val === '2') return go('extEntry');
       if (val === '3') { s.mode = 'name'; return go('city'); }
-      if (val === '4') return config.ownerExt ? goToOwnerExt(s, config.ownerExt) : go('ownerInfo'); // שלוחה איטית, אם הוגדרה
+      if (val === '4') return go('ownerInfo');
       return invalid();
     case 'ownerInfo':
       if (val === '1') return go('ownerInfo');

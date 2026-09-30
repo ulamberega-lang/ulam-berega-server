@@ -23,7 +23,7 @@
 - **Supabase**: טבלאות `halls`, `leads_log`, `pronunciations`, ופונקציות הסטטיסטיקה ב-`sql/call_stats.sql`. שינויי סכמה - קובץ חדש ב-`sql/` שבעל הפרויקט מריץ ב-SQL Editor.
 - **OpenAI** (`gpt-transcribe`): תמלול הקלטות. **Brevo**: מיילים לאולמות (חינם עד 300 ביום).
 
-משתני סביבה: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `YEMOT_TOKEN` (`מספר_מערכת:API_KEY` - מפתח מ"חומת האש" של ימות עם הרשאות DownloadFile ו-FileAction), `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_PASSWORD`, ואופציונלי `OWNER_EXT` (למשל `/7`, ראו למטה).
+משתני סביבה: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `YEMOT_TOKEN` (`מספר_מערכת:API_KEY` - מפתח מ"חומת האש" של ימות עם הרשאות DownloadFile ו-FileAction), `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_PASSWORD`.
 
 ## הגדרות בימות (לא בקוד - לא לשנות מהקוד)
 הכתובות בשלוחה הראשית (`api_link`, `routing_api_link`) ובשלוחה 9 (`api_link`) חייבות להצביע על הדומיין הנוכחי של Render (`ulam-berega.onrender.com`). מעבר לשירות אחר = לעדכן את שלושתן.
@@ -31,7 +31,6 @@
   `routing_answer_play=yes` (מי שעונה באולם שומע את M1692), `routing_your_id_add=666666` (ספרות בסוף מספר המתקשר - חייב להתאים ל-`IVR.CALLER_ID_SUFFIX`), `routing_api_send=yes` + `routing_api_link=.../api/ivr/routing-status` (תוצאת החיוג), `api_wait_answer_music_on_hold=yes`.
 - **שלוחה 9:** `type=api`, `api_link=.../api/ivr/no-answer` - לכאן עוברת שיחה שהאולם לא ענה לה.
 - **שלוחה 8:** ריקה. תיקיית ההקלטות הזמניות (`IVR.REC_DIR`).
-- **שלוחה 7 (אופציונלית, "בעל אולם" בהקראה איטית):** `type=api`, `api_link=.../api/ivr/owner`, `tts_voice=Gilad`, ו-`tts_rate` איטי יותר מהשלוחה הראשית. ימות מגדירה מהירות הקראה רק לכל שלוחה, ולכן ההודעה מוקראת בשלוחה נפרדת. מופעלת רק כש-`OWNER_EXT=/7` מוגדר ב-Render; בלי זה ההודעה מוקראת בשלוחה הראשית.
 
 ## עובדות על ה-API של ימות (נלמדו בניסוי ובפורום f2.freeivr.co.il)
 - **מזהה שיחה:** `ApiCallId` מתחלף בכל מעבר שלוחה. `ApiYFCallId` קבוע לכל השיחה - `readParams` מחליף ביניהם. לא לשנות.
