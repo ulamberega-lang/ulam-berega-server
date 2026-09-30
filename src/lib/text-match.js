@@ -21,10 +21,24 @@ function closeWords(said, option) {
   return a.every((w, i) => levenshtein(w, b[i]) <= Math.max(1, Math.floor(Math.min(w.length, b[i].length) / 4)));
 }
 
-export function bestMatch(text, options) {
-  const t = normalize(text);
+// מסיר מילים כלליות ("אולם") כדי שמי שאומר "אולם בית ישראל" ומי שאומר "בית ישראל" יגיעו לאותו אולם,
+// בין אם השם ב-DB כולל את המילה ובין אם לא. אם לא נשאר כלום - משאירים כמו שהיה.
+export function dropGeneric(s, generic) {
+  const kept = words(s).filter((w) => !generic.includes(w));
+  return kept.length ? kept.join(' ') : String(s ?? '');
+}
+
+// options.generic: מילים שאפשר להוסיף או להשמיט בלי לשנות את הכוונה (למשל ['אולם'] בחיפוש שם אולם)
+export function bestMatch(text, options, { generic = [] } = {}) {
+  const raw = normalize(text);
+  if (raw.length < 2) return null;
+  const rawExact = options.find((o) => normalize(o) === raw); // שם שנאמר בדיוק כפי שהוא ב-DB, כולל "אולם" אם הוא חלק מהשם
+  if (rawExact) return rawExact;
+
+  const said = dropGeneric(text, generic);
+  const t = normalize(said);
   if (t.length < 2) return null;
-  const opts = options.map((o) => [o, normalize(o)]).filter(([, n]) => n);
+  const opts = options.map((o) => [o, normalize(dropGeneric(o, generic))]).filter(([, n]) => n);
 
   // 1. התאמה מדויקת
   const exact = opts.find(([, n]) => n === t);
@@ -36,7 +50,7 @@ export function bestMatch(text, options) {
     const dist = levenshtein(t, n);
     if (dist < bestDist) { bestDist = dist; close = [o, n]; }
   }
-  if (close && (bestDist > Math.max(1, Math.floor(close[1].length / 4)) || !closeWords(text, close[0]))) close = null;
+  if (close && (bestDist > Math.max(1, Math.floor(close[1].length / 4)) || !closeWords(said, dropGeneric(close[0], generic)))) close = null;
 
   // 2. השם מופיע בתוך מה שנאמר ("בירושלים") - הארוך ביותר, כדי ש"רמות אשכול" לא ייתפס כ"רמות"
   const inside = opts.filter(([, n]) => t.includes(n)).sort((a, b) => b[1].length - a[1].length)[0];

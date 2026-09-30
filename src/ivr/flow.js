@@ -5,9 +5,10 @@
 //   2 מספר שלוחה:             extEntry
 //   3 חיפוש לפי שם:            city → cityOk → hallSay → hallOk | hallMenu
 //   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
+//   noMatch - נאמר שם שלא נמצא: לנסות שוב (1) או לבחור מרשימה (2)
 import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
-import { bestMatch, normalize, parseNumber } from '../lib/text-match.js';
+import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix } from '../services/nikud.js';
 import { transcribeRecording } from '../services/transcriber.js';
@@ -17,9 +18,14 @@ import { routeToHall } from './route-to-hall.js';
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
 const STAR_HINT = 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
 
+// מילים שמתקשרים מוסיפים או משמיטים ("אולם בית ישראל" / "בית ישראל", "בשכונת רמות" / "רמות")
+const HALL_WORDS = ['אולם', 'אולמי', 'האולם', 'באולם'];
+const CITY_WORDS = ['עיר', 'העיר', 'בעיר'];
+const HOOD_WORDS = ['שכונת', 'שכונה', 'השכונה', 'בשכונת', 'בשכונה'];
+
 // התאמה של מה שנאמר לרשימת שמות. התאמה לא מדויקת נרשמת בלוג (מה נאמר ומה נבחר), כדי לזהות טעויות זיהוי
-function matchName(step, said, options) {
-  const found = bestMatch(said, options);
+function matchName(step, said, options, generic) {
+  const found = bestMatch(said, options, { generic });
   if (found && normalize(found) !== normalize(said)) console.log(`heard: ${step} "${said}" → "${found}"`);
   return found;
 }
@@ -76,12 +82,20 @@ export function fallbackToList(s) {
 function chooseHall(s, name, pool, spoken) {
   const matches = name ? pool.filter((h) => h.name === name) : [];
   if (matches.length === 1) { s.hall = matches[0]; s.step = 'hallOk'; return prompt(s); }
+  if (!matches.length && spoken.trim()) {
+    return notFound(s, 'hallSay', `לֹא נִמְצָא אוּלָם בְּשֵׁם ${spoken}${s.city ? ` ${withPrefix('ב', s.city)}` : ''}`);
+  }
   s.listPage = 0;
   s.hallChoices = matches.length ? matches : pool;
-  if (!matches.length && spoken.trim()) {
-    s.note = `לֹא נִמְצָא אוּלָם בְּשֵׁם ${spoken}${s.city ? ` ${withPrefix('ב', s.city)}` : ''}`;
-  }
   s.step = 'hallMenu';
+  return prompt(s);
+}
+
+// נאמר שם שלא נמצא: שואלים אם לנסות שוב או לבחור מרשימה (step = שלב הדיבור שממנו באנו)
+function notFound(s, step, note) {
+  s.note = note;
+  s.noMatch = step;
+  s.step = 'noMatch';
   return prompt(s);
 }
 
@@ -133,6 +147,9 @@ export async function prompt(s) {
         ...s.cities.slice(from, from + IVR.MENU_PAGE).map((c, i) => `${withPrefix('ל', c)} הַקֵּשׁ ${i + 1}`),
         s.cityMore && 'לְעָרִים נוֹסָפוֹת הַקֵּשׁ 9'], tapOptions(1));
     }
+
+    case 'noMatch':
+      return ask(s, ['לְנִסָּיוֹן נוֹסָף הַקֵּשׁ 1', 'לִרְשִׁימָה הַקֵּשׁ 2'], tapOptions(1));
 
     case 'hallSay':
       s.cityHalls = await halls.getActiveHallsInCity(s.city);
@@ -243,11 +260,16 @@ export async function handleAnswer(s, q, val, raw) {
       return confirm('city', 'guests');
 
     case 'city': {
-      const city = matchName('city', val, await halls.getActiveCities());
-      if (!city) return retry(`לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${val}`); // חוזרים על מה שנשמע
+      const city = matchName('city', val, await halls.getActiveCities(), CITY_WORDS);
+      if (!city) return notFound(s, 'city', `לֹא נִמְצְאוּ אוּלַמּוֹת בְּ${dropGeneric(val, CITY_WORDS)}`);
       s.city = city;
       return go('cityOk');
     }
+    case 'noMatch':
+      if (val === '1') return go(s.noMatch);
+      if (val === '2') { s.step = s.noMatch; return fallbackToList(s); }
+      return invalid();
+
     case 'cityOk':
       return confirm(afterCity(s), 'city');
     case 'cityMenu': {
@@ -259,7 +281,7 @@ export async function handleAnswer(s, q, val, raw) {
     }
 
     case 'hallSay': {
-      return chooseHall(s, matchName('hallSay', val, uniqueNames(s.cityHalls)), s.cityHalls, val);
+      return chooseHall(s, matchName('hallSay', val, uniqueNames(s.cityHalls), HALL_WORDS), s.cityHalls, dropGeneric(val, HALL_WORDS)); // בהודעת "לא נמצא" בלי "אולם" כפול
     }
     case 'hallOk':
       if (val === '1') return (await routeToHall(q, s.hall.extension, { brief: true })) ?? invalid();
@@ -281,10 +303,9 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '2') return go('hoodMenu');
       return invalid();
     case 'hoodSay': {
-      const hood = matchName('hoodSay', val, s.hoods);
+      const hood = matchName('hoodSay', val, s.hoods, HOOD_WORDS);
       if (hood) { s.hood = hood; return go('hoodOk'); }
-      s.note = `לֹא נִמְצְאוּ אוּלַמּוֹת בִּשְׁכוּנַת ${val}`;
-      return go('hoodMenu');
+      return notFound(s, 'hoodSay', `לֹא נִמְצְאוּ אוּלַמּוֹת בִּשְׁכוּנַת ${dropGeneric(val, HOOD_WORDS)}`);
     }
     case 'hoodOk':
       return confirm('results', 'hoodSay');
