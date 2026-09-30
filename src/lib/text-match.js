@@ -11,6 +11,16 @@ function levenshtein(a, b) {
   return d[a.length][b.length];
 }
 
+const words = (s) => String(s ?? '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+
+// שגיאת תמלול קטנה, מילה-מילה: שם משותף ("היכל") לא מגדיל את הסבילות למילה השנייה,
+// כך ש"היכל משה" לא נתפס כ"היכל שמחה". אם מספר המילים שונה (התמלול פיצל או חיבר מילים) - הכלל הכולל מספיק.
+function closeWords(said, option) {
+  const a = words(said), b = words(option);
+  if (a.length !== b.length) return true;
+  return a.every((w, i) => levenshtein(w, b[i]) <= Math.max(1, Math.floor(Math.min(w.length, b[i].length) / 4)));
+}
+
 export function bestMatch(text, options) {
   const t = normalize(text);
   if (t.length < 2) return null;
@@ -26,7 +36,7 @@ export function bestMatch(text, options) {
     const dist = levenshtein(t, n);
     if (dist < bestDist) { bestDist = dist; close = [o, n]; }
   }
-  if (close && bestDist > Math.max(1, Math.floor(close[1].length / 4))) close = null;
+  if (close && (bestDist > Math.max(1, Math.floor(close[1].length / 4)) || !closeWords(text, close[0]))) close = null;
 
   // 2. השם מופיע בתוך מה שנאמר ("בירושלים") - הארוך ביותר, כדי ש"רמות אשכול" לא ייתפס כ"רמות"
   const inside = opts.filter(([, n]) => t.includes(n)).sort((a, b) => b[1].length - a[1].length)[0];
