@@ -8,7 +8,7 @@ import { initHalls, loadHalls } from './halls.js';
 
 const TABS = ['stats', 'calls', 'halls'];
 const fromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stats');
-const state = { tab: fromHash(), range: preset('month'), halls: [] };
+const state = { tab: fromHash(), range: preset('all'), halls: [] };
 
 let requestId = 0;
 

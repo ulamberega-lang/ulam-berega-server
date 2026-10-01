@@ -91,7 +91,7 @@ test('buildRows: מחבר סטטיסטיקה לאולם, ואחוז מענה ר�
 
 // ---------- תיקונים מסקירת הקוד ----------
 import { csvCell } from '../public/admin/js/dom.js';
-import { daysBetween, MAX_DAYS } from '../public/admin/js/dates.js';
+import { daysBetween, MAX_DAYS, preset, today, ALL_FROM } from '../public/admin/js/dates.js';
 import { hallLabel } from '../public/admin/js/data.js';
 import { requireJson } from '../src/middleware/admin-guard.js';
 import { basicAuth, samePassword } from '../src/middleware/basic-auth.js';
@@ -179,4 +179,8 @@ test('samePassword', () => {
   assert.ok(samePassword('abc', 'abc'));
   assert.ok(!samePassword('abc', 'abd'));
   assert.ok(!samePassword('abc', 'abcd'));
+});
+
+test('preset תמיד: מתחילת המערכת ועד היום', () => {
+  assert.deepEqual(preset('all'), { from: ALL_FROM, to: today() });
 });

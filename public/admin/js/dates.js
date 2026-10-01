@@ -11,6 +11,7 @@ export function addDays(iso, days) {
 }
 
 export const MAX_DAYS = 400;
+export const ALL_FROM = '2020-01-01'; // "תמיד": לפני תחילת המערכת
 
 // ימי הטווח מהישן לחדש. בטווח ארוך מ-MAX_DAYS נשארים הימים האחרונים (החדשים)
 export function daysBetween(from, to, max = MAX_DAYS) {
@@ -28,6 +29,7 @@ export function preset(name) {
     case 'week': return { from: addDays(t, -6), to: t };
     case 'month': return { from: addDays(t, -29), to: t };
     case 'thisMonth': return { from: monthStart, to: t };
+    case 'all': return { from: ALL_FROM, to: t };
     case 'lastMonth': {
       const lastMonthEnd = addDays(monthStart, -1);
       return { from: `${lastMonthEnd.slice(0, 8)}01`, to: lastMonthEnd };
@@ -44,6 +46,7 @@ const timeFormat = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'nu
 export const formatDateTime = (timestamp) => timeFormat.format(new Date(timestamp));
 export const hebrewOf = (timestamp) => hebrewDate(timestamp, { withYear: false });
 export const hebrewRange = ({ from, to }) => {
+  if (from === ALL_FROM) return 'מאז ומעולם';
   const a = hebrewDate(`${from}T12:00:00Z`), b = hebrewDate(`${to}T12:00:00Z`);
   return a === b ? a : `${a} עד ${b}`;
 };
