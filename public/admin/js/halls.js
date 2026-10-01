@@ -2,6 +2,7 @@
 import { api } from './api.js';
 import { $, toast, showError, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
+import { splitHoods } from './hoods.js';
 import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location, suggestExtension } from './data.js';
 
 const SORTS = [...HALL_SORTS,
@@ -46,14 +47,14 @@ export async function loadHalls(range, list, isCurrent = () => true) {
 
 function fillHoods() {
   const pool = filters.city ? rows.filter((r) => r.city === filters.city) : rows;
-  fillSelect($('#hallsHood'), uniqueSorted(pool.map((r) => r.hood)), 'כל השכונות');
+  fillSelect($('#hallsHood'), uniqueSorted(pool.flatMap((r) => r.hoods)), 'כל השכונות');
   filters.hood = $('#hallsHood').value;
 }
 
 function visibleRows() {
   return rows.filter((r) => VIEWS[view.get()](r)
     && (!filters.city || r.city === filters.city)
-    && (!filters.hood || r.hood === filters.hood)
+    && (!filters.hood || r.hoods.includes(filters.hood))
     && matches(searchText(r), filters.term));
 }
 
@@ -88,14 +89,14 @@ export function renderHalls() {
     : `<div class="empty">${rows.length ? 'לא נמצאו אולמות שמתאימים לחיפוש או לסינון.' : 'עוד אין אולמות. לחץ על "הוסף אולם" כדי להתחיל.'}</div>`;
   $('#hallsCount').textContent = rows.length ? `${formatNumber(visible.length)} מתוך ${formatNumber(rows.length)}` : '';
 
-  const scoped = rows.filter((r) => (!filters.city || r.city === filters.city) && (!filters.hood || r.hood === filters.hood) && matches(searchText(r), filters.term));
+  const scoped = rows.filter((r) => (!filters.city || r.city === filters.city) && (!filters.hood || r.hoods.includes(filters.hood)) && matches(searchText(r), filters.term));
   view.counts(Object.fromEntries(Object.entries(VIEWS).map(([name, test]) => [name, scoped.filter(test).length])));
 }
 
 function fillSuggestions() {
   const options = (values) => values.map((v) => `<option value="${escapeHtml(v)}">`).join('');
   $('#cityOptions').innerHTML = options(uniqueSorted(halls.map((h) => h.city_name)));
-  $('#hoodOptions').innerHTML = options(uniqueSorted(halls.map((h) => h.neighborhood_name)));
+  $('#hoodOptions').innerHTML = options(uniqueSorted(halls.flatMap((h) => splitHoods(h.neighborhood_name))));
 }
 
 // אולם חדש: ממלא בשדה השלוחה את המספר הבא במאה של העיר

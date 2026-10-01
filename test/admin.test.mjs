@@ -184,3 +184,11 @@ test('samePassword', () => {
 test('preset תמיד: מתחילת המערכת ועד היום', () => {
   assert.deepEqual(preset('all'), { from: ALL_FROM, to: today() });
 });
+
+import { splitHoods } from '../public/admin/js/hoods.js';
+test('splitHoods: כמה שכונות בשדה אחד', () => {
+  assert.deepEqual(splitHoods('גאולה / בית וגן'), ['גאולה', 'בית וגן']);
+  assert.deepEqual(splitHoods('א,ב / ג'), ['א', 'ב', 'ג']);
+  assert.deepEqual(splitHoods('גאולה'), ['גאולה']);
+  assert.deepEqual(splitHoods(null), []);
+});
