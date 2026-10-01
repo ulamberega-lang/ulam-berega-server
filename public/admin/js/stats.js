@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { $, escapeHtml, formatNumber, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
-import { daysBetween, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.js';
+import { daysBetween, formatDateTime, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.js';
 
 const DAY_SORTS = [
   { key: 'day', label: 'תאריך', first: 'desc' },
@@ -115,11 +115,12 @@ function hallRow(r) {
       <td class="hide-sm">${escapeHtml(r.city)}</td>
       <td class="hide-sm">${escapeHtml(r.hood)}</td>
       ${statCells(r.total, r.answered, r.unanswered, r.rate)}
+      <td class="digits" data-label="שיחה אחרונה">${r.lastCall ? formatDateTime(r.lastCall) : '<span class="dash">-</span>'}</td>
     </tr>`;
 }
 
 function groupRow(label, list) {
-  return `<tr class="group-row"><td colspan="7"><strong>${escapeHtml(label)}</strong>
+  return `<tr class="group-row"><td colspan="8"><strong>${escapeHtml(label)}</strong>
     <span>${list.length} אולמות · ${formatNumber(sum(list, 'total'))} שיחות · ${formatNumber(sum(list, 'answered'))} נענו · ${formatNumber(sum(list, 'unanswered'))} לא נענו</span></td></tr>`;
 }
 
@@ -155,7 +156,7 @@ function renderHallTable() {
   }
 
   $('#hallStats').innerHTML = visible.length ? html
-    : `<tr><td colspan="7" class="empty">${rows.length ? 'אין אולמות שמתאימים לחיפוש או לסינון.' : 'עוד אין אולמות.'}</td></tr>`;
+    : `<tr><td colspan="8" class="empty">${rows.length ? 'אין אולמות שמתאימים לחיפוש או לסינון.' : 'עוד אין אולמות.'}</td></tr>`;
   $('#statsCount').textContent = rows.length ? `${formatNumber(visible.length)} מתוך ${formatNumber(rows.length)} אולמות` : '';
 
   const counts = {};

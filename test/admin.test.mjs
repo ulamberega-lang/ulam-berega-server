@@ -1,7 +1,7 @@
 // בדיקות לפונקציות הנקיות של אתר הניהול. הרצה: npm test
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { suggestExtension, buildRows } from '../public/admin/js/data.js';
+import { suggestExtension, buildRows, HALL_GETTERS, byName } from '../public/admin/js/data.js';
 import { matches, escapeHtml, percent } from '../public/admin/js/dom.js';
 import { sortBy } from '../public/admin/js/controls.js';
 
@@ -81,9 +81,11 @@ test('sortBy: טקסט בעברית', () => {
 test('buildRows: מחבר סטטיסטיקה לאולם, ואחוז מענה ריק בלי שיחות', () => {
   const rows = buildRows(
     [{ id: 1, name: 'א', city_name: 'ע', extension: '101', is_active: true }, { id: 2, name: 'ב', city_name: 'ע', is_active: false }],
-    [{ hall_id: 1, total: '10', answered: '4', unanswered: '6' }],
+    [{ hall_id: 1, total: '10', answered: '4', unanswered: '6', last_call: '2026-09-30T10:00:00Z' }],
   );
   assert.equal(rows[0].total, 10);
+  assert.equal(rows[0].lastCall, Date.parse('2026-09-30T10:00:00Z'));
+  assert.equal(rows[1].lastCall, null);
   assert.equal(rows[0].rate, 0.4);
   assert.equal(rows[1].total, 0);
   assert.equal(rows[1].rate, null);
@@ -191,4 +193,13 @@ test('splitHoods: כמה שכונות בשדה אחד', () => {
   assert.deepEqual(splitHoods('א,ב / ג'), ['א', 'ב', 'ג']);
   assert.deepEqual(splitHoods('גאולה'), ['גאולה']);
   assert.deepEqual(splitHoods(null), []);
+});
+
+test('מיון לפי שיחה אחרונה: האחרונה ראשונה, בלי שיחות בסוף', () => {
+  const rows = buildRows(
+    [{ id: 1, name: 'א', city_name: 'ע' }, { id: 2, name: 'ב', city_name: 'ע' }, { id: 3, name: 'ג', city_name: 'ע' }],
+    [{ hall_id: 1, total: '1', answered: '1', unanswered: '0', last_call: '2026-09-01T10:00:00Z' },
+     { hall_id: 3, total: '1', answered: '1', unanswered: '0', last_call: '2026-09-20T10:00:00Z' }],
+  );
+  assert.deepEqual(sortBy(rows, { key: 'last', dir: 'desc' }, HALL_GETTERS, byName).map((r) => r.id), [3, 1, 2]);
 });

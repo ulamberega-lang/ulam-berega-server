@@ -30,7 +30,7 @@ const rnd = (n) => ((n * 9301 + 49297) % 233280) / 233280; // "אקראי" קב�
 const stats = halls.filter((h) => h.id % 5 !== 0).map((h) => {
   const total = Math.floor(rnd(h.id) * 60) + 1;
   const answered = Math.floor(total * rnd(h.id + 3));
-  return { hall_id: h.id, total, answered, unanswered: total - answered - (h.id % 3) };
+  return { hall_id: h.id, total, answered, unanswered: total - answered - (h.id % 3), last_call: total ? new Date(Date.now() - h.id * 3600e3 * 7).toISOString() : null };
 });
 
 function days(from, to, hall) {

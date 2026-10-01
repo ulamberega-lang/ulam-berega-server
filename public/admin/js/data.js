@@ -9,7 +9,7 @@ export function buildRows(halls, statsRows) {
     const total = Number(s?.total || 0), answered = Number(s?.answered || 0), unanswered = Number(s?.unanswered || 0);
     return {
       hall: h, id: h.id, name: h.name || '', synagogue: h.synagogue_name || '', city: h.city_name || '', hood: h.neighborhood_name || '', hoods: splitHoods(h.neighborhood_name),
-      total, answered, unanswered, rate: total ? answered / total : null,
+      lastCall: s?.last_call ? Date.parse(s.last_call) : null, total, answered, unanswered, rate: total ? answered / total : null,
       guests: h.max_guests, ext: h.extension, active: h.is_active,
     };
   });
@@ -17,7 +17,7 @@ export function buildRows(halls, statsRows) {
 
 export const HALL_GETTERS = {
   name: (r) => r.name, city: (r) => r.city, hood: (r) => r.hood,
-  total: (r) => r.total, answered: (r) => r.answered, unanswered: (r) => r.unanswered, rate: (r) => r.rate,
+  last: (r) => r.lastCall, total: (r) => r.total, answered: (r) => r.answered, unanswered: (r) => r.unanswered, rate: (r) => r.rate,
   guests: (r) => r.guests, ext: (r) => (r.ext ? Number(r.ext) : null),
 };
 
@@ -25,6 +25,7 @@ export const HALL_SORTS = [
   { key: 'name', label: 'שם אולם', text: true },
   { key: 'city', label: 'עיר', text: true },
   { key: 'hood', label: 'שכונה', text: true },
+  { key: 'last', label: 'שיחה אחרונה', first: 'desc' },
   { key: 'total', label: 'סה"כ שיחות' },
   { key: 'answered', label: 'שיחות שנענו' },
   { key: 'unanswered', label: 'שיחות שלא נענו' },

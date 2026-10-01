@@ -5,12 +5,13 @@ create index if not exists leads_log_created_at_idx on leads_log (created_at);
 
 -- שיחות לכל אולם בטווח תאריכים
 create or replace function call_stats_by_hall(p_from date, p_to date)
-returns table (hall_id bigint, total bigint, answered bigint, unanswered bigint)
+returns table (hall_id bigint, total bigint, answered bigint, unanswered bigint, last_call timestamptz)
 language sql stable as $$
   select hall_id,
          count(*),
          count(*) filter (where answered is true),
-         count(*) filter (where answered is false)
+         count(*) filter (where answered is false),
+         max(created_at)
   from leads_log
   where hall_id is not null
     and created_at >= (p_from::timestamp at time zone 'Asia/Jerusalem')
