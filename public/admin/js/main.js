@@ -5,6 +5,7 @@ import { preset, hebrewRange } from './dates.js';
 import { initStats, loadStats, getSelectedHall, setSelectedHall } from './stats.js';
 import { initCalls, loadCalls, setHallFilter, getHallFilter, restoreHallFilter } from './calls.js';
 import { initHalls, loadHalls } from './halls.js';
+import { initDetails, closeDetailsIfOpen } from './details.js';
 
 const TABS = ['stats', 'calls', 'halls'];
 const fromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stats');
@@ -104,12 +105,17 @@ function init() {
     refresh();
   });
   $('#back').addEventListener('click', () => history.back());
-  window.addEventListener('popstate', (e) => { if (e.state) restorePlace(e.state); });
+  window.addEventListener('popstate', (e) => {
+    if (closeDetailsIfOpen()) { updateBack(); return; } // חזרה כשחלון פרטי האולם פתוח: רק סוגרת אותו
+    if (e.state?.dialog) { updateBack(); return; }       // קדימה אל רשומה של חלון שכבר נסגר
+    if (e.state) restorePlace(e.state);
+  });
   window.addEventListener('hashchange', () => { if (fromHash() !== state.tab) setTab(fromHash(), { record: false }); });
 
   initStats(refresh);
   initCalls(refresh);
   initHalls(async () => { await loadHallList(); refresh(); });
+  initDetails({ getHalls: () => state.halls, getRange: () => state.range, afterPush: updateBack });
   document.addEventListener('stats-select', () => { saveCurrent(); pushPlace(); }); // בחירת אולם / ניקוי הבחירה
 
   // קישורים בין לשוניות: "יומן השיחות של האולם"

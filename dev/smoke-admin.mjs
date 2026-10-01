@@ -80,6 +80,20 @@ await p.click('#back'); await p.waitForTimeout(600);
 check(await p.inputValue('#callsHall') === 'בני ברק', 'חזרה: סינון האולם ביומן נשמר');
 await p.fill('#callsHall', '');
 
+// חלון פרטי אולם: נפתח משלוש הנקודות ומהיומן, חזרה סוגרת אותו, והמעבר ליומן מסנן לאולם
+await p.click('button[data-tab=stats]'); await p.waitForSelector('.details-btn');
+await p.click('.details-btn >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
+check((await p.textContent('#detailsBody')).includes('שיחות בכל הזמנים'), 'פרטי אולם: מוצגים מספרי השיחות');
+await p.goBack(); await p.waitForTimeout(300);
+check(await p.isHidden('#detailsDialog') && await p.evaluate(() => location.hash) === '#stats', 'פרטי אולם: חזרה סוגרת את החלון ונשארת בלשונית');
+await p.click('.details-btn >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
+await p.click('[data-act=calls]'); await p.waitForTimeout(700);
+check(await p.evaluate(() => location.hash) === '#calls' && (await p.inputValue('#callsHall')) !== '', 'פרטי אולם: מעבר ליומן מסונן לאולם');
+await p.click('.hall-link >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
+check(true, 'יומן: שם האולם פותח את חלון הפרטים');
+await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+await p.fill('#callsHall', '');
+
 // אולמות: אם הסטטיסטיקה נכשלת, הרשימה עדיין מוצגת ואפשר לערוך
 const q = await open({ viewport: { width: 1280, height: 900 } });
 await q.route('**/admin/api/stats/halls*', (r) => r.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"תקלה"}' }));

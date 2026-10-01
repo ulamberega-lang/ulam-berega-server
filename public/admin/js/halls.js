@@ -187,6 +187,7 @@ export function initHalls(savedCallback) {
   $('#hallsExport').addEventListener('click', exportCsv);
 
   $('#addHall').addEventListener('click', () => openForm());
+  document.addEventListener('edit-hall', (e) => openForm(e.detail.hall)); // מחלון פרטי האולם
   $('#hallsList').addEventListener('click', (e) => {
     if (e.target.closest('a')) return;                  // חיוג לא פותח עריכה
     const id = e.target.closest('[data-id]')?.dataset.id;
