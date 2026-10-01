@@ -262,9 +262,9 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .presets { flex-wrap: nowrap; overflow-x: auto; margin: 0 -12px; padding: 0 12px 2px; scrollbar-width: none; flex-basis: 100%; }
   .presets::-webkit-scrollbar { display: none; }
   .presets button { white-space: nowrap; flex: none; }
-  .dates { flex: 1 1 100%; }
-  .dates label { flex: 1; }
-  .dates input { width: 100%; min-width: 0; padding-inline: 8px; }
+  .dates { flex: 1 1 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; }
+  .dates label { min-width: 0; }
+  .dates input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; padding-inline: 6px; }
   .hebrew-range { font-size: .8rem; flex-wrap: wrap; gap: 0 12px; }
 
   .totals { gap: 8px; }
