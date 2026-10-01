@@ -263,8 +263,9 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .presets::-webkit-scrollbar { display: none; }
   .presets button { white-space: nowrap; flex: none; }
   .dates { flex: 1 1 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; }
-  .dates label { min-width: 0; }
-  .dates input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; padding-inline: 6px; }
+  .dates label { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  /* ב-Safari באייפון לשדה תאריך יש רוחב פנימי קבוע שדוחף אותו מעל השכנים */
+  .dates input { -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; padding-inline: 6px; overflow: hidden; text-align: start; }
   .hebrew-range { font-size: .8rem; flex-wrap: wrap; gap: 0 12px; }
 
   .totals { gap: 8px; }
