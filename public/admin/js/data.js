@@ -1,5 +1,6 @@
 // נתוני אולמות משותפים: שורה לכל אולם עם מספרי השיחות שלו בתקופה.
 import { escapeHtml } from './dom.js';
+import { splitHoods } from './hoods.js';
 
 export function buildRows(halls, statsRows) {
   const stats = new Map(statsRows.map((r) => [Number(r.hall_id), r]));
@@ -7,7 +8,7 @@ export function buildRows(halls, statsRows) {
     const s = stats.get(Number(h.id));
     const total = Number(s?.total || 0), answered = Number(s?.answered || 0), unanswered = Number(s?.unanswered || 0);
     return {
-      hall: h, id: h.id, name: h.name || '', city: h.city_name || '', hood: h.neighborhood_name || '',
+      hall: h, id: h.id, name: h.name || '', city: h.city_name || '', hood: h.neighborhood_name || '', hoods: splitHoods(h.neighborhood_name),
       total, answered, unanswered, rate: total ? answered / total : null,
       guests: h.max_guests, ext: h.extension, active: h.is_active,
     };

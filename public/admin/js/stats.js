@@ -48,7 +48,7 @@ export async function loadStats(range, halls, isCurrent = () => true) {
 
 function fillHoods() {
   const pool = filters.city ? rows.filter((r) => r.city === filters.city) : rows;
-  fillSelect($('#statsHood'), uniqueSorted(pool.map((r) => r.hood)), 'כל השכונות');
+  fillSelect($('#statsHood'), uniqueSorted(pool.flatMap((r) => r.hoods)), 'כל השכונות');
   filters.hood = $('#statsHood').value;
 }
 
@@ -95,7 +95,7 @@ function visibleRows() {
   const kind = VIEWS[view.get()];
   return rows.filter((r) => kind(r)
     && (!filters.city || r.city === filters.city)
-    && (!filters.hood || r.hood === filters.hood)
+    && (!filters.hood || r.hoods.includes(filters.hood))
     && matches(searchText(r), filters.term));
 }
 
@@ -159,7 +159,7 @@ function renderHallTable() {
   $('#statsCount').textContent = rows.length ? `${formatNumber(visible.length)} מתוך ${formatNumber(rows.length)} אולמות` : '';
 
   const counts = {};
-  const scoped = rows.filter((r) => (!filters.city || r.city === filters.city) && (!filters.hood || r.hood === filters.hood) && matches(searchText(r), filters.term));
+  const scoped = rows.filter((r) => (!filters.city || r.city === filters.city) && (!filters.hood || r.hoods.includes(filters.hood)) && matches(searchText(r), filters.term));
   for (const name of Object.keys(VIEWS)) counts[name] = scoped.filter(VIEWS[name]).length;
   view.counts(counts);
 }

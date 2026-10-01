@@ -12,6 +12,7 @@ import { say, tapOptions, recordOptions } from '../lib/yemot.js';
 import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix } from '../services/nikud.js';
+import { splitHoods } from '../lib/hoods.js';
 import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';
 import { OWNER_PARTS, OWNER_OPTIONS } from './owner-info.js';
@@ -106,6 +107,14 @@ const afterCity = (s) => (s.mode === 'name' ? 'hallSay' : 'hood');
 
 const uniqueNames = (list) => [...new Set(list.map((h) => h.name))];
 
+// "בשכונת X". אולם בכמה שכונות: אם חיפשו שכונה שהוא רשום בה - רק היא, אחרת כולן ("בשכונות X ו-Y")
+export function hoodPhrase(hall, searched) {
+  const all = splitHoods(hall.neighborhood_name);
+  const list = searched && all.includes(searched) ? [searched] : all;
+  if (list.length < 2) return `בִּשְׁכוּנַת ${withNikud(list[0] ?? '')}`;
+  return `בִּשְׁכוּנוֹת ${withNikud(list[0])}${list.slice(1).map((n) => ` ${withPrefix('ו', n)}`).join('')}`;
+}
+
 // שם אולם להקראה. העיר - באישור, או כשברשימה יש כמה ערים; השכונה - כשיש בעיר שני אולמות באותו שם
 // אולם עם אותו שם באותה עיר: מבדילים לפי שכונה, ואם גם השכונה זהה (או חסרה) - לפי הכתובת
 function hallLabel(hall, list, withCity = new Set(list.map((h) => h.city_name)).size > 1, prefix = '') {
@@ -113,7 +122,7 @@ function hallLabel(hall, list, withCity = new Set(list.map((h) => h.city_name)).
   const sameHood = twins.some((h) => (h.neighborhood_name ?? '') === (hall.neighborhood_name ?? ''));
   return (prefix ? withPrefix(prefix, hall.name) : withNikud(hall.name))
     + (withCity ? ` ${withPrefix('ב', hall.city_name)}` : '')
-    + (twins.length && hall.neighborhood_name ? ` בִּשְׁכוּנַת ${withNikud(hall.neighborhood_name)}` : '')
+    + (twins.length && hall.neighborhood_name ? ` ${hoodPhrase(hall)}` : '')
     + (sameHood && hall.address ? ` ${withNikud(hall.address)}` : '');
 }
 
@@ -222,7 +231,7 @@ async function promptResults(s) {
   if (s.page === 0) parts.push(found.length === 1 ? 'נִמְצָא אוּלָם אֶחָד' : `נִמְצְאוּ ${found.length} אוּלַמּוֹת`);
   // מקישים את מספר השלוחה עצמו (למשל 101) - כדי שהמתקשר יזכור אותו לפעם הבאה
   for (const h of page) {
-    parts.push(withNikud(h.name), h.neighborhood_name && `בִּשְׁכוּנַת ${withNikud(h.neighborhood_name)}`,
+    parts.push(withNikud(h.name), h.neighborhood_name && hoodPhrase(h, s.hood),
       `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${h.extension} וְסוּלָמִית`);
   }
   if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9 וְסוּלָמִית');
