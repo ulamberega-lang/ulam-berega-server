@@ -1,6 +1,6 @@
 // לשונית "שיחות לפי אולם": סיכום, תובנות, טבלה לפי אולם (חיפוש, סינון, קיבוץ, מיון) וטבלה לפי יום.
 import { api } from './api.js';
-import { $, escapeHtml, formatNumber, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
+import { $, escapeHtml, formatNumber, icon, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
 import { daysBetween, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.js';
@@ -115,11 +115,12 @@ function hallRow(r) {
       <td class="hide-sm">${escapeHtml(r.city)}</td>
       <td class="hide-sm">${escapeHtml(r.hood)}</td>
       ${statCells(r.total, r.answered, r.unanswered, r.rate)}
+      <td class="more"><button class="icon-btn details-btn" data-id="${r.id}" aria-label="פרטי ${escapeHtml(r.name)}" title="פרטי האולם">${icon('more')}</button></td>
     </tr>`;
 }
 
 function groupRow(label, list) {
-  return `<tr class="group-row"><td colspan="7"><strong>${escapeHtml(label)}</strong>
+  return `<tr class="group-row"><td colspan="8"><strong>${escapeHtml(label)}</strong>
     <span>${list.length} אולמות · ${formatNumber(sum(list, 'total'))} שיחות · ${formatNumber(sum(list, 'answered'))} נענו · ${formatNumber(sum(list, 'unanswered'))} לא נענו</span></td></tr>`;
 }
 
@@ -151,11 +152,11 @@ function renderHallTable() {
 
   if (visible.length > 1) {
     html += `<tr class="sum-row"><td class="span-all name">סה"כ במה שמוצג</td><td class="hide-sm"></td><td class="hide-sm"></td>
-      ${statCells(sum(visible, 'total'), sum(visible, 'answered'), sum(visible, 'unanswered'), rateOf(visible))}</tr>`;
+      ${statCells(sum(visible, 'total'), sum(visible, 'answered'), sum(visible, 'unanswered'), rateOf(visible))}<td class="more"></td></tr>`;
   }
 
   $('#hallStats').innerHTML = visible.length ? html
-    : `<tr><td colspan="7" class="empty">${rows.length ? 'אין אולמות שמתאימים לחיפוש או לסינון.' : 'עוד אין אולמות.'}</td></tr>`;
+    : `<tr><td colspan="8" class="empty">${rows.length ? 'אין אולמות שמתאימים לחיפוש או לסינון.' : 'עוד אין אולמות.'}</td></tr>`;
   $('#statsCount').textContent = rows.length ? `${formatNumber(visible.length)} מתוך ${formatNumber(rows.length)} אולמות` : '';
 
   const counts = {};
@@ -242,6 +243,11 @@ export function initStats(reload) {
   $('#statsExport').addEventListener('click', exportCsv);
 
   const onRow = (e) => {
+    const more = e.target.closest('.details-btn');
+    if (more) { // שלוש הנקודות: חלון פרטי האולם, בלי לבחור את האולם
+      if (e.type === 'click') document.dispatchEvent(new CustomEvent('open-details', { detail: { id: more.dataset.id } }));
+      return;
+    }
     const tr = e.target.closest('tr[data-id]');
     if (tr) selectHall(tr.dataset.id);
   };

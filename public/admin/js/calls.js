@@ -92,7 +92,7 @@ function renderCalls() {
     return `<tr>
       <td class="span-all when digits">${formatDateTime(c.created_at)} <span class="heb">${hebrewOf(c.created_at)}</span></td>
       <td class="phone digits">${phone}</td>
-      <td class="hall">${escapeHtml(c.hallName)}</td>
+      <td class="hall">${c.hall_id && c.hallName ? `<button class="link hall-link" data-hall="${c.hall_id}">${escapeHtml(c.hallName)}</button>` : escapeHtml(c.hallName)}</td>
       <td class="city hide-sm">${escapeHtml(c.city)}</td>
       <td class="status"><span class="badge ${c.status}">${STATUS_LABEL(c)}</span></td>
       <td class="num dur" data-label="משך">${duration(c.duration_sec)}</td>
@@ -138,4 +138,8 @@ export function initCalls(reload) {
     onChange: (state) => { savePref('callsSort', state); renderCalls(); },
   });
   $('#callsExport').addEventListener('click', exportCsv);
+  $('#callsList').addEventListener('click', (e) => {
+    const id = e.target.closest('.hall-link')?.dataset.hall;
+    if (id) document.dispatchEvent(new CustomEvent('open-details', { detail: { id } }));
+  });
 }

@@ -22,6 +22,7 @@
       <symbol id="i-hall" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01"/></symbol>
       <symbol id="i-back" viewBox="0 0 24 24"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></symbol>
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></symbol>
@@ -113,6 +114,7 @@
             <th data-sort="answered" class="num">נענו</th>
             <th data-sort="unanswered" class="num">לא נענו</th>
             <th data-sort="rate" class="num">אחוז מענה</th>
+            <th class="more"><span class="sr">פרטי אולם</span></th>
           </tr></thead>
           <tbody id="hallStats"></tbody>
         </table>
@@ -220,6 +222,10 @@
       <div class="cards" id="hallsList"></div>
     </section>
   </main>
+
+  <dialog id="detailsDialog" aria-labelledby="detailsTitle">
+    <div class="details" id="detailsBody"></div>
+  </dialog>
 
   <dialog id="hallDialog">
     <form id="hallForm" method="dialog">
