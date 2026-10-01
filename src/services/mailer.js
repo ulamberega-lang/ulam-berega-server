@@ -22,7 +22,7 @@ export async function notifyHall({ hallId, callerPhone, startedAt, answered }) {
       subject: `${answered ? 'שיחה' : 'שיחה שלא נענתה'} - ${hall.name}`,
       htmlContent: `<div dir="rtl" style="font-family:Arial">
         <p>שלום,</p>
-        <p>התקבלה שיחה דרך גמ"ח אולם ברגע לאולם <b>${name}</b>.</p>
+        <p>התקבלה שיחה דרך גמ"ח אולם ברגע לאולם <b>${name}</b>${hall.synagogue_name ? ` (בבית הכנסת ${escapeHtml(hall.synagogue_name)})` : ''}.</p>
         <p>מספר המתקשר: <b>${escapeHtml(callerPhone) || 'חסוי'}</b><br>מועד: ${hebrewDate(startedAt)}, ${when}<br>
         ${answered ? 'השיחה הועברה אליך' : 'השיחה לא נענתה'}</p>
         ${answered ? '' : '<p>מומלץ לחזור למתקשר.</p>'}

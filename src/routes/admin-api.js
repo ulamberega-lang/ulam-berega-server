@@ -19,7 +19,7 @@ const handle = (fn) => async (req, res) => {
 
 // ---------- אולמות ----------
 
-const HALL_FIELDS = ['name', 'city_name', 'neighborhood_name', 'address', 'max_guests',
+const HALL_FIELDS = ['name', 'synagogue_name', 'city_name', 'neighborhood_name', 'address', 'max_guests',
   'gabbai_phone', 'gabbai_email', 'extension', 'is_active'];
 
 const REQUIRED = { name: 'שם האולם', city_name: 'עיר', max_guests: 'מקסימום אורחים', extension: 'מספר שלוחה', gabbai_phone: 'טלפון להעברה' };

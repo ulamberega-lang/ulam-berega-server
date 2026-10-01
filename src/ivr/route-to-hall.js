@@ -3,7 +3,7 @@ import { IVR } from '../config.js';
 import { routeCall } from '../lib/yemot.js';
 import * as halls from '../services/hall-directory.js';
 import { callRouted } from '../services/call-log.js';
-import { withNikud, withPrefix } from '../services/nikud.js';
+import { withNikud, withPrefix, synagogueSuffix } from '../services/nikud.js';
 import { getSession } from './sessions.js';
 
 // מחזיר תשובה לימות, או null אם אין אולם פעיל בשלוחה הזו.
@@ -19,7 +19,7 @@ export async function routeToHall(q, extension, { brief = false } = {}) {
   callRouted(q.ApiCallId, q.ApiPhone, hall, phone); // ברקע - לא מעכב את ההעברה
 
   return routeCall([
-    `מַעֲבִיר ${withPrefix('ל', hall.name)}`,
+    `מַעֲבִיר ${withPrefix('ל', hall.name)}${synagogueSuffix(hall)}`,
     !brief && withNikud(hall.address), // מילה-מילה: "רחוב הרב קוק 5"
   ], phone, IVR.WAIT_SEC, IVR.NO_ANSWER_EXT);
 }
