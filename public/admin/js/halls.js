@@ -62,7 +62,7 @@ function card(r) {
   const h = r.hall;
   return `<article class="hall-card${r.active ? '' : ' off'}" data-id="${r.id}">
     <header>
-      <h3>${escapeHtml(r.name)}</h3>${r.active ? '' : '<span class="tag">מושבת</span>'}
+      <h3>${escapeHtml(r.name)}${r.synagogue ? `<small class="syn"> · בבית הכנסת ${escapeHtml(r.synagogue)}</small>` : ''}</h3>${r.active ? '' : '<span class="tag">מושבת</span>'}
       <button class="icon-btn edit" data-id="${r.id}" aria-label="עריכת ${escapeHtml(r.name)}" title="עריכה">${icon('edit')}</button>
     </header>
     <p class="loc">${icon('pin')}${location(r) || '<span class="muted">בלי עיר</span>'}${h.address ? `<span class="addr"> · ${escapeHtml(h.address)}</span>` : ''}</p>
@@ -169,8 +169,8 @@ async function save(e) {
 
 function exportCsv() {
   const list = sortBy(visibleRows(), sort.state, HALL_GETTERS, byName);
-  downloadCsv('אולמות.csv', ['אולם', 'עיר', 'שכונה', 'כתובת', 'מקסימום אורחים', 'שלוחה', 'טלפון להעברה', 'פעיל', 'שיחות', 'נענו', 'לא נענו'],
-    list.map((r) => [r.name, r.city, r.hood, r.hall.address, r.guests, r.ext, r.hall.gabbai_phone, r.active ? 'כן' : 'לא', r.total, r.answered, r.unanswered]));
+  downloadCsv('אולמות.csv', ['אולם', 'בית כנסת', 'עיר', 'שכונה', 'כתובת', 'מקסימום אורחים', 'שלוחה', 'טלפון להעברה', 'פעיל', 'שיחות', 'נענו', 'לא נענו'],
+    list.map((r) => [r.name, r.synagogue, r.city, r.hood, r.hall.address, r.guests, r.ext, r.hall.gabbai_phone, r.active ? 'כן' : 'לא', r.total, r.answered, r.unanswered]));
 }
 
 export function initHalls(savedCallback) {

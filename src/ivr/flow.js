@@ -11,7 +11,7 @@ import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
 import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../services/hall-directory.js';
-import { withNikud, withPrefix } from '../services/nikud.js';
+import { withNikud, withPrefix, synagogueSuffix } from '../services/nikud.js';
 import { splitHoods } from '../lib/hoods.js';
 import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';
@@ -83,7 +83,7 @@ export function fallbackToList(s) {
 
 // אחרי שנמצא שם: אולם אחד → אישור; כמה באותו שם → בחירה ביניהם; אף אחד → כל אולמות העיר
 function chooseHall(s, name, pool, spoken) {
-  const matches = name ? pool.filter((h) => h.name === name) : [];
+  const matches = name ? pool.filter((h) => hasName(h, name)) : [];
   if (matches.length === 1) { s.hall = matches[0]; s.step = 'hallOk'; return prompt(s); }
   if (!matches.length && spoken.trim()) {
     return notFound(s, 'hallSay', `לֹא נִמְצָא אוּלָם בְּשֵׁם ${spoken}${s.city ? ` ${withPrefix('ב', s.city)}` : ''}`);
@@ -105,7 +105,9 @@ function notFound(s, step, note) {
 // אחרי בחירת עיר: חיפוש לפי שם → שאלת שם האולם; אחרת → שכונה
 const afterCity = (s) => (s.mode === 'name' ? 'hallSay' : 'hood');
 
-const uniqueNames = (list) => [...new Set(list.map((h) => h.name))];
+// כל מה שאפשר לומר בחיפוש לפי שם: שם האולם, ושם בית הכנסת שלו
+const uniqueNames = (list) => [...new Set(list.flatMap((h) => [h.name, h.synagogue_name]).filter(Boolean))];
+const hasName = (h, name) => h.name === name || h.synagogue_name === name;
 
 // "בשכונת X". אולם בכמה שכונות: אם חיפשו שכונה שהוא רשום בה - רק היא, אחרת כולן ("בשכונות X ו-Y")
 export function hoodPhrase(hall, searched) {
@@ -118,9 +120,10 @@ export function hoodPhrase(hall, searched) {
 // שם אולם להקראה. העיר - באישור, או כשברשימה יש כמה ערים; השכונה - כשיש בעיר שני אולמות באותו שם
 // אולם עם אותו שם באותה עיר: מבדילים לפי שכונה, ואם גם השכונה זהה (או חסרה) - לפי הכתובת
 function hallLabel(hall, list, withCity = new Set(list.map((h) => h.city_name)).size > 1, prefix = '') {
-  const twins = list.filter((h) => h !== hall && h.name === hall.name && h.city_name === hall.city_name);
+  const twins = list.filter((h) => h !== hall && h.name === hall.name && h.city_name === hall.city_name
+    && (h.synagogue_name ?? '') === (hall.synagogue_name ?? ''));
   const sameHood = twins.some((h) => (h.neighborhood_name ?? '') === (hall.neighborhood_name ?? ''));
-  return (prefix ? withPrefix(prefix, hall.name) : withNikud(hall.name))
+  return (prefix ? withPrefix(prefix, hall.name) : withNikud(hall.name)) + synagogueSuffix(hall)
     + (withCity ? ` ${withPrefix('ב', hall.city_name)}` : '')
     + (twins.length && hall.neighborhood_name ? ` ${hoodPhrase(hall)}` : '')
     + (sameHood && hall.address ? ` ${withNikud(hall.address)}` : '');
@@ -231,7 +234,7 @@ async function promptResults(s) {
   if (s.page === 0) parts.push(found.length === 1 ? 'נִמְצָא אוּלָם אֶחָד' : `נִמְצְאוּ ${found.length} אוּלַמּוֹת`);
   // מקישים את מספר השלוחה עצמו (למשל 101) - כדי שהמתקשר יזכור אותו לפעם הבאה
   for (const h of page) {
-    parts.push(withNikud(h.name), h.neighborhood_name && hoodPhrase(h, s.hood),
+    parts.push(withNikud(h.name) + synagogueSuffix(h), h.neighborhood_name && hoodPhrase(h, s.hood),
       `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${h.extension} וְסוּלָמִית`);
   }
   if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9 וְסוּלָמִית');

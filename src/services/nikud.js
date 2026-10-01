@@ -35,3 +35,6 @@ export function withPrefix(prefix, name) {
   const letter = m[1];
   return `${head}${HIRIQ}${letter}${letter === 'י' ? '' : SHVA}${word.slice(m[0].length)}`;
 }
+
+// "בבית הכנסת X" אחרי שם האולם, כשהאולם נמצא בבניין של בית כנסת
+export const synagogueSuffix = (hall) => (hall.synagogue_name ? ` בְּבֵית הַכְּנֶסֶת ${withNikud(hall.synagogue_name)}` : '');

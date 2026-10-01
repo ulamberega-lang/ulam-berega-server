@@ -8,7 +8,7 @@ export function buildRows(halls, statsRows) {
     const s = stats.get(Number(h.id));
     const total = Number(s?.total || 0), answered = Number(s?.answered || 0), unanswered = Number(s?.unanswered || 0);
     return {
-      hall: h, id: h.id, name: h.name || '', city: h.city_name || '', hood: h.neighborhood_name || '', hoods: splitHoods(h.neighborhood_name),
+      hall: h, id: h.id, name: h.name || '', synagogue: h.synagogue_name || '', city: h.city_name || '', hood: h.neighborhood_name || '', hoods: splitHoods(h.neighborhood_name),
       total, answered, unanswered, rate: total ? answered / total : null,
       guests: h.max_guests, ext: h.extension, active: h.is_active,
     };
@@ -34,7 +34,7 @@ export const HALL_SORTS = [
 export const byName = (a, b) => a.name.localeCompare(b.name, 'he');
 
 // כל מה שאפשר לחפש באולם
-export const searchText = (r) => [r.name, r.city, r.hood, r.hall.address, r.ext, r.hall.gabbai_phone].join(' ');
+export const searchText = (r) => [r.name, r.synagogue, r.city, r.hood, r.hall.address, r.ext, r.hall.gabbai_phone].join(' ');
 
 // כולל שלוחה, כדי שלאולמות עם אותו שם ואותה עיר תהיה תווית שונה (אחרת אחד מהם לא נבחר ביומן)
 export const hallLabel = (h) => `${h.name}, ${h.city_name} (שלוחה ${h.extension ?? '?'})`;
