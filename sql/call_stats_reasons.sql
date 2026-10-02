@@ -1,10 +1,9 @@
--- פונקציות סטטיסטיקה לאתר הניהול. להריץ פעם אחת ב-Supabase → SQL Editor.
--- הימים נספרים לפי שעון ישראל.
+-- מוסיף לסטטיסטיקה את פירוט הסיבות ל"לא נענה" (המתקשר ניתק, תפוס, תקלה בחיוג).
+-- להריץ פעם אחת ב-Supabase → SQL Editor. משנים את העמודות המוחזרות, ולכן מוחקים את הפונקציות ומגדירים מחדש.
+drop function if exists call_stats_by_hall(date, date);
+drop function if exists call_stats_by_day(date, date, bigint);
 
-create index if not exists leads_log_created_at_idx on leads_log (created_at);
-
--- שיחות לכל אולם בטווח תאריכים
-create or replace function call_stats_by_hall(p_from date, p_to date)
+create function call_stats_by_hall(p_from date, p_to date)
 returns table (hall_id bigint, total bigint, answered bigint, unanswered bigint, cancelled bigint, busy bigint, failed bigint)
 language sql stable as $$
   select hall_id,
@@ -21,8 +20,7 @@ language sql stable as $$
   group by hall_id
 $$;
 
--- שיחות לכל יום (לכל המערכת, או לאולם אחד)
-create or replace function call_stats_by_day(p_from date, p_to date, p_hall_id bigint default null)
+create function call_stats_by_day(p_from date, p_to date, p_hall_id bigint default null)
 returns table (day date, calls bigint, reached bigint, answered bigint, unanswered bigint, cancelled bigint, busy bigint, failed bigint)
 language sql stable as $$
   select (created_at at time zone 'Asia/Jerusalem')::date,
@@ -41,22 +39,7 @@ language sql stable as $$
   order by 1
 $$;
 
--- רשימת השיחות האחרונות בטווח
-create or replace function calls_between(p_from date, p_to date, p_hall_id bigint default null, p_limit int default 500)
-returns setof leads_log
-language sql stable as $$
-  select * from leads_log
-  where created_at >= (p_from::timestamp at time zone 'Asia/Jerusalem')
-    and created_at <  ((p_to + 1)::timestamp at time zone 'Asia/Jerusalem')
-    and (p_hall_id is null or hall_id = p_hall_id)
-  order by created_at desc
-  limit p_limit
-$$;
-
--- רק השרת (service role) מריץ אותן
 revoke execute on function call_stats_by_hall(date, date) from public, anon, authenticated;
 revoke execute on function call_stats_by_day(date, date, bigint) from public, anon, authenticated;
-revoke execute on function calls_between(date, date, bigint, int) from public, anon, authenticated;
 grant execute on function call_stats_by_hall(date, date) to service_role;
 grant execute on function call_stats_by_day(date, date, bigint) to service_role;
-grant execute on function calls_between(date, date, bigint, int) to service_role;

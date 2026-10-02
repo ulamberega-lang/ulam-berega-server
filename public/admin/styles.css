@@ -14,6 +14,7 @@
   --yes-soft: #E3F3EC;
   --no: #BF412A;
   --no-soft: #FBE8E3;
+  --no1: #BF412A; --no2: #8A2B1B; --no3: #E58266; --no4: #F2B3A3; /* גווני אדום לסיבות של "לא נענו" */
   --focus: #2F6FED;
   --shadow: 0 1px 2px rgba(20, 35, 50, .05), 0 4px 16px rgba(20, 35, 50, .06);
   --r: 14px;
@@ -23,7 +24,7 @@
   :root {
     --bg: #0E151D; --card: #16212C; --ink: #E8EEF4; --muted: #96A4B2; --line: #263340; --soft: #1D2A37; --hover: #1B2835;
     --brand: #0B1219; --accent: #7BA5FF; --accent-soft: #1E2F52;
-    --yes: #4CC79B; --yes-soft: #15382D; --no: #FF8C72; --no-soft: #3D1F19; --focus: #7BA5FF;
+    --yes: #4CC79B; --yes-soft: #15382D; --no: #FF8C72; --no-soft: #3D1F19; --no1: #FF8C72; --no2: #C9543D; --no3: #FFB59F; --no4: #8F4535; --focus: #7BA5FF;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
   }
 }
@@ -198,6 +199,14 @@ tr.sum-row td { background: var(--soft); font-weight: 700; }
 .bar i { display: block; }
 .bar .y { background: var(--yes); }
 .bar .n { background: var(--no); }
+.bar .r1, .reasons .r1 { background: var(--no1); }
+.bar .r2, .reasons .r2 { background: var(--no2); }
+.bar .r3, .reasons .r3 { background: var(--no3); }
+.bar .r4, .reasons .r4 { background: var(--no4); }
+.reasons { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--muted); }
+.reasons li { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.reasons i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.reasons b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .bar .o { background: var(--line); }
 .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .85rem; font-weight: 500; background: var(--soft); color: var(--muted); }
 .badge.yes { background: var(--yes-soft); color: var(--yes); }

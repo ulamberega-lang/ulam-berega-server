@@ -9,6 +9,7 @@ export function buildRows(halls, statsRows) {
     const total = Number(s?.total || 0), answered = Number(s?.answered || 0), unanswered = Number(s?.unanswered || 0);
     return {
       hall: h, id: h.id, name: h.name || '', synagogue: h.synagogue_name || '', city: h.city_name || '', hood: h.neighborhood_name || '', hoods: splitHoods(h.neighborhood_name),
+      cancelled: Number(s?.cancelled || 0), busy: Number(s?.busy || 0), failed: Number(s?.failed || 0),
       total, answered, unanswered, rate: total ? answered / total : null,
       guests: h.max_guests, ext: h.extension, active: h.is_active,
     };
@@ -75,3 +76,32 @@ export function suggestExtension(halls, city) {
   }
   return null;
 }
+
+// ---------- פירוט "לא נענו" לפי סיבה (כל סיבה בגוון אדום משלה) ----------
+export const REASONS = [
+  { key: 'noAnswer', label: 'לא ענו', cls: 'r1' },
+  { key: 'cancelled', label: 'המתקשר ניתק', cls: 'r2' },
+  { key: 'busy', label: 'תפוס', cls: 'r3' },
+  { key: 'failed', label: 'תקלה בחיוג', cls: 'r4' },
+];
+
+// src: שורה עם unanswered ועם cancelled / busy / failed (חסרים = 0). "לא ענו" = מה שנשאר
+export function reasonParts(src) {
+  const n = (v) => Number(v || 0);
+  const known = { cancelled: n(src.cancelled), busy: n(src.busy), failed: n(src.failed) };
+  const counts = { ...known, noAnswer: Math.max(0, n(src.unanswered) - known.cancelled - known.busy - known.failed) };
+  return REASONS.map((r) => ({ ...r, n: counts[r.key] }));
+}
+
+// מקרא עם המספרים: רק סיבות שקרו
+export function reasonsLegend(src) {
+  const parts = reasonParts(src).filter((p) => p.n > 0);
+  if (!parts.length) return '';
+  return `<ul class="reasons">${parts.map((p) => `<li><i class="${p.cls}"></i>${p.label} <b>${p.n.toLocaleString('he-IL')}</b></li>`).join('')}</ul>`;
+}
+
+// הקטעים האדומים של פס: רוחב כל קטע לפי הפונקציה width
+export const redSegments = (src, width) => reasonParts(src).map((p) => `<i class="${p.cls}" style="width:${width(p.n)}"></i>`).join('');
+
+// טקסט קצר לחלון הסבר (title): "2 ניתקו, 1 תפוס"
+export const reasonsTitle = (src) => reasonParts(src).filter((p) => p.n > 0).map((p) => `${p.label}: ${p.n}`).join(', ');

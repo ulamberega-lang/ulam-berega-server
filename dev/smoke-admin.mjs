@@ -80,6 +80,11 @@ await p.click('#back'); await p.waitForTimeout(600);
 check(await p.inputValue('#callsHall') === 'בני ברק', 'חזרה: סינון האולם ביומן נשמר');
 await p.fill('#callsHall', '');
 
+// פירוט הסיבות ל"לא נענו": מקרא עם מספרים בסיכום, ופס עם כמה גווני אדום
+await p.click('button[data-tab=stats]'); await p.waitForSelector('#totals');
+check(await p.$$eval('#totals .no .reasons li', (t) => t.length) >= 2, 'סיכום: מקרא סיבות ל"לא נענו"');
+check(await p.$$eval('#dayStats .bar i[class^=r]', (t) => new Set(t.map((x) => x.className)).size) >= 2, 'פס ימים: כמה גווני אדום');
+
 // חלון פרטי אולם: נפתח משלוש הנקודות ומהיומן, חזרה סוגרת אותו, והמעבר ליומן מסנן לאולם
 await p.click('button[data-tab=stats]'); await p.waitForSelector('.details-btn');
 await p.click('.details-btn >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
