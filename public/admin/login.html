@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1F3A5F">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>כניסה לניהול</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #F3F5F8; --card: #fff; --ink: #1B2733; --muted: #62707E; --line: #E1E6EC; --brand: #1F3A5F; --accent: #2F6FED; --no: #BF412A; --no-soft: #FBE8E3; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0E151D; --card: #16212C; --ink: #E8EEF4; --muted: #96A4B2; --line: #263340; --brand: #2C4C7C; --accent: #7BA5FF; --no: #FF8C72; --no-soft: #3D1F19; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 20px 16px; background: var(--bg); color: var(--ink);
+      font-family: 'Rubik', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; }
+    main { width: min(400px, 100%); }
+    .logo { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 20px; background: var(--brand); color: #fff; }
+    .logo svg { width: 32px; height: 32px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    h1 { margin: 0; text-align: center; font-size: 1.6rem; }
+    .sub { margin: 4px 0 22px; text-align: center; color: var(--muted); }
+    form { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; display: grid; gap: 14px;
+      box-shadow: 0 1px 2px rgba(20, 35, 50, .05), 0 8px 28px rgba(20, 35, 50, .08); }
+    label { display: grid; gap: 6px; font-size: .9rem; color: var(--muted); }
+    .field { position: relative; }
+    input[type=password], input[type=text].pw { width: 100%; min-height: 48px; padding: 10px 14px 10px 48px; font: inherit; font-size: 16px; color: var(--ink);
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px; outline: none; }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+    .eye { position: absolute; left: 4px; top: 4px; width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); border-radius: 10px; cursor: pointer; }
+    .eye svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    button.go { min-height: 48px; border: 0; border-radius: 12px; background: var(--brand); color: #fff; font: inherit; font-weight: 500; font-size: 1.05rem; cursor: pointer; }
+    button.go:hover { filter: brightness(1.12); }
+    button:disabled { opacity: .6; cursor: default; }
+    .error { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--no-soft); color: var(--no); font-size: .92rem; }
+    .error[hidden] { display: none; }
+    .shake { animation: shake .35s; }
+    @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+    .hidden-user { position: absolute; opacity: 0; pointer-events: none; height: 0; width: 0; }
+    @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01"/></svg>
+    </div>
+    <h1>אולם ברגע</h1>
+    <p class="sub">כניסה לאתר הניהול</p>
+    <form id="form" autocomplete="on">
+      <input class="hidden-user" type="text" name="username" value="admin" autocomplete="username" tabindex="-1" aria-hidden="true">
+      <label>סיסמה
+        <span class="field">
+          <input type="password" id="password" class="pw" name="password" autocomplete="current-password" required autofocus>
+          <button type="button" class="eye" id="eye" aria-label="הצגת הסיסמה" title="הצגת הסיסמה">
+            <svg viewBox="0 0 24 24"><path d="M2 12s3.600-7 10-7 10 7 10 7-3.600 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </span>
+      </label>
+      <p class="error" id="error" role="alert" hidden></p>
+      <button class="go" id="go" type="submit">כניסה</button>
+    </form>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    $('eye').addEventListener('click', () => {
+      const input = $('password');
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      $('eye').setAttribute('aria-label', show ? 'הסתרת הסיסמה' : 'הצגת הסיסמה');
+    });
+    $('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const button = $('go'), error = $('error');
+      button.disabled = true; button.textContent = 'נכנס…'; error.hidden = true;
+      try {
+        const res = await fetch('/admin/login', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ password: $('password').value }),
+        });
+        if (res.ok) { location.replace('/admin/'); return; }
+        const body = await res.json().catch(() => ({}));
+        error.textContent = body.error || 'הכניסה נכשלה. נסה שוב';
+      } catch {
+        error.textContent = 'אין חיבור לשרת. נסה שוב';
+      }
+      error.hidden = false;
+      $('form').classList.remove('shake'); void $('form').offsetWidth; $('form').classList.add('shake');
+      button.disabled = false; button.textContent = 'כניסה';
+      $('password').select();
+    });
+  </script>
+</body>
+</html>
