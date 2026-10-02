@@ -105,6 +105,10 @@ function init() {
     refresh();
   });
   $('#back').addEventListener('click', () => history.back());
+  $('#logout').addEventListener('click', async () => {
+    await fetch('/admin/logout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).catch(() => {});
+    location.href = '/admin/login';
+  });
   window.addEventListener('popstate', (e) => {
     if (closeDetailsIfOpen()) { updateBack(); return; } // חזרה כשחלון פרטי האולם פתוח: רק סוגרת אותו
     if (e.state?.dialog) { updateBack(); return; }       // קדימה אל רשומה של חלון שכבר נסגר

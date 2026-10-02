@@ -94,7 +94,7 @@ import { csvCell } from '../public/admin/js/dom.js';
 import { daysBetween, MAX_DAYS, preset, today, ALL_FROM } from '../public/admin/js/dates.js';
 import { hallLabel } from '../public/admin/js/data.js';
 import { requireJson } from '../src/middleware/admin-guard.js';
-import { basicAuth, samePassword } from '../src/middleware/basic-auth.js';
+import { adminAuth, samePassword, makeToken, validToken } from '../src/middleware/admin-auth.js';
 
 test('csvCell: מירכאות, ומניעת נוסחאות באקסל', () => {
   assert.equal(csvCell('שלום "עולם"'), '"שלום ""עולם"""');
@@ -129,6 +129,7 @@ function run(middleware, req) {
     json(body) { out.body = body; return this; },
     send(body) { out.body = body; return this; },
     set(name, value) { out.headers[name] = value; return this; },
+    redirect(url) { out.status = 302; out.redirect = url; return this; },
   };
   middleware({ headers: {}, method: 'GET', ip: '1.1.1.1', is: () => false, ...req }, res, () => { out.nexted = true; });
   return out;
@@ -147,32 +148,65 @@ test('requireJson: Origin של אתר אחר נחסם, של האתר עצמו ע
   assert.equal(run(requireJson, jsonReq({ headers: { host: 'site.example', origin: 'לא-כתובת' } })).status, 403);
 });
 
-const basic = (password) => ({ headers: { authorization: `Basic ${Buffer.from(`x:${password}`).toString('base64')}` } });
+const withCookie = (password, now) => ({ headers: { cookie: `ub_admin=${makeToken(password, now)}` } });
+const loginReq = (password, extra) => ({ method: 'POST', body: { password }, ...extra });
 
-test('basicAuth: סיסמה נכונה עוברת, שגויה או חסרה נדחית', () => {
-  const auth = basicAuth('סוד');
-  assert.ok(run(auth, basic('סוד')).nexted);
-  assert.equal(run(auth, basic('שגוי')).status, 401);
-  assert.equal(run(auth, {}).status, 401);
-  assert.equal(run(basicAuth(''), {}).status, 503);
+test('אימות כניסה: עוגייה תקפה עוברת; בלי עוגייה - הפניה לדף הכניסה, וב-API 401', () => {
+  const { guard } = adminAuth('סוד');
+  assert.ok(run(guard, { path: '/', ...withCookie('סוד') }).nexted);
+  const page = run(guard, { path: '/index.html' });
+  assert.equal(page.status, 302);
+  assert.equal(page.redirect, '/admin/login');
+  const api = run(guard, { path: '/api/halls' });
+  assert.equal(api.status, 401);
+  assert.equal(api.body.login, true);
+  assert.equal(run(adminAuth('').guard, { path: '/' }).status, 503);
 });
 
-test('basicAuth: אחרי 10 סיסמאות שגויות חוסמים, ובסיום החלון חוזרים לעבוד', () => {
+test('עוגיית כניסה: מזויפת, פגה או מסיסמה אחרת נדחית', () => {
+  const now = 1_000_000;
+  const token = makeToken('סוד', now);
+  assert.ok(validToken('סוד', token, now + 1000));
+  assert.ok(!validToken('סוד', token, now + 31 * 24 * 60 * 60 * 1000), 'פגה אחרי 30 יום');
+  assert.ok(!validToken('אחרת', token, now + 1000), 'סיסמה שהוחלפה מנתקת');
+  const [expires, sig] = token.split('.');
+  assert.ok(!validToken('סוד', `${Number(expires) + 99999999}.${sig}`, now), 'הארכת תוקף ידנית');
+  for (const bad of ['', 'abc', '123', '123.', undefined, null]) assert.ok(!validToken('סוד', bad, now));
+});
+
+test('כניסה: סיסמה נכונה מקבלת עוגייה מוגנת; שגויה או ריקה - 401 בלי עוגייה', () => {
+  const { login } = adminAuth('סוד');
+  const ok = run(login, loginReq('סוד', { secure: true }));
+  assert.equal(ok.body.ok, true);
+  assert.match(ok.headers['Set-Cookie'], /^ub_admin=\d+\.[\w-]+; Path=\/admin; HttpOnly; SameSite=Lax; Max-Age=\d+; Secure$/);
+  for (const bad of ['שגוי', '', undefined]) {
+    const r = run(login, loginReq(bad));
+    assert.equal(r.status, 401);
+    assert.equal(r.headers['Set-Cookie'], undefined);
+  }
+  assert.equal(run(adminAuth('').login, loginReq('x')).status, 503);
+});
+
+test('כניסה: אחרי 10 סיסמאות שגויות חוסמים, ובסיום החלון חוזרים לעבוד', () => {
   let time = 0;
-  const auth = basicAuth('סוד', () => time);
-  for (let i = 0; i < 10; i++) assert.equal(run(auth, basic('שגוי')).status, 401);
-  const blocked = run(auth, basic('סוד')); // גם סיסמה נכונה נחסמת בזמן החסימה
+  const { login } = adminAuth('סוד', () => time);
+  for (let i = 0; i < 10; i++) assert.equal(run(login, loginReq('שגוי')).status, 401);
+  const blocked = run(login, loginReq('סוד')); // גם סיסמה נכונה נחסמת בזמן החסימה
   assert.equal(blocked.status, 429);
   assert.ok(Number(blocked.headers['Retry-After']) > 0);
-  assert.equal(run(auth, { ip: '2.2.2.2', ...basic('סוד') }).nexted, true); // כתובת אחרת לא מושפעת
+  assert.ok(run(login, loginReq('סוד', { ip: '2.2.2.2' })).body.ok); // כתובת אחרת לא מושפעת
   time = 11 * 60 * 1000;
-  assert.ok(run(auth, basic('סוד')).nexted);
+  assert.ok(run(login, loginReq('סוד')).body.ok);
 });
 
-test('basicAuth: בקשה בלי סיסמה לא נספרת בהגבלה', () => {
-  const auth = basicAuth('סוד');
-  for (let i = 0; i < 30; i++) run(auth, {});
-  assert.ok(run(auth, basic('סוד')).nexted);
+test('דף הכניסה: מחובר מופנה לאתר, אחרת מוצג הדף; יציאה מוחקת את העוגייה', () => {
+  const { loginPage, logout } = adminAuth('סוד');
+  let sent = false;
+  const page = loginPage(() => { sent = true; });
+  run(page, {});
+  assert.ok(sent);
+  assert.equal(run(page, withCookie('סוד')).redirect, '/admin/');
+  assert.match(run(logout, { method: 'POST' }).headers['Set-Cookie'], /^ub_admin=; .*Max-Age=0/);
 });
 
 test('samePassword', () => {

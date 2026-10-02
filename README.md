@@ -29,7 +29,7 @@ src/
     yemot.js                  בניית תשובות בפורמט של ימות
     text-match.js             התאמת מה שנאמר לשמות ערים ושכונות
     supabase.js               חיבור למסד הנתונים
-  middleware/basic-auth.js    סיסמה לאתר הניהול
+  middleware/admin-auth.js    כניסה לאתר הניהול (דף כניסה + עוגייה)
 public/admin/                 אתר הניהול (HTML, עיצוב, JavaScript)
 sql/                          קבצי SQL להרצה ב-Supabase
 ```
