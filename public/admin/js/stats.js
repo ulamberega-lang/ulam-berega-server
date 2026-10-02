@@ -2,7 +2,7 @@
 import { api } from './api.js';
 import { $, escapeHtml, formatNumber, icon, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
-import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
+import { reasonsLegend, redSegments, reasonsTitle, buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
 import { daysBetween, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.js';
 
 const DAY_SORTS = [
@@ -59,7 +59,7 @@ function renderTotals(byDay) {
     <div><dt>שיחות למערכת</dt><dd>${formatNumber(calls)}</dd></div>
     <div><dt>הועברו לאולם</dt><dd>${formatNumber(reached)}</dd></div>
     <div class="yes"><dt>נענו ${percent(answered, reached)}</dt><dd>${formatNumber(answered)}</dd></div>
-    <div class="no"><dt>לא נענו</dt><dd>${formatNumber(unanswered)}</dd></div>`;
+    <div class="no"><dt>לא נענו</dt><dd>${formatNumber(unanswered)}</dd>${reasonsLegend({ unanswered, cancelled: sum('cancelled'), busy: sum('busy'), failed: sum('failed') })}</div>`;
 }
 
 // כמה נקודות עיקריות בלי לחפש בטבלה; לחיצה על תובנה פותחת את האולם או מסננת
@@ -102,10 +102,10 @@ function visibleRows() {
 const sum = (list, key) => list.reduce((acc, r) => acc + r[key], 0);
 const rateOf = (list) => { const t = sum(list, 'total'); return t ? sum(list, 'answered') / t : null; };
 
-function statCells(total, answered, unanswered, rate) {
+function statCells(total, answered, unanswered, rate, reasons = null) {
   return `<td class="num total" data-label="סה&quot;כ">${formatNumber(total)}</td>
       <td class="num yes" data-label="נענו">${formatNumber(answered)}</td>
-      <td class="num no" data-label="לא נענו">${formatNumber(unanswered)}</td>
+      <td class="num no" data-label="לא נענו"${reasons ? ` title="${reasonsTitle(reasons)}"` : ''}>${formatNumber(unanswered)}</td>
       <td class="num" data-label="אחוז מענה">${rate == null ? '<span class="dash">-</span>' : `<span class="pct">${Math.round(rate * 100)}%</span><span class="meter" aria-hidden="true"><i style="width:${rate * 100}%"></i></span>`}</td>`;
 }
 
@@ -114,7 +114,7 @@ function hallRow(r) {
       <td class="span-all name">${escapeHtml(r.name)}${r.active ? '' : ' <span class="tag">מושבת</span>'}<span class="loc">${location(r)}</span></td>
       <td class="hide-sm">${escapeHtml(r.city)}</td>
       <td class="hide-sm">${escapeHtml(r.hood)}</td>
-      ${statCells(r.total, r.answered, r.unanswered, r.rate)}
+      ${statCells(r.total, r.answered, r.unanswered, r.rate, r)}
       <td class="more"><button class="icon-btn details-btn" data-id="${r.id}" aria-label="פרטי ${escapeHtml(r.name)}" title="פרטי האולם">${icon('more')}</button></td>
     </tr>`;
 }
@@ -180,7 +180,7 @@ function renderDays() {
   let list = allDays.map((day) => {
     const d = data.get(day) || { calls: 0, reached: 0, answered: 0, unanswered: 0 };
     const total = Number(selectedHall ? d.reached : d.calls);
-    return { day, total, answered: Number(d.answered), unanswered: Number(d.unanswered) };
+    return { day, total, answered: Number(d.answered), unanswered: Number(d.unanswered), cancelled: Number(d.cancelled || 0), busy: Number(d.busy || 0), failed: Number(d.failed || 0) };
   });
   if (hideEmptyDays) list = list.filter((d) => d.total > 0);
   list = sortBy(list, daySort.state, { day: (d) => d.day, total: (d) => d.total, answered: (d) => d.answered, unanswered: (d) => d.unanswered },
@@ -193,8 +193,8 @@ function renderDays() {
       <td class="span-all name">${formatDay(d.day)} <span class="heb">${hebrewDay(d.day)}</span></td>
       <td class="num total" data-label="סה&quot;כ">${formatNumber(d.total)}</td>
       <td class="num yes" data-label="נענו">${formatNumber(d.answered)}</td>
-      <td class="num no" data-label="לא נענו">${formatNumber(d.unanswered)}</td>
-      <td class="span-all"><span class="bar" aria-hidden="true"><i class="y" style="width:${w(d.answered)}"></i><i class="n" style="width:${w(d.unanswered)}"></i><i class="o" style="width:${w(other)}"></i></span></td>
+      <td class="num no" data-label="לא נענו" title="${reasonsTitle(d)}">${formatNumber(d.unanswered)}</td>
+      <td class="span-all"><span class="bar" aria-hidden="true"><i class="y" style="width:${w(d.answered)}"></i>${redSegments(d, w)}<i class="o" style="width:${w(other)}"></i></span></td>
     </tr>`;
   }).join('') : '<tr><td colspan="5" class="empty">אין שיחות בתקופה הזו.</td></tr>';
 }

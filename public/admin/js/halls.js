@@ -3,6 +3,7 @@ import { api } from './api.js';
 import { $, toast, showError, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { splitHoods } from './hoods.js';
+import { redSegments, reasonsLegend } from './data.js';
 import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location, suggestExtension } from './data.js';
 
 const SORTS = [...HALL_SORTS,
@@ -77,7 +78,7 @@ function card(r) {
       <div class="no"><dt>לא נענו</dt><dd>${formatNumber(r.unanswered)}</dd></div>
       <div><dt>מענה</dt><dd>${r.rate == null ? '-' : `${Math.round(r.rate * 100)}%`}</dd></div>
     </dl>
-    ${r.total ? `<span class="bar" aria-hidden="true"><i class="y" style="width:${(r.answered / r.total) * 100}%"></i><i class="n" style="width:${(r.unanswered / r.total) * 100}%"></i></span>` : ''}` : ''}
+    ${r.total ? `<span class="bar" aria-hidden="true"><i class="y" style="width:${(r.answered / r.total) * 100}%"></i>${redSegments(r, (n) => `${(n / r.total) * 100}%`)}</span>${reasonsLegend(r)}` : ''}` : ''}
     <button class="link calls-link" data-id="${r.id}">יומן השיחות של האולם</button>
   </article>`;
 }

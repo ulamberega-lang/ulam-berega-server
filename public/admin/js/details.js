@@ -4,6 +4,7 @@ import { api } from './api.js';
 import { $, escapeHtml, formatNumber, icon } from './dom.js';
 import { ALL_FROM } from './dates.js';
 import { splitHoods } from './hoods.js';
+import { redSegments, reasonsLegend } from './data.js';
 
 let ctx = { getHalls: () => [], getRange: () => ({}), afterPush: () => {} };
 let openSeq = 0;
@@ -30,7 +31,7 @@ function statsBlock(title, s) {
       <div class="no"><dt>לא נענו</dt><dd>${formatNumber(no)}</dd></div>
       <div><dt>מענה</dt><dd>${total ? `${Math.round((yes / total) * 100)}%` : '-'}</dd></div>
     </dl>
-    ${total ? `<span class="bar" aria-hidden="true"><i class="y" style="width:${(yes / total) * 100}%"></i><i class="n" style="width:${(no / total) * 100}%"></i></span>` : ''}
+    ${total ? `<span class="bar" aria-hidden="true"><i class="y" style="width:${(yes / total) * 100}%"></i>${redSegments(s, (n) => `${(n / total) * 100}%`)}</span>${reasonsLegend(s)}` : ''}
   </section>`;
 }
 

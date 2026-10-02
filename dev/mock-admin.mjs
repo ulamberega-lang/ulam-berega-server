@@ -30,7 +30,8 @@ const rnd = (n) => ((n * 9301 + 49297) % 233280) / 233280; // "אקראי" קב�
 const stats = halls.filter((h) => h.id % 5 !== 0).map((h) => {
   const total = Math.floor(rnd(h.id) * 60) + 1;
   const answered = Math.floor(total * rnd(h.id + 3));
-  return { hall_id: h.id, total, answered, unanswered: total - answered - (h.id % 3) };
+  const unanswered = total - answered - (h.id % 3);
+  return { hall_id: h.id, total, answered, unanswered, cancelled: Math.floor(unanswered / 3), busy: h.id % 2, failed: h.id % 3 === 0 ? 1 : 0 };
 });
 
 function days(from, to, hall) {
@@ -40,7 +41,8 @@ function days(from, to, hall) {
     if (k % 4 === 0) continue;
     const c = 10 + k * 3;
     out.push({ day: d.toISOString().slice(0, 10), calls: hall ? 0 : c, reached: hall ? Math.floor(c / 4) : Math.floor(c * 0.8),
-      answered: hall ? Math.floor(c / 6) : Math.floor(c * 0.5), unanswered: hall ? Math.floor(c / 12) : Math.floor(c * 0.2) });
+      answered: hall ? Math.floor(c / 6) : Math.floor(c * 0.5), unanswered: hall ? Math.floor(c / 12) : Math.floor(c * 0.2),
+      cancelled: Math.floor(c / 14), busy: k % 3 === 0 ? 2 : 0, failed: k % 5 === 0 ? 1 : 0 });
   }
   return out;
 }
