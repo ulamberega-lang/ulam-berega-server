@@ -41,7 +41,11 @@ await p.selectOption('#statsGroup', '');
 
 // בחירת אולם, מעבר ליומן, וכפתור חזרה
 check(await p.isHidden('#back'), 'אין כפתור חזרה במקום הראשון');
-await p.click('#hallStats tr.clickable >> nth=1'); await p.waitForTimeout(400);
+await p.click('#hallStats tr.clickable >> nth=1'); await p.waitForTimeout(600);
+check(await p.evaluate(() => location.hash) === '#calls' && (await p.inputValue('#callsHall')) !== '', 'לחיצה על אולם: יומן השיחות שלו');
+await p.click('#back'); await p.waitForTimeout(600);
+await p.click('.details-btn >> nth=1'); await p.waitForSelector('#detailsDialog[open]');
+await p.click('[data-act=days]'); await p.waitForTimeout(800);
 const title = await p.textContent('#daysTitle');
 check(title.startsWith('לפי יום: '), 'בחירת אולם מציגה ימים');
 await p.click('#openCalls'); await p.waitForTimeout(600);
@@ -100,8 +104,9 @@ check((await p.textContent('#detailsBody')).includes('שיחות בכל הזמנ
 await p.goBack(); await p.waitForTimeout(300);
 check(await p.isHidden('#detailsDialog') && await p.evaluate(() => location.hash) === '#stats', 'פרטי אולם: חזרה סוגרת את החלון ונשארת בלשונית');
 await p.click('.details-btn >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
-await p.click('[data-act=calls]'); await p.waitForTimeout(700);
-check(await p.evaluate(() => location.hash) === '#calls' && (await p.inputValue('#callsHall')) !== '', 'פרטי אולם: מעבר ליומן מסונן לאולם');
+await p.click('[data-act=days]'); await p.waitForTimeout(800);
+check(await p.evaluate(() => location.hash) === '#stats' && (await p.textContent('#daysTitle')).startsWith('לפי יום: '), 'פרטי אולם: מעבר ל"לפי יום" של האולם');
+await p.click('button[data-tab=calls]'); await p.waitForSelector('#callsList tr');
 await p.click('.hall-link >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
 check(true, 'יומן: שם האולם פותח את חלון הפרטים');
 await p.keyboard.press('Escape'); await p.waitForTimeout(300);

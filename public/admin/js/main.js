@@ -128,6 +128,14 @@ function init() {
     setTab('calls');
   });
 
+  // מחלון פרטי האולם: "שיחות לפי יום של האולם" - לשונית "שיחות לפי אולם" כשהאולם נבחר
+  document.addEventListener('open-days', async (e) => {
+    setSelectedHall(e.detail.hall);
+    if (state.tab !== 'stats') { setTab('stats', { load: false }); await refresh(); }
+    else document.dispatchEvent(new CustomEvent('stats-select'));
+    $('#daysHead').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   $('#from').value = state.range.from;
   $('#to').value = state.range.to;
   $('#hebrewRange').textContent = hebrewRange(state.range);
