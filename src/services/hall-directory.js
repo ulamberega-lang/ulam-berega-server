@@ -46,10 +46,11 @@ export async function findActiveByExtension(extension) {
   return (await activeHalls()).find((h) => h.extension === String(extension)) ?? null;
 }
 
-// מקטן לגדול לפי מקסימום אורחים, ואז לפי שם
-export async function searchHalls({ city, neighborhood, guests }) {
+// מקטן לגדול לפי מקסימום אורחים, ואז לפי שם. larger: בלי גבול עליון (כשהמתקשר ביקש לשמוע גם אולמות גדולים יותר)
+export async function searchHalls({ city, neighborhood, guests, larger = false }) {
   const min = guests - halls.guestMargin(guests);
+  const max = larger ? Infinity : halls.guestCeiling(guests);
   return (await getActiveHallsInCity(city))
-    .filter((h) => h.max_guests >= min && (!neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood)))
+    .filter((h) => h.max_guests >= min && h.max_guests <= max && (!neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood)))
     .sort((a, b) => a.max_guests - b.max_guests || a.name.localeCompare(b.name, 'he'));
 }
