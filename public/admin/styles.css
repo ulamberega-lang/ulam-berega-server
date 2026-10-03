@@ -359,6 +359,7 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .calls-table td.dur { order: 5; background: none; padding: 0; justify-self: end; text-align: end; }
   .calls-table td.dur::before { display: inline; margin-left: 6px; }
   .calls-table td.dur:empty { display: none; }
+  .calls-table td.talk { order: 6; grid-column: 2; }
 
   .cards { grid-template-columns: 1fr; }
 

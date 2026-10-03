@@ -53,7 +53,7 @@ const calls = Array.from({ length: 500 }, (_, i) => {
   return { id: i, created_at: new Date(Date.now() - i * 3600e3 * 2.3).toISOString(),
     caller_phone: i % 13 === 0 ? '' : `05${i % 5}${String(1000000 + i * 137).slice(0, 7)}`,
     hall_id: h?.id ?? null, answered, dial_status: answered === false ? ['CANCEL', 'BUSY', 'CONGESTION'][i % 3] : answered && i % 17 !== 0 ? 'ANSWER' : null,
-    duration_sec: answered ? 30 + (i % 300) : null };
+    duration_sec: answered ? 30 + (i % 300) : null, answer_sec: answered && i % 17 !== 0 ? 10 + (i % 200) : null };
 });
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
