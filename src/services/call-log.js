@@ -51,8 +51,9 @@ export async function callNotAnswered(callId) {
   notify(await calls.markNotAnswered(callId), false);
 }
 
-// ניתוק. תוצאת החיוג מגיעה מימות בנפרד (routingFinished); אם לא הגיעה תוך כמה שניות -
-// גיבוי: שיחה שהועברה ולא עברה לשלוחת "אין מענה" נחשבת כנענתה
+// ניתוק. תוצאת החיוג מגיעה מימות בנפרד (routingFinished). אם לא הגיעה - לא מנחשים "נענה":
+// השיחה נשארת בלי תוצאה (ביומן "ללא תוצאת חיוג"), ואין מייל לאולם. אם התוצאה תגיע מאוחר, היא תעדכן ותשלח מייל כרגיל.
+// בלוג נרשם אם עדיין אין תוצאה אחרי כמה שניות (בדרך כלל המתקשר ניתק באמצע החיוג, וימות לא דיווחה).
 const RESULT_WAIT_MS = 8000;
 
 export async function callEnded(callId) {
@@ -66,13 +67,12 @@ export async function callEnded(callId) {
   });
 
   if (row.hall_id && row.answered === null && !row.dial_status) {
-    setTimeout(() => answeredFallback(callId).catch(logError('fallback')), RESULT_WAIT_MS);
+    setTimeout(() => checkResult(callId).catch(logError('check-result')), RESULT_WAIT_MS);
   }
 }
 
-async function answeredFallback(callId) {
+async function checkResult(callId) {
   const row = await calls.findByCallId(callId);
   if (!row || row.dial_status || row.answered !== null) return; // התוצאה האמיתית כבר הגיעה
-  console.error('routing-status: no result from Yemot for', callId, '- assuming answered');
-  notify(await calls.markAnswered(callId), true);
+  console.error('routing-status: no result from Yemot for', callId);
 }

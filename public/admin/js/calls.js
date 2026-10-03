@@ -36,7 +36,8 @@ const statusOf = (c) => {
   if (!c.hall_id) return 'none';
   if (c.answered === false) return 'no';
   if (c.answered) return 'yes';
-  return Date.now() - Date.parse(c.created_at) > OPEN_MS ? 'unknown' : 'pending';
+  // השיחה הסתיימה (או שעברו שעות) ועדיין אין תוצאה: לא יודעים. אחרת היא עוד מתנהלת
+  return c.ended_at || Date.now() - Date.parse(c.created_at) > OPEN_MS ? 'unknown' : 'pending';
 };
 // "נענה" בלי תוצאת חיוג מימות: השרת הניח שנענה (גיבוי), ולכן המצב משוער
 const guessed = (c) => c.status === 'yes' && !c.dial_status;
