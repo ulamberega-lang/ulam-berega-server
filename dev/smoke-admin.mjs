@@ -85,6 +85,12 @@ await p.click('button[data-tab=stats]'); await p.waitForSelector('#totals');
 check(await p.$$eval('#totals .no .reasons li', (t) => t.length) >= 2, 'סיכום: מקרא סיבות ל"לא נענו"');
 check(await p.$$eval('#dayStats .bar i[class^=r]', (t) => new Set(t.map((x) => x.className)).size) >= 2, 'פס ימים: כמה גווני אדום');
 
+// שיחה בלי תוצאת חיוג: התווית מוצגת, ואין "פס" קבוע בראש הדף (התנגשות עם .progress)
+await p.click('button[data-tab=calls]'); await p.waitForSelector('#callsList tr');
+await p.click('#callsView button[data-value=all]'); await p.fill('#callsSearch', ''); await p.fill('#callsHall', ''); await p.waitForTimeout(400);
+check(await p.$$eval('#callsList .badge', (t) => t.every((x) => x.textContent.trim() !== '' && getComputedStyle(x).position !== 'fixed')), 'יומן: כל שיחה עם תווית מצב גלויה (גם בלי תוצאת חיוג)');
+check(await p.$$eval('#callsList .badge.unknown, #callsList .badge.pending', (t) => t.length) > 0, 'יומן: שיחה בלי תוצאת חיוג מסומנת');
+
 // חלון פרטי אולם: נפתח משלוש הנקודות ומהיומן, חזרה סוגרת אותו, והמעבר ליומן מסנן לאולם
 await p.click('button[data-tab=stats]'); await p.waitForSelector('.details-btn');
 await p.click('.details-btn >> nth=0'); await p.waitForSelector('#detailsDialog[open]');

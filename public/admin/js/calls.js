@@ -19,7 +19,8 @@ const SORTS = [
   { key: 'duration', label: 'משך שיחה' },
 ];
 
-const STATUS_ORDER = { yes: 0, no: 1, progress: 2, none: 3 };
+const STATUS_ORDER = { yes: 0, no: 1, pending: 2, unknown: 3, none: 4 };
+const OPEN_MS = 3 * 60 * 60 * 1000; // כמו בשרת: אחרי 3 שעות בלי תוצאת חיוג השיחה כבר לא "בתהליך"
 
 let calls = [];        // שיחות מהשרת, עם שדות מחושבים
 let halls = [];
@@ -29,9 +30,15 @@ let view, sort;
 let fetchedHall = '';
 let hallSearch;
 
-const statusOf = (c) => (!c.hall_id ? 'none' : c.answered === false ? 'no' : c.answered ? 'yes' : 'progress');
+// בשם הכיתה אסור 'progress': הוא שמור בעיצוב לפס הטעינה העליון (.progress)
+const statusOf = (c) => {
+  if (!c.hall_id) return 'none';
+  if (c.answered === false) return 'no';
+  if (c.answered) return 'yes';
+  return Date.now() - Date.parse(c.created_at) > OPEN_MS ? 'unknown' : 'pending';
+};
 const STATUS_LABEL = (c) => ({
-  none: 'לא הגיע לאולם', yes: 'נענה', progress: 'בתהליך', no: NOT_ANSWERED[c.dial_status] || 'לא נענה',
+  none: 'לא הגיע לאולם', yes: 'נענה', pending: 'בתהליך', unknown: 'ללא תוצאת חיוג', no: NOT_ANSWERED[c.dial_status] || 'לא נענה',
 })[c.status];
 
 const GETTERS = {
