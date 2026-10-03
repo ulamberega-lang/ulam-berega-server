@@ -37,8 +37,10 @@ const statusOf = (c) => {
   if (c.answered) return 'yes';
   return Date.now() - Date.parse(c.created_at) > OPEN_MS ? 'unknown' : 'pending';
 };
+// "נענה" בלי תוצאת חיוג מימות: השרת הניח שנענה (גיבוי), ולכן המצב משוער
+const guessed = (c) => c.status === 'yes' && !c.dial_status;
 const STATUS_LABEL = (c) => ({
-  none: 'לא הגיע לאולם', yes: 'נענה', pending: 'בתהליך', unknown: 'ללא תוצאת חיוג', no: NOT_ANSWERED[c.dial_status] || 'לא נענה',
+  none: 'לא הגיע לאולם', yes: guessed(c) ? 'נענה (משוער)' : 'נענה', pending: 'בתהליך', unknown: 'ללא תוצאת חיוג', no: NOT_ANSWERED[c.dial_status] || 'לא נענה',
 })[c.status];
 
 const GETTERS = {
@@ -101,7 +103,7 @@ function renderCalls() {
       <td class="phone digits">${phone}</td>
       <td class="hall">${c.hall_id && c.hallName ? `<button class="link hall-link" data-hall="${c.hall_id}">${escapeHtml(c.hallName)}</button>` : escapeHtml(c.hallName)}</td>
       <td class="city hide-sm">${escapeHtml(c.city)}</td>
-      <td class="status"><span class="badge ${c.status}">${STATUS_LABEL(c)}</span></td>
+      <td class="status"><span class="badge ${c.status}${guessed(c) ? ' guess' : ''}"${guessed(c) ? ' title="תוצאת החיוג לא התקבלה מימות, והשרת הניח שהשיחה נענתה"' : ''}>${STATUS_LABEL(c)}</span></td>
       <td class="num dur" data-label="משך">${duration(c.duration_sec)}</td>
     </tr>`;
   }).join('') : `<tr><td colspan="6" class="empty">${calls.length ? 'אין שיחות שמתאימות לחיפוש או לסינון.' : 'אין שיחות בתקופה הזו.'}</td></tr>`;
