@@ -294,6 +294,8 @@ export async function handleAnswer(s, q, val, raw) {
       return go('guestsOk');
     }
     case 'guestsOk':
+      // שינוי כמות אחרי "לא נמצא": ממשיכים באותה עיר ושכונה, בלי לשאול אותן שוב
+      if (s.redoGuests && val === '1') { s.redoGuests = false; s.page = 0; return go('results'); }
       return confirm('city', 'guests');
 
     case 'city': {
@@ -358,11 +360,11 @@ export async function handleAnswer(s, q, val, raw) {
 
     case 'largerAsk':
       if (val === '1') { s.larger = true; s.page = 0; return go('results'); }
-      if (val === '2') return go('guests');
+      if (val === '2') { s.redoGuests = true; return go('guests'); }
       return invalid();
 
     case 'noResults':
-      if (val === '1') return go('guests');
+      if (val === '1') { s.redoGuests = true; return go('guests'); }
       if (val === '2') return go('city');
       return invalid();
 
