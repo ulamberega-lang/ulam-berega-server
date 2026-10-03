@@ -4,6 +4,9 @@ import { supabase, unwrap, selectAll } from '../lib/supabase.js';
 // כמה אולם מותר להיות קטן מכמות המוזמנים ועדיין להופיע בתוצאות
 export const guestMargin = (guests) => (guests <= 100 ? 30 : guests <= 250 ? 50 : guests <= 500 ? 100 : 200);
 
+// כמה גדול יכול להיות אולם ועדיין להתאים: עד פי 2 מהמוזמנים, ולפחות מוזמנים ועוד 150 (אולם של 1,000 לא מתאים ל-200)
+export const guestCeiling = (guests) => Math.max(guests * 2, guests + 150);
+
 // ---------- למערכת הטלפונית (נטען לזיכרון דרך services/hall-directory.js) ----------
 
 export async function getActiveHalls() {
