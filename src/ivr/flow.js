@@ -5,7 +5,7 @@
 //   2 מספר שלוחה:             extEntry
 //   3 חיפוש לפי שם:            city → cityOk → hallSay → hallOk | hallMenu
 //   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
-//   largerAsk - אין אולם בגודל מתאים אבל יש גדולים יותר: לשמוע אותם (1) או לשנות כמות (2)
+//   noFit - אין אולם בגודל מתאים אבל יש גדולים ו/או קטנים יותר: לשמוע אותם או לשנות כמות
 //   noMatch - נאמר שם שלא נמצא: לנסות שוב (1) או לבחור מרשימה (2)
 //   4 בעל אולם:               ownerInfo (הסבר איך מוסיפים אולם, בלי חיפוש)
 import { IVR } from '../config.js';
@@ -133,8 +133,8 @@ function hallLabel(hall, list, withCity = new Set(list.map((h) => h.city_name)).
 // ---------- מה שואלים בכל שלב ----------
 
 export async function prompt(s) {
-  // "אולמות גדולים יותר" תקף רק לחיפוש הנוכחי: שינוי כמות, עיר או שכונה מאפס אותו
-  if (['guests', 'city', 'hood', 'hoodSay', 'hoodMenu'].includes(s.step)) s.larger = false;
+  // "אולמות גדולים/קטנים יותר" תקף רק לחיפוש הנוכחי: שינוי כמות, עיר או שכונה מאפס אותו
+  if (['guests', 'city', 'hood', 'hoodSay', 'hoodMenu'].includes(s.step)) s.sizeMode = null;
   switch (s.step) {
     case 'menu':
       return ask(s, ['בְּרוּכִים הַבָּאִים לֶגְמַ״ח אוּלָם בֶּרֶגַע', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
@@ -211,22 +211,34 @@ export async function prompt(s) {
         'לְשִׁינּוּי כַּמּוּת הַמּוּזְמָנִים הַקֵּשׁ 1', 'לְשִׁינּוּי הָעִיר הַקֵּשׁ 2',
         'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ כּוֹכָבִית'], tapOptions(1));
 
-    case 'largerAsk':
+    case 'noFit': {
+      const choices = await noFitChoices(s);
+      const text = { larger: 'לִשְׁמִיעַת אוּלַמּוֹת גְּדוֹלִים יוֹתֵר', smaller: 'לִשְׁמִיעַת אוּלַמּוֹת קְטַנִּים יוֹתֵר', guests: 'לְשִׁינּוּי כַּמּוּת הַמּוּזְמָנִים' };
       return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת ${s.hood ? `בִּשְׁכוּנַת ${withNikud(s.hood)}` : withPrefix('ב', s.city)} הַמַּתְאִימִים עֲבוּר ${s.guests} מוּזְמָנִים`,
-        'לִשְׁמִיעַת אוּלַמּוֹת גְּדוֹלִים יוֹתֵר הַקֵּשׁ 1', 'לְשִׁינּוּי כַּמּוּת הַמּוּזְמָנִים הַקֵּשׁ 2',
+        ...choices.map((c, i) => `${text[c]} הַקֵּשׁ ${i + 1}`),
         'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ כּוֹכָבִית'], tapOptions(1));
+    }
 
     case 'results':
       return promptResults(s);
   }
 }
 
+// מה אפשר להציע כשאין אולם בטווח: גדולים יותר ו/או קטנים יותר (רק מה שקיים), ושינוי כמות
+async function noFitChoices(s) {
+  const where = { city: s.city, neighborhood: s.hood, guests: s.guests };
+  const choices = [];
+  if ((await halls.searchHalls({ ...where, size: 'larger' })).length) choices.push('larger');
+  if ((await halls.searchHalls({ ...where, size: 'smaller' })).length) choices.push('smaller');
+  return [...choices, 'guests'];
+}
+
 async function promptResults(s) {
-  const found = await halls.searchHalls({ city: s.city, neighborhood: s.hood, guests: s.guests, larger: s.larger });
+  const found = await halls.searchHalls({ city: s.city, neighborhood: s.hood, guests: s.guests, size: s.sizeMode });
   if (!found.length) {
-    // אין אולם בגודל מתאים, אבל יש גדולים יותר: שואלים אם לשמוע אותם
-    if ((await halls.searchHalls({ city: s.city, neighborhood: s.hood, guests: s.guests, larger: true })).length) {
-      s.step = 'largerAsk';
+    // אין אולם בגודל מתאים, אבל יש גדולים או קטנים יותר: שואלים אם לשמוע אותם
+    if ((await noFitChoices(s)).length > 1) {
+      s.step = 'noFit';
       return prompt(s);
     }
     if (s.hood) {
@@ -358,10 +370,14 @@ export async function handleAnswer(s, q, val, raw) {
       return go('results');
     }
 
-    case 'largerAsk':
-      if (val === '1') { s.larger = true; s.page = 0; return go('results'); }
-      if (val === '2') { s.redoGuests = true; return go('guests'); }
-      return invalid();
+    case 'noFit': {
+      const choice = (await noFitChoices(s))[Number(val) - 1];
+      if (choice === 'guests') { s.redoGuests = true; return go('guests'); }
+      if (!choice) return invalid();
+      s.sizeMode = choice;
+      s.page = 0;
+      return go('results');
+    }
 
     case 'noResults':
       if (val === '1') { s.redoGuests = true; return go('guests'); }

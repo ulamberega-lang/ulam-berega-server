@@ -46,11 +46,15 @@ export async function findActiveByExtension(extension) {
   return (await activeHalls()).find((h) => h.extension === String(extension)) ?? null;
 }
 
-// מקטן לגדול לפי מקסימום אורחים, ואז לפי שם. larger: בלי גבול עליון (כשהמתקשר ביקש לשמוע גם אולמות גדולים יותר)
-export async function searchHalls({ city, neighborhood, guests, larger = false }) {
+// בטווח המתאים: מקטן לגדול לפי מקסימום אורחים, ואז לפי שם.
+// size: "larger" - בלי גבול עליון (כשהמתקשר ביקש לשמוע אולמות גדולים יותר);
+//       "smaller" - אולמות קטנים מהטווח, מהגדול לקטן (הקרובים לכמות קודם)
+export async function searchHalls({ city, neighborhood, guests, size }) {
   const min = guests - halls.guestMargin(guests);
-  const max = larger ? Infinity : halls.guestCeiling(guests);
-  return (await getActiveHallsInCity(city))
-    .filter((h) => h.max_guests >= min && h.max_guests <= max && (!neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood)))
-    .sort((a, b) => a.max_guests - b.max_guests || a.name.localeCompare(b.name, 'he'));
+  const max = size === 'larger' ? Infinity : halls.guestCeiling(guests);
+  const inScope = (await getActiveHallsInCity(city))
+    .filter((h) => !neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood));
+  const byName = (a, b) => a.name.localeCompare(b.name, 'he');
+  if (size === 'smaller') return inScope.filter((h) => h.max_guests < min).sort((a, b) => b.max_guests - a.max_guests || byName(a, b));
+  return inScope.filter((h) => h.max_guests >= min && h.max_guests <= max).sort((a, b) => a.max_guests - b.max_guests || byName(a, b));
 }
