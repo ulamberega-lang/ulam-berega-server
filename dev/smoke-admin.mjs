@@ -90,6 +90,7 @@ await p.click('button[data-tab=calls]'); await p.waitForSelector('#callsList tr'
 await p.click('#callsView button[data-value=all]'); await p.fill('#callsSearch', ''); await p.fill('#callsHall', ''); await p.waitForTimeout(400);
 check(await p.$$eval('#callsList .badge', (t) => t.every((x) => x.textContent.trim() !== '' && getComputedStyle(x).position !== 'fixed')), 'יומן: כל שיחה עם תווית מצב גלויה (גם בלי תוצאת חיוג)');
 check(await p.$$eval('#callsList .badge.unknown, #callsList .badge.pending', (t) => t.length) > 0, 'יומן: שיחה בלי תוצאת חיוג מסומנת');
+check(await p.$$eval('#callsList td.talk', (t) => t.some((x) => /^\d+:\d\d$/.test(x.textContent.trim()))), 'יומן: מוצג זמן הדיבור עם האולם');
 check(await p.$$eval('#callsList .badge.guess', (t) => t.length > 0 && t.every((x) => x.textContent.includes('משוער'))) && await p.$$eval('#callsList .badge.yes:not(.guess)', (t) => t.length) > 0, 'יומן: "נענה (משוער)" רק כשחסרה תוצאת חיוג');
 
 // חלון פרטי אולם: נפתח משלוש הנקודות ומהיומן, חזרה סוגרת אותו, והמעבר ליומן מסנן לאולם

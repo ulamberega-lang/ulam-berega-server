@@ -16,7 +16,8 @@ const SORTS = [
   { key: 'city', label: 'עיר', text: true },
   { key: 'phone', label: 'מספר מתקשר', text: true },
   { key: 'status', label: 'מצב שיחה', text: true },
-  { key: 'duration', label: 'משך שיחה' },
+  { key: 'duration', label: 'משך שיחה כולה' },
+  { key: 'talk', label: 'זמן דיבור עם האולם' },
 ];
 
 const STATUS_ORDER = { yes: 0, no: 1, pending: 2, unknown: 3, none: 4 };
@@ -50,6 +51,7 @@ const GETTERS = {
   phone: (c) => c.caller_phone || '',
   status: (c) => STATUS_ORDER[c.status],
   duration: (c) => c.duration_sec,
+  talk: (c) => c.answer_sec, // כמה זמן דיברו עם האולם (תוצאת החיוג מימות)
 };
 
 // האולם שהוקלד בשדה הסינון, אם הוא זהה בדיוק לאחת האפשרויות
@@ -104,9 +106,10 @@ function renderCalls() {
       <td class="hall">${c.hall_id && c.hallName ? `<button class="link hall-link" data-hall="${c.hall_id}">${escapeHtml(c.hallName)}</button>` : escapeHtml(c.hallName)}</td>
       <td class="city hide-sm">${escapeHtml(c.city)}</td>
       <td class="status"><span class="badge ${c.status}${guessed(c) ? ' guess' : ''}"${guessed(c) ? ' title="תוצאת החיוג לא התקבלה מימות, והשרת הניח שהשיחה נענתה"' : ''}>${STATUS_LABEL(c)}</span></td>
-      <td class="num dur" data-label="משך">${duration(c.duration_sec)}</td>
+      <td class="num dur" data-label="משך כולל">${duration(c.duration_sec)}</td>
+      <td class="num dur talk" data-label="דיברו עם האולם">${duration(c.answer_sec)}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="6" class="empty">${calls.length ? 'אין שיחות שמתאימות לחיפוש או לסינון.' : 'אין שיחות בתקופה הזו.'}</td></tr>`;
+  }).join('') : `<tr><td colspan="7" class="empty">${calls.length ? 'אין שיחות שמתאימות לחיפוש או לסינון.' : 'אין שיחות בתקופה הזו.'}</td></tr>`;
 
   $('#callsCount').textContent = calls.length ? `${formatNumber(visible.length)} מתוך ${formatNumber(calls.length)} שיחות` : '';
   $('#callsNote').textContent = calls.length >= LIMIT
@@ -115,10 +118,10 @@ function renderCalls() {
 
 function exportCsv() {
   const list = sortBy(visibleCalls().filter((c) => view.get() === 'all' || c.status === view.get()), sort.state, GETTERS);
-  const rows = list.map((c) => [formatDateTime(c.created_at), c.caller_phone || 'חסוי', c.hallName, c.city, STATUS_LABEL(c), duration(c.duration_sec)]);
+  const rows = list.map((c) => [formatDateTime(c.created_at), c.caller_phone || 'חסוי', c.hallName, c.city, STATUS_LABEL(c), duration(c.duration_sec), duration(c.answer_sec)]);
   // הקובץ לא כולל שיחות ישנות יותר; מסמנים את זה כדי שהמספרים לא יתפרשו כסך כל השיחות
-  if (calls.length >= LIMIT) rows.push([`הקובץ כולל רק את ${LIMIT} השיחות האחרונות בטווח`, '', '', '', '', '']);
-  downloadCsv('יומן-שיחות.csv', ['תאריך ושעה', 'מתקשר', 'אולם', 'עיר', 'מצב', 'משך'], rows);
+  if (calls.length >= LIMIT) rows.push([`הקובץ כולל רק את ${LIMIT} השיחות האחרונות בטווח`, '', '', '', '', '', '']);
+  downloadCsv('יומן-שיחות.csv', ['תאריך ושעה', 'מתקשר', 'אולם', 'עיר', 'מצב', 'משך כולל', 'דיברו עם האולם'], rows);
 }
 
 // מעבר מלשוניות אחרות: פותח את היומן כשהוא מסונן לאולם מסוים
