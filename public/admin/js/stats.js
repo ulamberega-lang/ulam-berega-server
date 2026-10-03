@@ -249,7 +249,8 @@ export function initStats(reload) {
       return;
     }
     const tr = e.target.closest('tr[data-id]');
-    if (tr) selectHall(tr.dataset.id);
+    const row = tr && rows.find((r) => String(r.id) === tr.dataset.id);
+    if (row) document.dispatchEvent(new CustomEvent('open-calls', { detail: { hall: row.hall } })); // לחיצה על אולם: יומן השיחות שלו
   };
   $('#hallStats').addEventListener('click', onRow);
   $('#hallStats').addEventListener('keydown', (e) => { if (e.key === 'Enter') onRow(e); });

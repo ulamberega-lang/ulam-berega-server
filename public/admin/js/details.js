@@ -66,7 +66,7 @@ function render(hall, range, stats) {
     ${counts}
     <div class="d-actions">
       <button class="btn" data-act="edit">${icon('edit')}עריכת האולם</button>
-      <button class="btn ghost" data-act="calls">יומן השיחות של האולם</button>
+      <button class="btn ghost" data-act="days">שיחות לפי יום של האולם</button>
     </div>`;
 }
 
@@ -119,7 +119,7 @@ export function initDetails(options) {
     if (!act) return;
     const hall = ctx.getHalls().find((h) => String($('#detailsBody').dataset.id) === String(h.id));
     if (act === 'close') dismiss();
-    else if (hall && act === 'calls') leaveThen(() => document.dispatchEvent(new CustomEvent('open-calls', { detail: { hall } })));
+    else if (hall && act === 'days') leaveThen(() => document.dispatchEvent(new CustomEvent('open-days', { detail: { hall } })));
     else if (hall && act === 'edit') leaveThen(() => document.dispatchEvent(new CustomEvent('edit-hall', { detail: { hall } })));
   });
 }
