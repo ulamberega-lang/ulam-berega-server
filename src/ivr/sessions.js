@@ -6,7 +6,7 @@ const sessions = new Map(); // מזהה שיחה → מצב
 setInterval(() => {
   const cutoff = Date.now() - IVR.SESSION_TTL_MS;
   for (const [id, s] of sessions) if (s.t < cutoff) sessions.delete(id);
-}, 10 * 60 * 1000);
+}, 10 * 60 * 1000).unref(); // unref: הטיימר לא מונע מהתהליך להיסגר (בבדיקות)
 
 export const getSession = (id) => sessions.get(id);
 export const deleteSession = (id) => sessions.delete(id);

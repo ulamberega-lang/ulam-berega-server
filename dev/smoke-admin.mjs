@@ -7,6 +7,7 @@ const require = createRequire(`${process.env.NODE_PATH || ''}/`);
 const { chromium, devices } = require('playwright');
 const base = process.env.SITE_URL || 'http://localhost:4173/admin/';
 
+await fetch(new URL('/__reset', base)).catch(() => {}); // שרת הדמה חוזר למצב התחלתי (הבדיקה מוחקת הודעות)
 const browser = await chromium.launch();
 let failed = 0;
 const check = (ok, message) => { if (!ok) failed++; console.log(ok ? 'PASS' : 'FAIL', message); };

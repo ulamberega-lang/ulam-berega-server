@@ -6,63 +6,43 @@ import * as calls from '../repositories/calls.js';
 import * as voicemails from '../repositories/voicemails.js';
 import * as mailLog from '../repositories/mail-log.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
+import { hallFromBody, InputError } from '../lib/hall-input.js';
 
 export const adminApi = Router();
 
-// שגיאה בכל נתיב → הודעה ברורה לאתר במקום קריסה
+// שגיאה בכל נתיב → הודעה ברורה לאתר במקום קריסה. קלט לא תקין (InputError) מוצג כמו שהוא;
+// תקלת שרת (למשל מסד הנתונים) נרשמת בלוג, ולאתר חוזרת הודעה כללית
 const handle = (fn) => async (req, res) => {
   try {
     res.json(await fn(req));
   } catch (err) {
     console.error('admin:', err.message);
-    const message = err.code === '23505' ? 'מספר השלוחה כבר בשימוש באולם אחר' : err.message;
-    res.status(400).json({ error: message });
+    if (err instanceof InputError) return res.status(err.status).json({ error: err.message });
+    if (err.code === 'PGRST116') return res.status(404).json({ error: 'האולם לא נמצא' });
+    if (err.code === '23505') return res.status(400).json({ error: 'מספר השלוחה כבר בשימוש באולם אחר' });
+    return res.status(500).json({ error: 'תקלה בשרת. נסה שוב, ואם זה חוזר - בדוק את הלוג ב-Render' });
   }
 };
 
 // ---------- אולמות ----------
 
-const HALL_FIELDS = ['name', 'synagogue_name', 'city_name', 'neighborhood_name', 'address', 'max_guests',
-  'gabbai_phone', 'gabbai_email', 'extension', 'is_active'];
-
-const REQUIRED = { name: 'שם האולם', city_name: 'עיר', max_guests: 'מקסימום אורחים', extension: 'מספר שלוחה', gabbai_phone: 'טלפון להעברה' };
-
-// isNew: באולם חדש כל שדות החובה חייבים להופיע; בעריכה - רק אם נשלחו, לא ריקים
-function hallFromBody(body, isNew) {
-  const hall = {};
-  for (const f of HALL_FIELDS) {
-    if (f in body) hall[f] = typeof body[f] === 'string' ? body[f].trim() || null : body[f];
-  }
-  if ('max_guests' in hall) {
-    hall.max_guests = hall.max_guests ? Number(hall.max_guests) : null;
-    if (Number.isNaN(hall.max_guests)) throw new Error('מקסימום אורחים חייב להיות מספר');
-  }
-  if (hall.gabbai_phone) hall.gabbai_phone = hall.gabbai_phone.replace(/\D/g, '') || null;
-  if (hall.extension) hall.extension = String(hall.extension).replace(/\D/g, '') || null;
-
-  for (const [field, label] of Object.entries(REQUIRED)) {
-    if ((isNew || field in hall) && (hall[field] == null || hall[field] === '')) throw new Error(`חסר ${label}`);
-  }
-  if (hall.max_guests != null && !(Number.isInteger(hall.max_guests) && hall.max_guests > 0)) {
-    throw new Error('מקסימום אורחים חייב להיות מספר שלם חיובי');
-  }
-  if (hall.extension && !/^\d{2,4}$/.test(hall.extension)) throw new Error('מספר שלוחה חייב להיות 2 עד 4 ספרות');
-  if (hall.gabbai_phone && !/^0\d{8,9}$/.test(hall.gabbai_phone)) throw new Error('מספר טלפון לא תקין');
-  return hall;
-}
+const idOf = (req) => {
+  if (!/^\d+$/.test(req.params.id)) throw new InputError('מזהה לא תקין');
+  return req.params.id;
+};
 
 adminApi.get('/halls', handle(() => halls.listAll()));
 // אחרי שמירה - מרעננים את הרשימה שהמערכת הטלפונית משתמשת בה
 const saved = (hall) => { hallsChanged(); return hall; };
 adminApi.post('/halls', handle(async (req) => saved(await halls.create(hallFromBody(req.body, true)))));
-adminApi.put('/halls/:id', handle(async (req) => saved(await halls.update(req.params.id, hallFromBody(req.body, false)))));
+adminApi.put('/halls/:id', handle(async (req) => saved(await halls.update(idOf(req), hallFromBody(req.body, false)))));
 
 // ---------- שיחות וסטטיסטיקה ----------
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 function range(req) {
   const { from, to } = req.query;
-  if (!DATE.test(from) || !DATE.test(to)) throw new Error('תאריכים לא תקינים');
+  if (!DATE.test(from) || !DATE.test(to)) throw new InputError('תאריכים לא תקינים');
   const hallId = /^\d+$/.test(req.query.hall ?? '') ? Number(req.query.hall) : null;
   return { from, to, hallId };
 }
@@ -84,27 +64,40 @@ adminApi.get('/calls', handle((req) => {
 
 // ---------- הודעות קוליות ----------
 
-const idOf = (req) => {
-  if (!/^\d+$/.test(req.params.id)) throw new Error('מזהה לא תקין');
-  return req.params.id;
-};
-
 adminApi.get('/mails', handle(() => mailLog.listRecent()));
 adminApi.get('/voicemails', handle(() => voicemails.listAll()));
 adminApi.put('/voicemails/:id', handle((req) => voicemails.setHandled(idOf(req), Boolean(req.body?.handled))));
 adminApi.delete('/voicemails/:id', handle(async (req) => {
   const row = await voicemails.findById(idOf(req));
-  if (!row) throw new Error('ההודעה לא נמצאה');
+  if (!row) throw new InputError('ההודעה לא נמצאה', 404);
   await voicemails.remove(row.id);
+  audioCache.delete(row.id);
   deleteRecordingFile(row.yemot_path); // ברקע; נרשם בלוג אם נכשל
   return { ok: true };
 }));
 
 // ההקלטה עצמה, מימות. תמיכה ב-Range, כי Safari באייפון דורש אותה להשמעת אודיו.
+// Safari שולח כמה בקשות לאותה הקלטה, ולכן שומרים בזיכרון את האחרונות לכמה דקות (במקום להוריד מימות בכל בקשה)
+const AUDIO_CACHE_MS = 5 * 60 * 1000;
+const AUDIO_CACHE_MAX = 5;
+const audioCache = new Map(); // מזהה הודעה → { audio, at }
+
+async function recordingOf(row) {
+  const hit = audioCache.get(row.id);
+  if (hit && Date.now() - hit.at < AUDIO_CACHE_MS) return hit.audio;
+  const audio = await downloadRecording(row.yemot_path);
+  if (audio) {
+    audioCache.delete(row.id);
+    audioCache.set(row.id, { audio, at: Date.now() });
+    if (audioCache.size > AUDIO_CACHE_MAX) audioCache.delete(audioCache.keys().next().value);
+  }
+  return audio;
+}
+
 adminApi.get('/voicemails/:id/audio', async (req, res) => {
   try {
     const row = /^\d+$/.test(req.params.id) ? await voicemails.findById(req.params.id) : null;
-    const audio = row && await downloadRecording(row.yemot_path);
+    const audio = row && await recordingOf(row);
     if (!audio) return res.status(404).json({ error: 'ההקלטה לא נמצאה בימות' });
 
     const size = audio.length;

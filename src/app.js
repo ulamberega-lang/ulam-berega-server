@@ -12,6 +12,10 @@ const adminSite = fileURLToPath(new URL('../public/admin', import.meta.url));
 export function createApp() {
   const app = express();
   app.set('trust proxy', 1); // Render מאחורי פרוקסי: כתובת המבקר מגיעה מ-X-Forwarded-For (להגבלת ניסיונות סיסמה)
+  app.use((req, res, next) => { // האתר לא יוטמע בדף זר (Clickjacking), והדפדפן לא מנחש סוגי קבצים
+    res.set({ 'x-frame-options': 'DENY', 'content-security-policy': "frame-ancestors 'none'", 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin' });
+    next();
+  });
   app.use(express.json());
 
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
