@@ -282,7 +282,7 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   main.wrap { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 28px); }
   .topbar h1 { padding: 12px 0; font-size: 1.1rem; }
 
-  .topbar nav { position: fixed; inset: auto 0 0 0; z-index: 30; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+  .topbar nav { position: fixed; inset: auto 0 0 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
     background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -2px 12px rgba(0, 0, 0, .08); }
   .topbar nav button { flex-direction: column; gap: 2px; padding: 8px 4px 9px; border-radius: 0; color: var(--muted); font-size: .72rem; white-space: normal; text-align: center; min-height: var(--nav-h); justify-content: center; }
   .topbar nav button .ic { width: 24px; height: 24px; }
@@ -372,4 +372,20 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
 @media print {
   .topbar, .toolbar, .range, .icon-btn, .progress { display: none !important; }
   body { background: #fff; }
+}
+
+/* הודעות קוליות */
+.tab-count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--no); color: #fff; font-size: .75rem; line-height: 20px; text-align: center; font-weight: 700; }
+.voicemail-table audio { width: 100%; max-width: 360px; height: 38px; }
+.voicemail-table tr.done { opacity: .65; }
+.voicemail-table label.check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.voicemail-table td.more { width: 56px; text-align: center; }
+@media (max-width: 700px) {
+  #voicemailSort { flex: 1 1 100%; }
+  .topbar nav button { position: relative; }
+  .tab-count { position: absolute; top: 4px; right: calc(50% - 22px); min-width: 18px; height: 18px; line-height: 18px; font-size: .7rem; }
+  .voicemail-table td.player { order: 3; }
+  .voicemail-table td.player audio { max-width: none; }
+  .voicemail-table td.handled { order: 4; }
+  .rt td.more { position: absolute; top: 8px; left: 8px; width: auto; }
 }

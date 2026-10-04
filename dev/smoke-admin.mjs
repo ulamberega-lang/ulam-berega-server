@@ -97,6 +97,23 @@ check(await p.$$eval('#callsList .badge.unknown, #callsList .badge.pending', (t)
 check(await p.$$eval('#callsList td.talk', (t) => t.some((x) => /^\d+:\d\d$/.test(x.textContent.trim()))), 'יומן: מוצג זמן הדיבור עם האולם');
 check(await p.$$eval('#callsList .badge.guess', (t) => t.length > 0 && t.every((x) => x.textContent.includes('משוער'))) && await p.$$eval('#callsList .badge.yes:not(.guess)', (t) => t.length) > 0, 'יומן: "נענה (משוער)" רק כשחסרה תוצאת חיוג');
 
+// לשונית הודעות: רשימה, מונה, סימון "טופל" ומחיקה
+await p.click('button[data-tab=voicemails]'); await p.waitForSelector('#voicemailList tr[data-id]');
+check(await p.$$eval('#voicemailList tr[data-id]', (t) => t.length) === 8, 'הודעות: 8 הודעות מוצגות');
+check(await p.isHidden('#range'), 'הודעות: אין טווח תאריכים בלשונית');
+check(await p.$$eval('#voicemailList audio', (t) => t.length) === 8, 'הודעות: נגן לכל הודעה');
+const openBefore = Number(await p.textContent('#voicemailBadge'));
+await p.check('#voicemailList tr[data-id] .vm-done >> nth=-1'); await p.waitForTimeout(300);
+const openAfter = Number(await p.textContent('#voicemailBadge'));
+check(openAfter === openBefore - 1, `הודעות: סימון "טופל" מוריד את המונה (${openBefore} → ${openAfter})`);
+await p.fill('#voicemailSearch', '0500'); await p.waitForTimeout(200);
+check(await p.$$eval('#voicemailList tr[data-id]', (t) => t.length) < 8, 'הודעות: חיפוש לפי טלפון');
+await p.fill('#voicemailSearch', '');
+p.once('dialog', (d) => d.accept());
+await p.click('#voicemailList .vm-delete >> nth=0'); await p.waitForTimeout(400);
+check(await p.$$eval('#voicemailList tr[data-id]', (t) => t.length) === 7, 'הודעות: מחיקה');
+await p.click('button[data-tab=stats]'); await p.waitForTimeout(300);
+
 // חלון פרטי אולם: נפתח משלוש הנקודות ומהיומן, חזרה סוגרת אותו, והמעבר ליומן מסנן לאולם
 await p.click('button[data-tab=stats]'); await p.waitForSelector('.details-btn');
 await p.click('.details-btn >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
@@ -147,7 +164,7 @@ check(true, 'לחיצה על בקרים לפני שהנתונים נטענו: ב
 
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
-for (const tab of ['stats', 'calls', 'halls']) {
+for (const tab of ['stats', 'calls', 'halls', 'voicemails']) {
   await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
   check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
 }

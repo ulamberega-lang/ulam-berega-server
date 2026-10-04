@@ -56,11 +56,38 @@ const calls = Array.from({ length: 500 }, (_, i) => {
     duration_sec: answered ? 30 + (i % 300) : null, answer_sec: answered && i % 17 !== 0 ? 10 + (i % 200) : null };
 });
 
+// הודעות קוליות מדומות (בזיכרון: סימון "טופל" ומחיקה עובדים עד הפעלה מחדש)
+let voicemails = Array.from({ length: 8 }, (_, i) => ({
+  id: i + 1, created_at: new Date(Date.now() - i * 3600e3 * 7).toISOString(),
+  caller_phone: i % 4 === 3 ? '' : `05${i % 5}${String(2000000 + i * 311).slice(0, 7)}`,
+  yemot_path: `ivr2:/8/vm_${i}.wav`, handled: i % 3 === 0 && i > 0 }));
+// WAV של חצי שנייה שקט (8kHz, 16 סיביות), לבדיקת הנגן
+const silentWav = (() => {
+  const samples = 4000, data = Buffer.alloc(samples * 2), h = Buffer.alloc(44);
+  h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVEfmt ', 8); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22);
+  h.writeUInt32LE(8000, 24); h.writeUInt32LE(16000, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40);
+  return Buffer.concat([h, data]);
+})();
+
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const json = (data) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(data)); };
+
+  const vm = /^\/admin\/api\/voicemails(?:\/(\d+)(\/audio)?)?$/.exec(url.pathname);
+  if (vm) {
+    const id = Number(vm[1]);
+    if (vm[2]) { res.setHeader('content-type', 'audio/wav'); return res.end(silentWav); }
+    if (req.method === 'GET') return json(voicemails);
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    return req.on('end', () => {
+      if (req.method === 'PUT') { const row = voicemails.find((v) => v.id === id); row.handled = Boolean(JSON.parse(body).handled); return json(row); }
+      voicemails = voicemails.filter((v) => v.id !== id);
+      return json({ ok: true });
+    });
+  }
 
   // שמירת אולם: מחזיר את מה שנשלח, אחרי השהיה קצרה (כדי לראות את מצב "שומר...")
   if (req.method !== 'GET' && url.pathname.startsWith('/admin/api/halls')) {

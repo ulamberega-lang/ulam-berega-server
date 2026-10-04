@@ -2,6 +2,7 @@
 // ההקלטה נשארת בימות (תיקיית ההקלטות), כגיבוי למקרה שהמייל נכשל.
 import { config } from '../config.js';
 import { downloadRecording } from './transcriber.js';
+import * as voicemails from '../repositories/voicemails.js';
 import { hebrewDate } from '../lib/hebrew-date.js';
 
 const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024; // מעבר לזה Brevo עלולה לדחות את המייל
@@ -12,6 +13,8 @@ export async function saveVoicemail({ path, callerPhone }) {
   console.log('voicemail: received, downloading', path);
   const audio = await downloadRecording(path);
   if (!audio) return console.error('voicemail: no recording at', path);
+  // רשומה באתר הניהול (לשונית "הודעות"). אם הטבלה עוד לא קיימת - ממשיכים לשלוח את המייל
+  await voicemails.create({ callerPhone, path }).catch((e) => console.error('voicemail: save failed:', e.message));
   if (!config.brevoKey || !config.mailFrom) return console.error('voicemail: mail is not configured');
 
   const tooBig = audio.length > MAX_ATTACHMENT_BYTES;

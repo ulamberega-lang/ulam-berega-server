@@ -5,9 +5,10 @@ import { preset, hebrewRange } from './dates.js';
 import { initStats, loadStats, getSelectedHall, setSelectedHall } from './stats.js';
 import { initCalls, loadCalls, setHallFilter, getHallFilter, restoreHallFilter } from './calls.js';
 import { initHalls, loadHalls } from './halls.js';
+import { initVoicemails, loadVoicemails, loadVoicemailCount } from './voicemails.js';
 import { initDetails, closeDetailsIfOpen } from './details.js';
 
-const TABS = ['stats', 'calls', 'halls'];
+const TABS = ['stats', 'calls', 'halls', 'voicemails'];
 const fromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stats');
 const state = { tab: fromHash(), range: preset('all'), halls: [] };
 
@@ -22,6 +23,7 @@ async function refresh() {
   try {
     if (tab === 'stats') await loadStats(state.range, state.halls, isCurrent);
     else if (tab === 'calls') await loadCalls(state.range, state.halls, isCurrent);
+    else if (tab === 'voicemails') await loadVoicemails(state.range, state.halls, isCurrent);
     else await loadHalls(state.range, state.halls, isCurrent);
     if (isCurrent()) $('#updated').textContent = `עודכן ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
   } catch (err) {
@@ -82,6 +84,7 @@ function setTab(tab, { record = true, load = true } = {}) {
   state.tab = tab;
   $$('.topbar nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
   for (const name of TABS) $(`#tab-${name}`).hidden = name !== tab;
+  $('#range').hidden = tab === 'voicemails'; // להודעות אין טווח תאריכים
   if (record && changed) pushPlace();
   window.scrollTo({ top: 0 });
   if (load) refresh();
@@ -119,6 +122,12 @@ function init() {
   initStats(refresh);
   initCalls(refresh);
   initHalls(async () => { await loadHallList(); refresh(); });
+  initVoicemails();
+  document.addEventListener('voicemails-changed', (e) => {
+    const badge = $('#voicemailBadge');
+    badge.hidden = !e.detail.open;
+    badge.textContent = e.detail.open;
+  });
   initDetails({ getHalls: () => state.halls, getRange: () => state.range, afterPush: updateBack });
   document.addEventListener('stats-select', () => { saveCurrent(); pushPlace(); }); // בחירת אולם / ניקוי הבחירה
 
@@ -144,6 +153,7 @@ function init() {
   setTab(state.tab, { record: false, load: false });
   updateBack();
   setBusy(true);
+  loadVoicemailCount();
   loadHallList().then(refresh).catch((err) => { setBusy(false); showError(err.message); });
 }
 
