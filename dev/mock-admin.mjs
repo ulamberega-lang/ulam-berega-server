@@ -95,7 +95,7 @@ http.createServer((req, res) => {
           const seen = data.previous?.[i.text] ?? [];
           const list = marks.map((m) => `${i.text}${m}`).filter((x) => !seen.includes(x)).slice(0, 2);
           return [i.text, list];
-        })) }), 300); // השהיה קצרה, כדי לראות את חיווי הטעינה
+        })), reasons: {} }), 300); // השהיה קצרה, כדי לראות את חיווי הטעינה
       }
       pronunciations = pronunciations.filter((p) => p.word !== data.word);
       if (data.nikud) pronunciations.push({ word: data.word, nikud: data.nikud });

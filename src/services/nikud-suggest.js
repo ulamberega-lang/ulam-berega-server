@@ -2,7 +2,7 @@
 import { config } from '../config.js';
 import { plainName } from '../lib/hall-input.js';
 
-const TIMEOUT_MS = 25000;
+const TIMEOUT_MS = 45000; // דגמי חשיבה איטיים יותר
 const MAX_OPTIONS = 2;
 const KIND_LABEL = { city: 'עיר בישראל', hood: 'שכונה', hall: 'אולם אירועים', synagogue: 'בית כנסת' };
 
@@ -30,7 +30,7 @@ async function ask(body) {
 }
 
 // items: [{ text, kind }]; previous: { [text]: [אפשרויות שכבר הוצגו] } (לא חוזרים עליהן); examples: [{ word, nikud }] מהטבלה הקיימת.
-// מחזיר { [text]: [עד 2 אפשרויות, מהסבירה ביותר] }
+// מחזיר { suggestions: { [text]: [עד 2 אפשרויות, מהסבירה ביותר] }, reasons: { [text]: למה אין הצעה } }
 export async function suggestNikud(items, previous = {}, examples = []) {
   if (!config.openaiKey) throw new Error('OPENAI_API_KEY לא מוגדר');
   const shots = examples.map((e) => `${e.word} → ${e.nikud}`).join('\n');
@@ -52,12 +52,17 @@ export async function suggestNikud(items, previous = {}, examples = []) {
   }
   if (!res.ok) throw new Error(`OpenAI ${res.status} ${text}`);
   const answer = await res.json();
+  const choice = answer.choices?.[0];
   let result;
-  try { result = JSON.parse(answer.choices?.[0]?.message?.content ?? '{}').result ?? {}; } catch { result = {}; }
+  try { result = JSON.parse(choice?.message?.content ?? '{}').result ?? {}; } catch { result = {}; }
+  // המודל לפעמים מחזיר את המפתח מעט שונה (ניקוד, רווחים): מזהים לפי השם בלי ניקוד
+  const byPlain = new Map(Object.entries(result).map(([key, value]) => [plainName(key), value]));
 
   const suggestions = {};
+  const reasons = {};
   for (const { text: name } of items) {
-    const raw = result[name];
+    const raw = result[name] ?? byPlain.get(name);
+    if (raw === undefined) { reasons[name] = 'המודל לא החזיר תשובה לשם הזה'; continue; }
     const options = Array.isArray(raw) ? raw : Array.isArray(raw?.options) ? raw.options : [raw]; // גם אם המודל החזיר מחרוזת אחת
     const seen = new Set(previous[name] ?? []);
     const valid = [];
@@ -66,6 +71,12 @@ export async function suggestNikud(items, previous = {}, examples = []) {
       if (nikud && nikud !== name && /[א-ת]/.test(nikud) && plainName(nikud).length > 0 && !seen.has(nikud)) { valid.push(nikud); seen.add(nikud); }
     }
     if (valid.length) suggestions[name] = valid.slice(0, MAX_OPTIONS);
+    else reasons[name] = 'כל מה שהמודל החזיר היה זהה לשם בלי ניקוד, לא תקין או כבר הוצג';
   }
-  return suggestions;
+  // אבחון: כשיש שם בלי הצעה, רושמים בלוג מה המודל החזיר ואיך הסתיימה התשובה (נחתכה? ריקה?)
+  const missing = Object.keys(reasons);
+  if (missing.length) {
+    console.error(`nikud-suggest: אין הצעה ל-${missing.join(' | ')}; finish=${choice?.finish_reason} model=${config.nikudModel} usage=${JSON.stringify(answer.usage ?? {})} raw=${String(choice?.message?.content ?? '').slice(0, 500)}`);
+  }
+  return { suggestions, reasons };
 }

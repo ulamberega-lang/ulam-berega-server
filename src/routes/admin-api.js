@@ -72,7 +72,7 @@ adminApi.post('/pronunciations/suggest', handle(async (req) => {
   const all = await pronunciations.listAll();
   const examples = [...all].sort(() => Math.random() - 0.5).slice(0, 25); // דוגמאות מהטבלה שלך, כדי שההצעה תתאים לסגנון
   try {
-    return { suggestions: await suggestNikud(items, previous, examples) };
+    return await suggestNikud(items, previous, examples); // { suggestions, reasons }
   } catch (e) {
     console.error('nikud-suggest:', e.message);
     throw new InputError('ההצעה מ-OpenAI נכשלה. נסה שוב', 502);
