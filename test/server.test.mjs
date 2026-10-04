@@ -265,9 +265,9 @@ test('הצעת ניקוד מ-OpenAI: כמה אפשרויות, לא נשמרת, �
   assert.match(body.reasons['גאולה'], /זהה לשם/, 'שם בלי הצעה תקינה מוסבר');
 
   // המודל החזיר מפתח עם ניקוד / בלי תשובה לשם: מזהים לפי השם בלי ניקוד, ושם בלי תשובה מוסבר
-  chatReplies.push({ result: { 'בֵּית שֶׁמֶשׁ': { options: ['בֵּית שֶׁמֶשׁ'] } } });
-  const keyed = await suggest([{ text: 'בית שמש', kind: 'city' }, { text: 'אלעד', kind: 'city' }]);
-  assert.deepEqual(keyed[1].suggestions, { 'בית שמש': ['בֵּית שֶׁמֶשׁ'] });
+  chatReplies.push({ result: { 'בֵּית שֶׁמֶשׁ': { options: ['בֵּית שֶׁמֶשׁ'] }, 'אוהל ברוך (בית כנסת)': { options: ['אוֹהֶל בָּרוּךְ', 'אֹהֶל בָּרוּךְ'] } } });   // גם מפתח עם הסוג בסוגריים (כמו שהמודל החזיר בפועל)
+  const keyed = await suggest([{ text: 'בית שמש', kind: 'city' }, { text: 'אלעד', kind: 'city' }, { text: 'אוהל ברוך', kind: 'synagogue' }]);
+  assert.deepEqual(keyed[1].suggestions, { 'בית שמש': ['בֵּית שֶׁמֶשׁ'], 'אוהל ברוך': ['אוֹהֶל בָּרוּךְ', 'אֹהֶל בָּרוּךְ'] });
   assert.match(keyed[1].reasons['אלעד'], /לא החזיר תשובה/);
 
   // בקשה נוספת: מה שכבר הוצג נשלח למודל, ומה שהוא מחזיר שוב מסונן

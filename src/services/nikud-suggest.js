@@ -14,7 +14,8 @@ const RULES = `אתה מנקד שמות בעברית למנוע הקראה טל�
 4. מילה באנגלית או מספר - השאר כמו שהם.
 5. אותו השם בלי הניקוד חייב להישאר זהה לשם שקיבלת (אל תשנה אותיות), חוץ ממקרים שמצוינים בדוגמאות (למשל איות אות).
 6. לכל שם: קודם כתוב ב-"pronunciation" איך הוא נהגה באותיות לטיניות (חשוב על ההגייה לפני הניקוד), ואז ב-"options" שתי אפשרויות ניקוד שונות זו מזו, מהסבירה ביותר לפחות סבירה.
-החזר JSON בלבד בצורה {"result": {"<השם כפי שקיבלת>": {"pronunciation": "...", "options": ["...", "..."]}}}.`;
+כל שורה בקלט היא שם אחד (name), עם סוג (kind) ואולי הצעות שכבר נדחו (alreadyShownAndRejected) שאסור לחזור עליהן.
+החזר JSON בלבד בצורה {"result": {"<הערך של name בדיוק, בלי הסוג ובלי תוספות>": {"pronunciation": "...", "options": ["...", "..."]}}}.`;
 
 // ניקוי מה שהמודל החזיר: בלי תווים שמפרידים בפקודות ימות, ובלי רווחים כפולים
 const cleanSuggestion = (text) => String(text ?? '').replace(/[.,\-=&"'|\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -34,7 +35,8 @@ async function ask(body) {
 export async function suggestNikud(items, previous = {}, examples = []) {
   if (!config.openaiKey) throw new Error('OPENAI_API_KEY לא מוגדר');
   const shots = examples.map((e) => `${e.word} → ${e.nikud}`).join('\n');
-  const names = items.map((i) => `- ${i.text}${KIND_LABEL[i.kind] ? ` (${KIND_LABEL[i.kind]})` : ''}${previous[i.text]?.length ? ` — כבר הוצגו ונדחו, הצע אחרות: ${previous[i.text].join(' | ')}` : ''}`).join('\n');
+  // כל שם כאובייקט נפרד: ה"name" הוא המפתח המדויק לתשובה, וסוג השם (עיר, בית כנסת...) נפרד ממנו
+  const names = items.map((i) => JSON.stringify({ name: i.text, ...(KIND_LABEL[i.kind] ? { kind: KIND_LABEL[i.kind] } : {}), ...(previous[i.text]?.length ? { alreadyShownAndRejected: previous[i.text] } : {}) })).join('\n');
   const body = {
     model: config.nikudModel,
     temperature: 0.3,
@@ -56,7 +58,9 @@ export async function suggestNikud(items, previous = {}, examples = []) {
   let result;
   try { result = JSON.parse(choice?.message?.content ?? '{}').result ?? {}; } catch { result = {}; }
   // המודל לפעמים מחזיר את המפתח מעט שונה (ניקוד, רווחים): מזהים לפי השם בלי ניקוד
-  const byPlain = new Map(Object.entries(result).map(([key, value]) => [plainName(key), value]));
+  // וגם אם הוסיף את הסוג בסוגריים ("אוהל ברוך (בית כנסת)")
+  const keyName = (key) => plainName(key).replace(/\s*[(\[][^)\]]*[)\]]\s*$/, '').trim();
+  const byPlain = new Map(Object.entries(result).map(([key, value]) => [keyName(key), value]));
 
   const suggestions = {};
   const reasons = {};
