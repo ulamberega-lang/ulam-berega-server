@@ -185,14 +185,25 @@ const missingBefore = await p.$$eval('#nikudMissing tr[data-word]', (t) => t.len
 check(missingBefore > 0 && await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בני ברק'))), 'ניקוד: מוצעים שמות בלי ניקוד (כולל עיר)');
 check(!(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.trim().startsWith('ירושלים ')))), 'ניקוד: שם שכבר מנוקד בטבלה לא מוצע');
 check(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בית שמש'))), 'ניקוד: ביטוי של שתי מילים מוצע כשלם');
+// הצעות OpenAI נכנסות לשדות (כטיוטה) מעצמן
+await p.waitForFunction(() => document.querySelector('#nikudMissing .nk-input').value !== '');
+const first = await p.inputValue('#nikudMissing tr[data-word] .nk-input >> nth=0');
+check(first.length > 0 && await p.$eval('#nikudMissing tr[data-word] .nk-input', (i) => i.classList.contains('suggested')), 'ניקוד: הצעה מתמלאת אוטומטית וסומנה כהצעה');
+check(await p.$$eval('#nikudMissing tr[data-word] .nk-input', (t) => t.every((i) => i.value !== '')), 'ניקוד: הצעה בכל השורות');
+// רענון: הצעה אחרת
+await p.click('#nikudMissing tr[data-word] .nk-refresh >> nth=0'); await p.waitForTimeout(400);
+check(await p.inputValue('#nikudMissing tr[data-word] .nk-input >> nth=0') !== first, 'ניקוד: רענון מציע ניקוד אחר');
+// הצעה שנערכה ידנית לא נדרסת, ושמירה מעבירה לרשימת הנשמרים
 const savedBefore = await p.$$eval('#nikudList tr[data-word]', (t) => t.length);
 await p.fill('#nikudMissing tr[data-word] .nk-input >> nth=0', 'ניקוד לדוגמה');
 await p.click('#nikudMissing tr[data-word] .nk-save >> nth=0'); await p.waitForTimeout(400);
 check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === savedBefore + 1, 'ניקוד: שמירה מעבירה את השם לרשימת הנשמרים');
 check(await p.$$eval('#nikudMissing tr[data-word]', (t) => t.length) === missingBefore - 1, 'ניקוד: השם יוצא מההצעות');
+// מחיקה: ריקון השדה ושמירה
 p.once('dialog', (d) => d.accept());
-await p.click('#nikudList .nk-delete >> nth=0'); await p.waitForTimeout(400);
-check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === savedBefore, 'ניקוד: מחיקה');
+await p.fill('#nikudList tr[data-word] .nk-input >> nth=0', '');
+await p.click('#nikudList tr[data-word] .nk-save >> nth=0'); await p.waitForTimeout(400);
+check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === savedBefore, 'ניקוד: ריקון השדה ושמירה מוחקים את הניקוד');
 await p.fill('#nikudSearch', 'ירושלים'); await p.waitForTimeout(200);
 check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === 1, 'ניקוד: חיפוש');
 await p.fill('#nikudSearch', '');

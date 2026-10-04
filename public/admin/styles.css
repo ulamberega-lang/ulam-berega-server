@@ -326,6 +326,11 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .section-head { margin-top: 20px; }
   .section-head h2 { margin-left: 0; }
   .section-head .btn { margin-right: auto; padding: 8px 14px; }
+  /* ניהול אולמות: כותרת ומונה בשורה אחת, ושני הכפתורים (ניקוד הקראה, הוסף אולם) זה ליד זה על כל הרוחב */
+  .halls-head h2 { order: 1; }
+  .halls-head .count { order: 2; }
+  .halls-head::after { content: ""; order: 3; flex-basis: 100%; height: 0; } /* שבירת שורה: הכפתורים בשורה משלהם */
+  .halls-head .btn { order: 4; flex: 1 1 calc(50% - 5px); margin-right: 0; min-height: 44px; }
   .count { margin-left: 0; margin-right: auto; }
 
   /* טבלה → כרטיסים */
@@ -405,9 +410,9 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
 .nikud-table td.word, .nikud-missing-table td.word { font-weight: 500; }
 .nk-input { width: 100%; min-width: 220px; }
 .nk-actions { display: flex; gap: 6px; align-items: center; }
-.nk-actions .icon-btn { width: 42px; flex: none; }
+.nk-input.suggested { border-style: dashed; border-color: var(--accent); } /* הצעה מ-OpenAI שעוד לא נשמרה */
 @media (max-width: 700px) {
-  .rt td.nk-actions { grid-column: 1 / -1; }
+  .rt td.nk-actions { display: flex; grid-column: 1 / -1; } /* שני הכפתורים על כל רוחב הכרטיס, זה ליד זה */
   .nk-input { min-width: 0; }
   .nk-actions .btn { flex: 1; }
 }

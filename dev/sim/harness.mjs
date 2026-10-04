@@ -15,6 +15,7 @@ export const realFetch = globalThis.fetch;
 export const emails = [];        // מיילים ש-Brevo "קיבלה"
 export const yemotCalls = [];    // כתובות שנקראו בימות (הורדה / מחיקה)
 export const transcripts = [];   // תור הטקסטים ש-OpenAI "ישמע"
+export const chatReplies = [];    // תשובות "OpenAI" להשלמת צ'אט (הצעת ניקוד): מחרוזת JSON או אובייקט
 export const behavior = { brevoStatus: 201 };   // לבדיקת כשל בשליחה
 
 globalThis.fetch = async (url, opts = {}) => {
@@ -26,6 +27,11 @@ globalThis.fetch = async (url, opts = {}) => {
   }
   if (u.includes('DownloadFile')) { yemotCalls.push(u); return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'audio/wav' } }); }
   if (u.includes('FileAction')) { yemotCalls.push(u); return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'content-type': 'application/json' } }); }
+  if (u.includes('api.openai.com/v1/chat/completions')) {
+    const reply = chatReplies.shift();
+    if (reply === undefined) return new Response('boom', { status: 500 });
+    return new Response(JSON.stringify({ choices: [{ message: { content: typeof reply === 'string' ? reply : JSON.stringify(reply) } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  }
   if (u.includes('api.openai.com')) {
     const text = transcripts.shift();
     if (text === undefined) return new Response('boom', { status: 500 });

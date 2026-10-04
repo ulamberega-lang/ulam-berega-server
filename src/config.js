@@ -5,6 +5,7 @@ export const config = {
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   openaiKey: process.env.OPENAI_API_KEY,
+  nikudModel: process.env.OPENAI_NIKUD_MODEL || 'gpt-4o-mini', // הצעת ניקוד באתר הניהול
   yemotToken: process.env.YEMOT_TOKEN,                 // "מספר_מערכת:סיסמה"
   yemotApi: process.env.YEMOT_API || 'https://private.call2all.co.il/ym/api',
   brevoKey: process.env.BREVO_API_KEY,

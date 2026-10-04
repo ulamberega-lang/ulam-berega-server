@@ -269,9 +269,10 @@
 
     <!-- ניקוד הקראה (נפתח מכפתור בלשונית "ניהול אולמות") -->
     <section id="tab-nikud" role="tabpanel" hidden>
-      <div class="section-head"><h2>ניקוד הקראה</h2><span class="count" id="nikudMissingCount"></span></div>
+      <div class="section-head"><h2>ניקוד הקראה</h2><span class="count" id="nikudMissingCount"></span><span class="count" id="nikudStatus" role="status"></span></div>
       <p class="note">שמות באתר נשמרים בלי ניקוד. כאן קובעים איך המערכת הטלפונית מקריאה אותם: כותבים את השם עם ניקוד ושומרים, וזה נקלט מיד.
-        שם שלא מנוקד כאן מוקרא בלי ניקוד, וההגייה עלולה להיות שגויה.</p>
+        שם שלא מנוקד כאן מוקרא בלי ניקוד, וההגייה עלולה להיות שגויה.
+        ההצעות בשדות הן מ-OpenAI ועוד לא נשמרו: בדקו אותן, תקנו אם צריך, ולחצו "שמור". "רענון" מציע ניקוד אחר. לשם שכבר נשמר: מחיקת התוכן ושמירה מוחקת את הניקוד.</p>
       <div class="toolbar">
         <div class="search">
           <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
@@ -304,7 +305,7 @@
 
     <!-- ניהול אולמות -->
     <section id="tab-halls" role="tabpanel" hidden>
-      <div class="section-head">
+      <div class="section-head halls-head">
         <h2>אולמות</h2><span class="count" id="hallsCount"></span>
         <button class="btn ghost" id="openNikud">ניקוד הקראה</button>
         <button class="btn" id="addHall"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>הוסף אולם</button>

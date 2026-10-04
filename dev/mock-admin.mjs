@@ -83,15 +83,19 @@ http.createServer((req, res) => {
   const json = (data) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(data)); };
 
   if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
-  if (url.pathname === '/admin/api/pronunciations') {
+  if (url.pathname === '/admin/api/pronunciations' || url.pathname === '/admin/api/pronunciations/suggest') {
     if (req.method === 'GET') return json(pronunciations);
     let body = '';
     req.on('data', (chunk) => { body += chunk; });
     return req.on('end', () => {
-      const { word, nikud } = JSON.parse(body || '{}');
-      pronunciations = pronunciations.filter((p) => p.word !== word);
-      if (req.method === 'PUT') pronunciations.push({ word, nikud });
-      return json(req.method === 'PUT' ? { word, nikud } : { ok: true });
+      const data = JSON.parse(body || '{}');
+      if (url.pathname.endsWith('/suggest')) { // "הצעה": שם + סימן ניקוד; בכל רענון סימן אחר
+        const marks = ['\u05B8', '\u05B6', '\u05B4'];
+        return json({ suggestions: Object.fromEntries(data.items.map((i) => [i.text, `${i.text}${marks[(data.previous?.[i.text]?.length ?? 0) % marks.length]}`])) });
+      }
+      pronunciations = pronunciations.filter((p) => p.word !== data.word);
+      if (data.nikud) pronunciations.push({ word: data.word, nikud: data.nikud });
+      return json({ word: data.word, nikud: data.nikud ?? '' });
     });
   }
   if (url.pathname === '/admin/api/mails') return json(mails);

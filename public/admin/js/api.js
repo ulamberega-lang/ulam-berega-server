@@ -22,7 +22,7 @@ export const api = {
 
   listPronunciations: () => request('pronunciations'),
   savePronunciation: (word, nikud) => request('pronunciations', { method: 'PUT', body: JSON.stringify({ word, nikud }) }),
-  deletePronunciation: (word) => request('pronunciations', { method: 'DELETE', body: JSON.stringify({ word }) }),
+  suggestPronunciations: (items, previous) => request('pronunciations/suggest', { method: 'POST', body: JSON.stringify({ items, previous }) }),
 
   statsByHall: ({ from, to }) => request(`stats/halls?${query({ from, to })}`),
   statsByDay: ({ from, to }, hall) => request(`stats/days?${query({ from, to, hall })}`),
