@@ -21,6 +21,7 @@ import { resetSession } from './sessions.js';
 import { OWNER_PARTS, OWNER_OPTIONS } from './owner-info.js';
 import { routeToHall } from './route-to-hall.js';
 
+const { NO_HOOD } = halls; // "אולמות נוספים בעיר": אולמות בלי שכונה
 const CONFIRM = ['לְאִישּׁוּר הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'];
 const STAR_HINT = 'בְּכָל שָׁלָב אֶפְשָׁר לַחֲזוֹר לַתַּפְרִיט הָרָאשִׁי בְּהַקָּשַׁת כּוֹכָבִית';
 
@@ -211,10 +212,14 @@ export async function prompt(s) {
       return ask(s, [`הֵבַנְתִּי שְׁכוּנַת ${withNikud(s.hood)}`, ...CONFIRM], tapOptions(1));
     case 'hoodMenu': {
       const from = s.hoodPage * IVR.MENU_PAGE;
+      const onPage = s.hoods.slice(from, from + IVR.MENU_PAGE);
       s.hoodMore = s.hoods.length > from + IVR.MENU_PAGE;
+      // בסוף הרשימה (בעמוד האחרון): אולמות בעיר שלא רשומה להם שכונה. המספר שלהם הבא אחרי השכונה האחרונה (עד 9, כי אין "עוד")
+      s.hoodExtra = !s.hoodMore && await halls.hasNoHoodHalls(s.city, s.guests);
       return ask(s, ['בְּאֵיזוֹ שְׁכוּנָה',
-        ...s.hoods.slice(from, from + IVR.MENU_PAGE).map((h, i) => `${withPrefix('ל', h)} הַקֵּשׁ ${i + 1}`),
+        ...onPage.map((h, i) => `${withPrefix('ל', h)} הַקֵּשׁ ${i + 1}`),
         s.hoodMore && 'לִשְׁכוּנוֹת נוֹסָפוֹת הַקֵּשׁ 9',
+        s.hoodExtra && `לְאוּלַמּוֹת נוֹסָפִים בָּעִיר הַקֵּשׁ ${onPage.length + 1}`,
         'לְכָל הָעִיר הַקֵּשׁ 0'], tapOptions(1));
     }
 
@@ -226,7 +231,7 @@ export async function prompt(s) {
     case 'noFit': {
       const choices = await noFitChoices(s);
       const text = { larger: 'לִשְׁמִיעַת אוּלַמּוֹת גְּדוֹלִים יוֹתֵר', smaller: 'לִשְׁמִיעַת אוּלַמּוֹת קְטַנִּים יוֹתֵר', guests: 'לְשִׁינּוּי כַּמּוּת הַמּוּזְמָנִים' };
-      return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת ${s.hood ? `בִּשְׁכוּנַת ${withNikud(s.hood)}` : withPrefix('ב', s.city)} הַמַּתְאִימִים עֲבוּר ${s.guests} מוּזְמָנִים`,
+      return ask(s, [`לֹא נִמְצְאוּ אוּלַמּוֹת ${s.hood && s.hood !== NO_HOOD ? `בִּשְׁכוּנַת ${withNikud(s.hood)}` : withPrefix('ב', s.city)} הַמַּתְאִימִים עֲבוּר ${s.guests} מוּזְמָנִים`,
         ...choices.map((c, i) => `${text[c]} הַקֵּשׁ ${i + 1}`),
         'לַתַּפְרִיט הָרָאשִׁי הַקֵּשׁ כּוֹכָבִית'], tapOptions(1));
     }
@@ -254,7 +259,7 @@ async function promptResults(s) {
       return prompt(s);
     }
     if (s.hood) {
-      s.note = `לֹא נִמְצְאוּ אוּלַמּוֹת מַתְאִימִים בִּשְׁכוּנַת ${withNikud(s.hood)}`;
+      s.note = s.hood === NO_HOOD ? 'לֹא נִמְצְאוּ אוּלַמּוֹת מַתְאִימִים בָּעִיר' : `לֹא נִמְצְאוּ אוּלַמּוֹת מַתְאִימִים בִּשְׁכוּנַת ${withNikud(s.hood)}`;
       s.hood = null;
       s.step = 'hood';
       return prompt(s);
@@ -387,6 +392,10 @@ export async function handleAnswer(s, q, val, raw) {
       s.page = 0;
       if (val === '0') { s.hood = null; return go('results'); }
       if (val === '9' && s.hoodMore) { s.hoodPage++; return go('hoodMenu'); }
+      if (s.hoodExtra && Number(val) === Math.min(IVR.MENU_PAGE, s.hoods.length - s.hoodPage * IVR.MENU_PAGE) + 1) { // "אולמות נוספים בעיר"
+        s.hood = NO_HOOD;
+        return go('results');
+      }
       const hood = pickFromPage(s.hoods, s.hoodPage);
       if (!hood) return invalid();
       s.hood = hood;
