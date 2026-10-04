@@ -39,8 +39,10 @@ export const getActiveCities = async () => uniqueSorted((await activeHalls()).ma
 
 export const getActiveHallsInCity = async (city) => (await activeHalls()).filter((h) => h.city_name === city);
 
-export const getActiveNeighborhoods = async (city) =>
-  uniqueSorted((await getActiveHallsInCity(city)).flatMap((h) => splitHoods(h.neighborhood_name)));
+// guests: רק שכונות שיש בהן אולם בגודל מתאים (בלי guests - כל השכונות בעיר)
+export const getActiveNeighborhoods = async (city, guests) =>
+  uniqueSorted((guests ? await searchHalls({ city, guests }) : await getActiveHallsInCity(city))
+    .flatMap((h) => splitHoods(h.neighborhood_name)));
 
 export async function findActiveByExtension(extension) {
   return (await activeHalls()).find((h) => h.extension === String(extension)) ?? null;
@@ -49,12 +51,17 @@ export async function findActiveByExtension(extension) {
 // בטווח המתאים: מקטן לגדול לפי מקסימום אורחים, ואז לפי שם.
 // size: "larger" - בלי גבול עליון (כשהמתקשר ביקש לשמוע אולמות גדולים יותר);
 //       "smaller" - אולמות קטנים מהטווח, מהגדול לקטן (הקרובים לכמות קודם)
+//       "near" - כל האולמות מחוץ לטווח (גדולים וקטנים), מהקרוב ביותר לכמות המוזמנים
 export async function searchHalls({ city, neighborhood, guests, size }) {
   const min = guests - halls.guestMargin(guests);
   const max = size === 'larger' ? Infinity : halls.guestCeiling(guests);
   const inScope = (await getActiveHallsInCity(city))
     .filter((h) => !neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood));
   const byName = (a, b) => a.name.localeCompare(b.name, 'he');
+  if (size === 'near') {
+    return inScope.filter((h) => h.max_guests < min || h.max_guests > max)
+      .sort((a, b) => Math.abs(a.max_guests - guests) - Math.abs(b.max_guests - guests) || byName(a, b));
+  }
   if (size === 'smaller') return inScope.filter((h) => h.max_guests < min).sort((a, b) => b.max_guests - a.max_guests || byName(a, b));
   return inScope.filter((h) => h.max_guests >= min && h.max_guests <= max).sort((a, b) => a.max_guests - b.max_guests || byName(a, b));
 }

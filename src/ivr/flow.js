@@ -52,7 +52,7 @@ const recordAnswer = (s) => recordOptions(IVR.REC_DIR, recordingFile(s, s.n + 1)
 
 const SPEECH_STEPS = {
   city: { kind: 'עיר', hints: () => halls.getActiveCities(), list: 'cityMenu' },
-  hoodSay: { kind: 'שכונה', hints: (s) => s.hoods, list: 'hoodMenu' },
+  hoodSay: { kind: 'שכונה', hints: (s) => s.allHoods, list: 'hoodMenu' },
   hallSay: { kind: 'אולם אירועים', hints: (s) => uniqueNames(s.cityHalls), list: 'hallMenu' },
 };
 
@@ -189,7 +189,10 @@ export async function prompt(s) {
     }
 
     case 'hood':
-      s.hoods = await halls.getActiveNeighborhoods(s.city);
+      s.allHoods = await halls.getActiveNeighborhoods(s.city); // לזיהוי קולי: כל שכונה שקיימת בעיר
+      // אין בעיר אולם בגודל מתאים: לא שואלים על שכונה, ישר להצעה לאולמות גדולים/קטנים יותר
+      if (!(await halls.searchHalls({ city: s.city, guests: s.guests })).length) { s.step = 'noFit'; return prompt(s); }
+      s.hoods = await halls.getActiveNeighborhoods(s.city, s.guests); // ברשימה: רק שכונות עם אולם מתאים
       if (!s.hoods.length) { s.step = 'results'; s.page = 0; return prompt(s); }
       return ask(s, ['לַאֲמִירַת שֵׁם הַשְּׁכוּנָה הַקֵּשׁ 1', 'לִבְחִירַת שְׁכוּנָה מֵרְשִׁימָה הַקֵּשׁ 2',
         'לְחִיפּוּשׂ בְּכָל הָעִיר הַקֵּשׁ 0'], tapOptions(1));
@@ -263,6 +266,10 @@ async function promptResults(s) {
       `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${h.extension} וְסוּלָמִית`);
   }
   if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9 וְסוּלָמִית');
+  // בסוף: אולמות בגודל קרוב (מחוץ לטווח), אם יש
+  if (!s.sizeMode && (await halls.searchHalls({ city: s.city, neighborhood: s.hood, guests: s.guests, size: 'near' })).length) {
+    parts.push('לְאוּלַמּוֹת בְּגֹדֶל קָרוֹב הַקֵּשׁ 7 וְסוּלָמִית');
+  }
   if (s.hood) parts.push('לְחִיפּוּשׂ בִּשְׁכוּנָה נוֹסֶפֶת הַקֵּשׁ 0 וְסוּלָמִית');
   parts.push('לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 8 וְסוּלָמִית');
   return ask(s, parts, tapOptions(4, 7)); // סולמית מסיימת מיד; בלעדיה - המתנה עד 7 שניות
@@ -354,7 +361,7 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '2') return go('hoodMenu');
       return invalid();
     case 'hoodSay': {
-      const hood = matchName('hoodSay', val, s.hoods, HOOD_WORDS);
+      const hood = matchName('hoodSay', val, s.allHoods, HOOD_WORDS);
       if (hood) { s.hood = hood; return go('hoodOk'); }
       return notFound(s, 'hoodSay', `לֹא נִמְצְאוּ אוּלַמּוֹת בִּשְׁכוּנַת ${dropGeneric(val, HOOD_WORDS)}`);
     }
@@ -391,6 +398,11 @@ export async function handleAnswer(s, q, val, raw) {
         return retry('אֵין אוּלַמּוֹת נוֹסָפִים');
       }
       if (val === '8') return go('results');
+      if (val === '7' && !s.sizeMode && (await halls.searchHalls({ city: s.city, neighborhood: s.hood, guests: s.guests, size: 'near' })).length) {
+        s.sizeMode = 'near';
+        s.page = 0;
+        return go('results');
+      }
       if (val === '0' && s.hood) { s.hood = null; s.hoodPage = 0; return go('hood'); }
       return invalid();
   }
