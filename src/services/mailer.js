@@ -1,6 +1,7 @@
 // מייל לאולם על כל שיחה שהועברה אליו (דרך Brevo).
 import { config, IVR } from '../config.js';
 import * as halls from '../repositories/halls.js';
+import * as mailLog from '../repositories/mail-log.js';
 import { hebrewDate } from '../lib/hebrew-date.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -8,7 +9,11 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&am
 export async function notifyHall({ hallId, callerPhone, startedAt, answered }) {
   if (!config.brevoKey || !config.mailFrom) return;
   const hall = await halls.findById(hallId);
-  if (!hall?.gabbai_email) return;
+  if (!hall) return;
+  const entry = { hall_id: hall.id, hall_name: hall.name, to_email: hall.gabbai_email || '', caller_phone: callerPhone || '', answered: Boolean(answered) };
+  const log = (status, error = '') => mailLog.record({ ...entry, status, error: String(error).slice(0, 300) })
+    .catch((e) => console.error('mail-log:', e.message));
+  if (!hall.gabbai_email) return log('no_email');
 
   const when = new Date(startedAt).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
   const name = escapeHtml(hall.name);
@@ -30,6 +35,11 @@ export async function notifyHall({ hallId, callerPhone, startedAt, answered }) {
         ${IVR.CALLER_ID_SUFFIX} בסוף מספר המתקשר. כדי לחזור למתקשר, יש לחייג למספר שמופיע כאן במייל.</p>
       </div>`,
     }),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  }).catch((e) => ({ ok: false, text: async () => e.message })); // תקלת רשת נרשמת ביומן כמו תשובת שגיאה
+  if (!res.ok) {
+    const error = `${res.status ?? ''} ${await res.text()}`.trim();
+    await log('failed', error);
+    throw new Error(error);
+  }
+  await log('sent');
 }

@@ -162,9 +162,19 @@ await slow.click('#hideEmptyDays'); await slow.click('.days-table th[data-sort=t
 await slow.waitForSelector('#hallStats tr.clickable');
 check(true, 'לחיצה על בקרים לפני שהנתונים נטענו: בלי שגיאות');
 
+// ---- מיילים ----
+await p.click('button[data-tab=mails]'); await p.waitForSelector('#mailList tr .bad');
+check(await p.$$eval('#mailList tr', (t) => t.length) === 6, 'מיילים: 6 שורות');
+await p.click('#mailView button[data-value=bad]'); await p.waitForTimeout(200);
+check(await p.$$eval('#mailList tr', (t) => t.length) === 2, 'מיילים: סינון "לא נשלחו"');
+await p.click('#mailView button[data-value=all]');
+await p.fill('#mailSearch', 'hall1@'); await p.waitForTimeout(200);
+check(await p.$$eval('#mailList tr', (t) => t.length) === 1, 'מיילים: חיפוש לפי כתובת');
+await p.fill('#mailSearch', '');
+
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
-for (const tab of ['stats', 'calls', 'halls', 'voicemails']) {
+for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails']) {
   await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
   check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
 }
