@@ -13,7 +13,7 @@ async function load() {
 export function startNikudRefresh() {
   const safeLoad = () => load().catch((e) => console.error('nikud:', e.message));
   safeLoad();
-  setInterval(safeLoad, REFRESH_MS);
+  setInterval(safeLoad, REFRESH_MS).unref();
 }
 
 // ביטוי שלם ("אולם כתר"), ואם אין - מילה-מילה ("אולם" + "כתר"); שם שלא נמצא נשאר כמו שהוא

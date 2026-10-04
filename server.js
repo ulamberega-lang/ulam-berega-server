@@ -1,4 +1,5 @@
 // נקודת הכניסה של השרת. כל הלוגיקה נמצאת בתיקיית src.
+import './src/env-check.js'; // ראשון: בודק משתני סביבה לפני כל ייבוא אחר
 import { createApp } from './src/app.js';
 import { config } from './src/config.js';
 import { startNikudRefresh } from './src/services/nikud.js';

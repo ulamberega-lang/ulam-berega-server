@@ -23,7 +23,7 @@ async function activeHalls() {
 
 export function startHallDirectory() {
   refresh().catch((e) => console.error('halls refresh:', e.message));
-  setInterval(() => refresh().catch((e) => console.error('halls refresh:', e.message)), REFRESH_MS);
+  setInterval(() => refresh().catch((e) => console.error('halls refresh:', e.message)), REFRESH_MS).unref();
 }
 
 // אחרי הוספה/עריכה באתר הניהול
@@ -52,11 +52,11 @@ export async function findActiveByExtension(extension) {
 // size: "larger" - בלי גבול עליון (כשהמתקשר ביקש לשמוע אולמות גדולים יותר);
 //       "smaller" - אולמות קטנים מהטווח, מהגדול לקטן (הקרובים לכמות קודם)
 //       "near" - כל האולמות מחוץ לטווח (גדולים וקטנים), מהקרוב ביותר לכמות המוזמנים
-export async function searchHalls({ city, neighborhood, guests, size }) {
+// pickHalls: פונקציה נקייה על רשימת אולמות (נבדקת ב-test/), ו-searchHalls מפעילה אותה על אולמות העיר
+export function pickHalls(cityHalls, { neighborhood, guests, size }) {
   const min = guests - halls.guestMargin(guests);
   const max = size === 'larger' ? Infinity : halls.guestCeiling(guests);
-  const inScope = (await getActiveHallsInCity(city))
-    .filter((h) => !neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood));
+  const inScope = cityHalls.filter((h) => !neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood));
   const byName = (a, b) => a.name.localeCompare(b.name, 'he');
   if (size === 'near') {
     return inScope.filter((h) => h.max_guests < min || h.max_guests > max)
@@ -64,4 +64,8 @@ export async function searchHalls({ city, neighborhood, guests, size }) {
   }
   if (size === 'smaller') return inScope.filter((h) => h.max_guests < min).sort((a, b) => b.max_guests - a.max_guests || byName(a, b));
   return inScope.filter((h) => h.max_guests >= min && h.max_guests <= max).sort((a, b) => a.max_guests - b.max_guests || byName(a, b));
+}
+
+export async function searchHalls({ city, neighborhood, guests, size }) {
+  return pickHalls(await getActiveHallsInCity(city), { neighborhood, guests, size });
 }

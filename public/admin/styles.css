@@ -276,6 +276,14 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .bar-col { width: 20%; }
 }
 
+/* חמש לשוניות לא נכנסות בשורה אחת בטאבלט: מצמצמים רווחים (מתחת ל-700 הלשוניות עוברות לתחתית) */
+@media (min-width: 701px) and (max-width: 900px) {
+  .topbar-inner { gap: 8px; }
+  .topbar nav { gap: 0; }
+  .topbar nav button { padding: 9px 8px; gap: 5px; font-size: .9rem; }
+  .topbar h1 small { display: none; }
+}
+
 /* ---------- טלפון: לשוניות בתחתית, טבלאות ככרטיסים ---------- */
 @media (max-width: 700px) {
   .wrap { padding: 0 max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left)); }
@@ -369,11 +377,6 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .actions { bottom: -18px; padding-bottom: calc(18px + env(safe-area-inset-bottom)); margin-bottom: -18px; }
 }
 
-@media print {
-  .topbar, .toolbar, .range, .icon-btn, .progress { display: none !important; }
-  body { background: #fff; }
-}
-
 /* הודעות קוליות */
 .tab-count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--no); color: #fff; font-size: .75rem; line-height: 20px; text-align: center; font-weight: 700; }
 .voicemail-table audio { width: 100%; max-width: 360px; height: 38px; }
@@ -393,5 +396,9 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .voicemail-table td.player { order: 3; }
   .voicemail-table td.player audio { max-width: none; }
   .voicemail-table td.handled { order: 4; }
-  .rt td.more { position: absolute; top: 8px; left: 8px; width: auto; }
+}
+
+@media print {
+  .topbar, .toolbar, .range, .icon-btn, .progress { display: none !important; }
+  body { background: #fff; }
 }

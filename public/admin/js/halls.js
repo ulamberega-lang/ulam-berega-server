@@ -3,8 +3,7 @@ import { api } from './api.js';
 import { $, toast, showError, escapeHtml, formatNumber, icon, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { splitHoods } from './hoods.js';
-import { redSegments, reasonsLegend } from './data.js';
-import { buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location, suggestExtension } from './data.js';
+import { redSegments, reasonsLegend, buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location, suggestExtension } from './data.js';
 
 const SORTS = [...HALL_SORTS,
   { key: 'guests', label: 'מקסימום אורחים' },
