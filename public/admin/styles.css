@@ -410,6 +410,11 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
 .nikud-table td.word, .nikud-missing-table td.word { font-weight: 500; }
 .nk-input { width: 100%; min-width: 220px; }
 .nk-actions { display: flex; gap: 6px; align-items: center; }
+.nk-banner { display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.nk-banner[hidden] { display: none; }
+tr.pending .nk-input { background: var(--soft); animation: nk-pulse 1.2s ease-in-out infinite; }
+@keyframes nk-pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { tr.pending .nk-input { animation: none; } }
 .nk-input.suggested { border-style: dashed; border-color: var(--accent); } /* הצעה מ-OpenAI שעוד לא נשמרה */
 @media (max-width: 700px) {
   .rt td.nk-actions { display: flex; grid-column: 1 / -1; } /* שני הכפתורים על כל רוחב הכרטיס, זה ליד זה */

@@ -3,17 +3,18 @@ import { config } from '../config.js';
 import { plainName } from '../lib/hall-input.js';
 
 const TIMEOUT_MS = 25000;
+const MAX_OPTIONS = 2;
 const KIND_LABEL = { city: 'עיר בישראל', hood: 'שכונה', hall: 'אולם אירועים', synagogue: 'בית כנסת' };
 
-const RULES = `אתה מנקד שמות בעברית למנוע הקראה טלפוני. לכל שם החזר כמה אפשרויות ניקוד מלא, כפי שהשם נהגה בעברית ישראלית מדוברת.
+const RULES = `אתה מנקד שמות בעברית למנוע הקראה טלפוני. לכל שם החזר שתי אפשרויות ניקוד מלא, כפי שהשם נהגה בעברית ישראלית מדוברת.
 כללים:
 1. נקד כל אות. שם של עיר, שכונה או בית כנסת - לפי ההגייה המקובלת בישראל (למשל סמיכות: "בֵּית שֶׁמֶשׁ", "קִרְיַת סֵפֶר").
 2. המנוע מתעלם משווא: במקום שבו השווא נע (נהגה כתנועה) כתוב סגול במקומו. שווא נח השאר שווא.
 3. כתוב את השם בלבד, בלי סימני פיסוק (נקודה, פסיק, מקף, גרש, גרשיים), בלי הסברים ובלי תוספות.
 4. מילה באנגלית או מספר - השאר כמו שהם.
 5. אותו השם בלי הניקוד חייב להישאר זהה לשם שקיבלת (אל תשנה אותיות), חוץ ממקרים שמצוינים בדוגמאות (למשל איות אות).
-6. לכל שם: קודם כתוב ב-"pronunciation" איך הוא נהגה באותיות לטיניות (חשוב על ההגייה לפני הניקוד), ואז ב-"options" 4 אפשרויות ניקוד שונות זו מזו, מהסבירה ביותר לפחות סבירה.
-החזר JSON בלבד בצורה {"result": {"<השם כפי שקיבלת>": {"pronunciation": "...", "options": ["...", "...", "...", "..."]}}}.`;
+6. לכל שם: קודם כתוב ב-"pronunciation" איך הוא נהגה באותיות לטיניות (חשוב על ההגייה לפני הניקוד), ואז ב-"options" שתי אפשרויות ניקוד שונות זו מזו, מהסבירה ביותר לפחות סבירה.
+החזר JSON בלבד בצורה {"result": {"<השם כפי שקיבלת>": {"pronunciation": "...", "options": ["...", "..."]}}}.`;
 
 // ניקוי מה שהמודל החזיר: בלי תווים שמפרידים בפקודות ימות, ובלי רווחים כפולים
 const cleanSuggestion = (text) => String(text ?? '').replace(/[.,\-=&"'|\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -29,7 +30,7 @@ async function ask(body) {
 }
 
 // items: [{ text, kind }]; previous: { [text]: [אפשרויות שכבר הוצגו] } (לא חוזרים עליהן); examples: [{ word, nikud }] מהטבלה הקיימת.
-// מחזיר { [text]: [עד 4 אפשרויות, מהסבירה ביותר] }
+// מחזיר { [text]: [עד 2 אפשרויות, מהסבירה ביותר] }
 export async function suggestNikud(items, previous = {}, examples = []) {
   if (!config.openaiKey) throw new Error('OPENAI_API_KEY לא מוגדר');
   const shots = examples.map((e) => `${e.word} → ${e.nikud}`).join('\n');
@@ -64,7 +65,7 @@ export async function suggestNikud(items, previous = {}, examples = []) {
       const nikud = cleanSuggestion(option);
       if (nikud && nikud !== name && /[א-ת]/.test(nikud) && plainName(nikud).length > 0 && !seen.has(nikud)) { valid.push(nikud); seen.add(nikud); }
     }
-    if (valid.length) suggestions[name] = valid.slice(0, 4);
+    if (valid.length) suggestions[name] = valid.slice(0, MAX_OPTIONS);
   }
   return suggestions;
 }
