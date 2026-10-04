@@ -19,6 +19,7 @@ const drafts = new Map();      // שם → מה שמוצג בשדה (הצעה א
 const suggested = new Set();   // שמות שהוצעה להם הצעה (כדי שהצעה לא תימחק אחרי שהמנהל עורך)
 const options = new Map();     // שם → { list: [אפשרויות ניקוד מהסבירה לפחות], index }: "רענון" עובר לאפשרות הבאה בלי קריאה נוספת
 const failed = new Set();      // שמות שההצעה שלהם נכשלה (לא מנסים שוב בלי בקשה מפורשת)
+const pending = new Set();     // שמות שמחכים עכשיו להצעה (השדה מציג "מציע ניקוד…")
 const kindOf = new Map();      // שם → סוג (city / hood / hall / synagogue)
 const CHUNK = 25;
 let suggesting = false;
@@ -32,9 +33,9 @@ export async function loadNikud(hallList, isCurrent = () => true) {
   suggestMissing(isCurrent);
 }
 
-const inputRow = (word, nikud, kind) => `<tr data-word="${escapeHtml(word)}">
+const inputRow = (word, nikud, kind) => `<tr data-word="${escapeHtml(word)}"${pending.has(word) ? ' class="pending"' : ''}>
   <td class="span-all word">${escapeHtml(word)}${kind ? ` <span class="tag">${KIND[kind]}</span>` : ''}</td>
-  <td class="span-all nk"><input class="nk-input${suggested.has(word) && drafts.get(word) === nikud ? ' suggested' : ''}" dir="rtl" value="${escapeHtml(nikud)}" placeholder="הקלד את השם עם ניקוד" aria-label="ניקוד של ${escapeHtml(word)}" autocomplete="off" autocapitalize="off" spellcheck="false"></td>
+  <td class="span-all nk"><input class="nk-input${suggested.has(word) && drafts.get(word) === nikud ? ' suggested' : ''}" dir="rtl" value="${escapeHtml(nikud)}" placeholder="${pending.has(word) ? 'מציע ניקוד…' : 'הקלד את השם עם ניקוד'}" aria-label="ניקוד של ${escapeHtml(word)}" autocomplete="off" autocapitalize="off" spellcheck="false"></td>
   <td class="nk-actions"><button class="btn nk-save">שמור</button><button class="btn ghost nk-refresh" title="הצע ניקוד אחר">רענון</button></td>
 </tr>`;
 
@@ -56,14 +57,23 @@ export function renderNikud() {
 
 // ---------- הצעות מ-OpenAI ----------
 
-// מבקש הצעות לשמות שאין להם ניקוד, בקבוצות, ומציב אותן בשדות הריקים (בלי לדרוס מה שהמנהל כבר הקליד)
+// מבקש הצעות לשמות שאין להם ניקוד, בקבוצות, ומציב אותן בשדות הריקים (בלי לדרוס מה שהמנהל כבר הקליד).
+// בזמן ההמתנה מוצג פס עם התקדמות, והשדות מציגים "מציע ניקוד…"
+function banner(text) {
+  $('#nikudBanner').hidden = !text;
+  $('#nikudBannerText').textContent = text;
+}
+
 async function suggestMissing(isCurrent) {
   if (suggesting) return;
   suggesting = true;
+  const todo = missingPronunciations(halls, entries.map((e) => e.word)).filter((m) => !drafts.has(m.text) && !failed.has(m.text));
   try {
-    const todo = missingPronunciations(halls, entries.map((e) => e.word)).filter((m) => !drafts.has(m.text) && !failed.has(m.text));
-    $('#nikudStatus').textContent = todo.length ? 'מציע ניקוד…' : '';
+    if (!todo.length) return;
+    for (const m of todo) pending.add(m.text);
+    renderNikud();
     for (let i = 0; i < todo.length && isCurrent(); i += CHUNK) {
+      banner(`מציע ניקוד… ${Math.min(i, todo.length)} מתוך ${todo.length} שמות`);
       const chunk = todo.slice(i, i + CHUNK);
       try {
         const { suggestions } = await api.suggestPronunciations(chunk.map((m) => ({ text: m.text, kind: m.kind })), {});
@@ -72,16 +82,20 @@ async function suggestMissing(isCurrent) {
           if (list?.length && !drafts.has(m.text)) { drafts.set(m.text, list[0]); suggested.add(m.text); options.set(m.text, { list, index: 0 }); }
           else failed.add(m.text);
         }
-        renderNikud();
       } catch (err) {
         for (const m of chunk) failed.add(m.text);
         toast(`הצעת הניקוד נכשלה: ${err.message}`, 'error');
         break;
+      } finally {
+        for (const m of chunk) pending.delete(m.text);
+        renderNikud();
       }
     }
   } finally {
+    for (const m of todo) pending.delete(m.text); // יצאנו באמצע (שגיאה או מעבר לשונית)
     suggesting = false;
-    $('#nikudStatus').textContent = '';
+    banner('');
+    renderNikud();
   }
 }
 

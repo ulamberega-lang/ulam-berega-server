@@ -180,12 +180,15 @@ check(await p.getAttribute('button[data-tab=calls]', 'aria-selected') === 'true'
 // ---- ניקוד הקראה ----
 await p.click('button[data-tab=halls]'); await p.waitForSelector('.hall-card');
 await p.click('#openNikud'); await p.waitForSelector('#nikudMissing tr[data-word]');
+check(await p.isVisible('#nikudBanner') && (await p.textContent('#nikudBannerText')).includes('מציע ניקוד') && await p.$eval('#nikudMissing .nk-input', (i) => i.placeholder === 'מציע ניקוד…'), 'ניקוד: בזמן הטעינה מוצג חיווי (פס והשדות "מציע ניקוד…")');
 check(await p.getAttribute('button[data-tab=halls]', 'aria-selected') === 'true', 'ניקוד: הלשונית "ניהול אולמות" נשארת מסומנת');
 const missingBefore = await p.$$eval('#nikudMissing tr[data-word]', (t) => t.length);
 check(missingBefore > 0 && await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בני ברק'))), 'ניקוד: מוצעים שמות בלי ניקוד (כולל עיר)');
 check(!(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.trim().startsWith('ירושלים ')))), 'ניקוד: שם שכבר מנוקד בטבלה לא מוצע');
 check(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בית שמש'))), 'ניקוד: ביטוי של שתי מילים מוצע כשלם');
 // הצעות OpenAI נכנסות לשדות (כטיוטה) מעצמן
+await p.waitForSelector('#nikudBanner', { state: 'hidden' });
+check(true, 'ניקוד: החיווי נעלם אחרי שההצעות הגיעו');
 await p.waitForFunction(() => document.querySelector('#nikudMissing .nk-input').value !== '');
 const first = await p.inputValue('#nikudMissing tr[data-word] .nk-input >> nth=0');
 check(first.length > 0 && await p.$eval('#nikudMissing tr[data-word] .nk-input', (i) => i.classList.contains('suggested')), 'ניקוד: הצעה מתמלאת אוטומטית וסומנה כהצעה');

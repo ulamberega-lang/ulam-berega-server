@@ -62,7 +62,7 @@ adminApi.put('/pronunciations', handle(async (req) => {
   return row;
 }));
 
-// הצעת ניקוד מ-OpenAI (לא נשמרת): לכל שם עד 4 אפשרויות. items: [{ text, kind }], previous: { [text]: [אפשרויות שכבר הוצגו] }
+// הצעת ניקוד מ-OpenAI (לא נשמרת): לכל שם עד 2 אפשרויות. items: [{ text, kind }], previous: { [text]: [אפשרויות שכבר הוצגו] }
 const SUGGEST_MAX_ITEMS = 30;
 adminApi.post('/pronunciations/suggest', handle(async (req) => {
   const items = (Array.isArray(req.body?.items) ? req.body.items : []).slice(0, SUGGEST_MAX_ITEMS)
