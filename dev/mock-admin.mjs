@@ -61,6 +61,10 @@ let voicemails = Array.from({ length: 8 }, (_, i) => ({
   id: i + 1, created_at: new Date(Date.now() - i * 3600e3 * 7).toISOString(),
   caller_phone: i % 4 === 3 ? '' : `05${i % 5}${String(2000000 + i * 311).slice(0, 7)}`,
   yemot_path: `ivr2:/8/vm_${i}.wav`, handled: i % 3 === 0 && i > 0 }));
+const mails = Array.from({ length: 6 }, (_, i) => ({
+  id: i + 1, created_at: new Date(Date.now() - i * 3600e3 * 5).toISOString(), hall_name: `אולם ${['שמחה', 'גן עדן', 'היכל', 'פאר', 'נוף', 'כתר'][i]}`,
+  to_email: i === 4 ? '' : `hall${i}@example.com`, caller_phone: i === 2 ? '' : `052${1000000 + i * 4111}`, answered: i % 2 === 0,
+  status: i === 4 ? 'no_email' : i === 3 ? 'failed' : 'sent', error: i === 3 ? '401 {"message":"Key not found"}' : '' }));
 // WAV של חצי שנייה שקט (8kHz, 16 סיביות), לבדיקת הנגן
 const silentWav = (() => {
   const samples = 4000, data = Buffer.alloc(samples * 2), h = Buffer.alloc(44);
@@ -74,6 +78,8 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const json = (data) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(data)); };
+
+  if (url.pathname === '/admin/api/mails') return json(mails);
 
   const vm = /^\/admin\/api\/voicemails(?:\/(\d+)(\/audio)?)?$/.exec(url.pathname);
   if (vm) {

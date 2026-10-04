@@ -4,6 +4,7 @@ import * as halls from '../repositories/halls.js';
 import { hallsChanged } from '../services/hall-directory.js';
 import * as calls from '../repositories/calls.js';
 import * as voicemails from '../repositories/voicemails.js';
+import * as mailLog from '../repositories/mail-log.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
 
 export const adminApi = Router();
@@ -88,6 +89,7 @@ const idOf = (req) => {
   return req.params.id;
 };
 
+adminApi.get('/mails', handle(() => mailLog.listRecent()));
 adminApi.get('/voicemails', handle(() => voicemails.listAll()));
 adminApi.put('/voicemails/:id', handle((req) => voicemails.setHandled(idOf(req), Boolean(req.body?.handled))));
 adminApi.delete('/voicemails/:id', handle(async (req) => {
