@@ -8,8 +8,10 @@
 //   noFit - אין אולם בגודל מתאים אבל יש גדולים ו/או קטנים יותר: לשמוע אותם או לשנות כמות
 //   noMatch - נאמר שם שלא נמצא: לנסות שוב (1) או לבחור מרשימה (2)
 //   4 בעל אולם:               ownerInfo (הסבר איך מוסיפים אולם, בלי חיפוש)
+//   5 הודעה קולית:            voicemail (הקלטה שנשלחת במייל)
 import { IVR } from '../config.js';
 import { say, tapOptions, recordOptions } from '../lib/yemot.js';
+import { saveVoicemail } from '../services/voicemail.js';
 import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix, synagogueSuffix } from '../services/nikud.js';
@@ -48,6 +50,9 @@ function ask(s, parts, options) {
 // ---------- הקלטות (שלבי דיבור) ----------
 
 const recordingFile = (s, n) => `${s.id.slice(-8)}_${n}`;
+// הודעה קולית: קובץ נפרד שלא נמחק (ההקלטות של שלבי הדיבור נמחקות אחרי התמלול)
+export const voicemailFile = (s, n) => `vm_${recordingFile(s, n)}`;
+export const voicemailPath = (s) => `ivr2:${IVR.REC_DIR}/${voicemailFile(s, s.n)}.wav`;
 const recordAnswer = (s) => recordOptions(IVR.REC_DIR, recordingFile(s, s.n + 1), IVR.REC_MAX_SEC); // ask() מקדם את n
 
 const SPEECH_STEPS = {
@@ -140,8 +145,12 @@ export async function prompt(s) {
       return ask(s, ['בְּרוּכִים הַבָּאִים לְשִׂמְחָה בְּשִׂיחָה', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
         'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 2',
         'לְחִיפּוּשׂ לְפִי שֵׁם הָאוּלָם הַקֵּשׁ 3',
-        'לְהוֹסָפַת אוּלָם לַמַּעֲרֶכֶת הַקֵּשׁ 4'], tapOptions(1));
+        'לְהוֹסָפַת אוּלָם לַמַּעֲרֶכֶת הַקֵּשׁ 4', 'לְהַשְׁאָרַת הוֹדָעָה הַקֵּשׁ 5'], tapOptions(1));
 
+
+    case 'voicemail':
+      return ask(s, ['הַשְׁאֵר הוֹדָעָה אַחֲרֵי הַצְּלִיל. אֱמוֹר אֶת שִׁמְךָ וְאֶת מִסְפַּר הַטֵּלֵפוֹן שֶׁלְּךָ, וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'],
+        recordOptions(IVR.REC_DIR, voicemailFile(s, s.n + 1), IVR.VOICEMAIL_MAX_SEC, true));
 
     case 'ownerInfo':
       return ask(s, [...OWNER_PARTS, ...OWNER_OPTIONS], tapOptions(1));
@@ -298,7 +307,14 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '2') return go('extEntry');
       if (val === '3') { s.mode = 'name'; return go('city'); }
       if (val === '4') return go('ownerInfo');
+      if (val === '5') return go('voicemail');
       return invalid();
+    case 'voicemail':
+      // ההקלטה נשלחת במייל ברקע (לא מעכבת את השיחה), וחוזרים לתפריט הראשי
+      saveVoicemail({ path: voicemailPath(s), callerPhone: q.ApiPhone }).catch((e) => console.error('voicemail:', e.message));
+      resetSession(s);
+      s.note = 'הַהוֹדָעָה נִשְׁמְרָה. תּוֹדָה, נַחֲזֹר אֵלֶיךָ בְּהֶקְדֵּם';
+      return prompt(s);
     case 'ownerInfo':
       if (val === '1') return go('ownerInfo');
       if (val === '2') { resetSession(s); return prompt(s); }
