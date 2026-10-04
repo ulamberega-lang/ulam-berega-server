@@ -5,17 +5,18 @@ import * as mailLog from '../repositories/mail-log.js';
 import { hebrewDate } from '../lib/hebrew-date.js';
 import { escapeHtml, mailConfigured, sendMail } from '../lib/brevo.js';
 
-// הגנה מספאם: שיחות מזויפות לא יוכלו להציף אולם אחד במיילים (ולהיגמר את מכסת Brevo היומית)
-const MAX_MAILS_PER_HALL_HOUR = 30;
-const sentAt = new Map(); // מזהה אולם → זמני שליחה אחרונים
+// מתקשר שהתקשר כמה פעמים לאותו אולם ולא נענה: נשלח רק מייל אחד (עד שהאולם יענה לו, או עד שעוברות 24 שעות)
+const REPEAT_MS = 24 * 60 * 60 * 1000;
 
-export const resetMailLimits = () => sentAt.clear(); // לבדיקות
-
-function overLimit(hallId, now = Date.now()) {
-  const recent = (sentAt.get(hallId) ?? []).filter((t) => now - t < 60 * 60 * 1000);
-  if (recent.length >= MAX_MAILS_PER_HALL_HOUR) { sentAt.set(hallId, recent); return true; }
-  sentAt.set(hallId, [...recent, now]);
-  return false;
+async function isRepeatMiss(hall, callerPhone) {
+  if (!callerPhone) return false; // מספר חסוי: אי אפשר לזהות שזה אותו מתקשר
+  try {
+    const last = await mailLog.lastForCaller(hall.id, callerPhone, new Date(Date.now() - REPEAT_MS).toISOString());
+    return last?.answered === false; // המייל האחרון שנשלח על המתקשר הזה היה על שיחה שלא נענתה
+  } catch (e) {
+    console.error('mail-log:', e.message);
+    return false; // אם הבדיקה נכשלה - עדיף מייל כפול על מייל שלא נשלח
+  }
 }
 
 export async function notifyHall({ hallId, callerPhone, startedAt, answered }) {
@@ -26,7 +27,7 @@ export async function notifyHall({ hallId, callerPhone, startedAt, answered }) {
     .catch((e) => console.error('mail-log:', e.message));
   if (!mailConfigured()) return log('failed', 'שליחת מיילים לא מוגדרת (BREVO_API_KEY / MAIL_FROM)');
   if (!hall.gabbai_email) return log('no_email');
-  if (overLimit(hall.id)) return log('failed', `יותר מ-${MAX_MAILS_PER_HALL_HOUR} מיילים לאולם בשעה, המייל לא נשלח`);
+  if (!answered && await isRepeatMiss(hall, callerPhone)) return log('repeat');
 
   const when = new Date(startedAt).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
   const name = escapeHtml(hall.name);

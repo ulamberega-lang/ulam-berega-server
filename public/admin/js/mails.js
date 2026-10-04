@@ -11,20 +11,21 @@ const SORTS = [
   { key: 'phone', label: 'מספר מתקשר', text: true },
   { key: 'status', label: 'מצב' },
 ];
-const STATUS = { sent: 'נשלח', failed: 'השליחה נכשלה', no_email: 'אין כתובת מייל לאולם' };
+const STATUS = { sent: 'נשלח', failed: 'השליחה נכשלה', no_email: 'אין כתובת מייל לאולם', repeat: 'לא נשלח: אותו מתקשר כבר התקשר ולא נענה' };
 const GETTERS = {
   when: (m) => Date.parse(m.created_at),
   hall: (m) => m.hall_name || '',
   to: (m) => m.to_email || '',
   phone: (m) => m.caller_phone || '',
-  status: (m) => (m.status === 'sent' ? 1 : 0), // בעיות קודם
+  status: (m) => (isBad(m) ? 0 : 1), // בעיות קודם
 };
 
 let list = [];
 let term = '';
 let view, sort;
 
-export const isBad = (m) => m.status !== 'sent';
+// בעיה = מייל שהיה אמור להישלח ולא נשלח. "repeat" הוא החלטה (לא שולחים מייל שני על אותו מתקשר), לא תקלה
+export const isBad = (m) => m.status === 'failed' || m.status === 'no_email';
 
 let halls = [];
 
@@ -38,10 +39,10 @@ export async function loadMails(allHalls, isCurrent = () => true) {
 
 function renderMails() {
   const scoped = list.filter((m) => matches(`${m.hall_name} ${m.to_email} ${m.caller_phone}`, term));
-  const bad = scoped.filter(isBad).length;
-  view.counts({ all: scoped.length, sent: scoped.length - bad, bad });
+  const sent = scoped.filter((m) => m.status === 'sent').length;
+  view.counts({ all: scoped.length, sent, bad: scoped.filter(isBad).length });
   const chosen = view.get();
-  const visible = sortBy(scoped.filter((m) => chosen === 'all' || (chosen === 'bad') === isBad(m)), sort.state, GETTERS,
+  const visible = sortBy(scoped.filter((m) => chosen === 'all' || (chosen === 'bad' ? isBad(m) : m.status === 'sent')), sort.state, GETTERS,
     (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 
   $('#mailList').innerHTML = visible.length ? visible.map((m) => `<tr>

@@ -3,8 +3,7 @@ import test, { before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { boot, seedHalls, ivr, sleep, emails, yemotCalls, behavior, db, resetDb, realFetch, adminHeaders, strip } from '../dev/sim/harness.mjs';
 
-// הייבוא של קוד השרת דינמי (אחרי ה-harness): ייבוא סטטי היה נטען לפני שהמסד המדומה נרשם
-let app, headers, resetMailLimits;
+let app, headers;
 const admin = (path, method = 'GET', body) => realFetch(app.base + path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 
 const HALLS = [
@@ -12,9 +11,9 @@ const HALLS = [
   { name: 'אולם ב', city_name: 'ירושלים', extension: '102', gabbai_email: '', gabbai_phone: '0502222222', max_guests: 300 },
 ];
 
-before(async () => { ({ resetMailLimits } = await import('../src/services/mailer.js')); seedHalls(HALLS); app = await boot(); headers = await adminHeaders(app.base); });
+before(async () => { seedHalls(HALLS); app = await boot(); headers = await adminHeaders(app.base); });
 after(() => app.close());
-beforeEach(() => { resetMailLimits(); resetDb(); seedHalls(HALLS); emails.length = 0; yemotCalls.length = 0; behavior.brevoStatus = 201; });
+beforeEach(() => { resetDb(); seedHalls(HALLS); emails.length = 0; yemotCalls.length = 0; behavior.brevoStatus = 201; });
 
 // שיחה שמועברת לאולם לפי מספר שלוחה (תפריט 2), ותוצאת חיוג מימות
 async function callHall(id, ext, dialStatus = 'ANSWER') {
@@ -93,12 +92,30 @@ test('יומן מיילים: נשלח / אין כתובת / נכשל', async () 
   assert.equal((await realFetch(`${app.base}/admin/api/mails`)).status, 401);
 });
 
-test('יומן מיילים: מגבלת מיילים בשעה לאולם אחד', async () => {
-  for (let i = 0; i < 32; i++) await callHall(`CAP-${i}`, '101');
-  const sent = db.mail_log.filter((m) => m.status === 'sent').length;
-  const capped = db.mail_log.filter((m) => m.status === 'failed' && /בשעה/.test(m.error)).length;
-  assert.equal(sent, 30);
-  assert.equal(capped, 2);
+test('מתקשר שהתקשר כמה פעמים ולא נענה: נשלח מייל אחד, ושיחה שנענתה מחדשת את הספירה', async () => {
+  await callHall('RP-1', '101', 'NOANSWER');
+  await callHall('RP-2', '101', 'NOANSWER');
+  await callHall('RP-3', '101', 'NOANSWER');
+  assert.equal(emails.length, 1, 'רק מייל אחד נשלח על שלוש שיחות שלא נענו');
+  assert.deepEqual(db.mail_log.map((m) => m.status), ['sent', 'repeat', 'repeat']);
+
+  await callHall('RP-4', '101', 'ANSWER');            // האולם ענה: נשלח מייל על שיחה שנענתה
+  assert.equal(emails.length, 2);
+  await callHall('RP-5', '101', 'NOANSWER');           // שוב לא נענה אחרי שיחה שנענתה: מייל חדש
+  assert.equal(emails.length, 3);
+
+  const list = await (await admin('/admin/api/mails')).json();
+  assert.equal(list.filter((m) => m.status === 'repeat').length, 2);
+});
+
+test('מתקשרים שונים, או אולמות שונים: כל אחד מקבל מייל', async () => {
+  await callHall('DF-1', '101', 'NOANSWER');
+  const other = { ApiCallId: 'DF-2', ApiYFCallId: 'DF-2', ApiPhone: '0529999999' };      // מתקשר אחר, אותו אולם
+  await ivr(app.base, other); await ivr(app.base, { ...other, v1: '2' }); await ivr(app.base, { ...other, v1: '2', v2: '101' });
+  await sleep(100);
+  await ivr(app.base, { ApiCallId: 'DF-2', ApiYFCallId: 'DF-2', DialStatus: 'NOANSWER', Phone: '0529999999' }, '/api/ivr/routing-status');
+  await sleep(250);
+  assert.equal(emails.length, 2);
 });
 
 test('API אולמות: קלט לא תקין נדחה בהודעה ברורה, ושמירה תקינה מרעננת את הרשימה הטלפונית', async () => {
