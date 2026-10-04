@@ -10,6 +10,14 @@ export const HALL_FIELDS = ['name', 'synagogue_name', 'city_name', 'neighborhood
 
 const REQUIRED = { name: 'שם האולם', city_name: 'עיר', max_guests: 'מקסימום אורחים', extension: 'מספר שלוחה', gabbai_phone: 'טלפון להעברה' };
 
+// ניקוד וטעמים (בלי מקף עברי וסימני פיסוק): שמות (אולם, בית כנסת, עיר, שכונה) נשמרים תמיד בלי ניקוד, כדי שלא ייווצרו שתי "ערים" לאותה עיר
+// ושאולמות באותו שם יזוהו כאחד.
+// ההקראה המנוקדת נקבעת בטבלת pronunciations
+const NIKUD = /[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/g;
+export const plainName = (text) => String(text ?? '').replace(NIKUD, '').replace(/\s+/g, ' ').trim();
+
+const PLAIN_FIELDS = ['name', 'synagogue_name', 'city_name', 'neighborhood_name'];
+
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // isNew: באולם חדש כל שדות החובה חייבים להופיע; בעריכה - רק אם נשלחו, לא ריקים
@@ -18,6 +26,7 @@ export function hallFromBody(body, isNew) {
   for (const f of HALL_FIELDS) {
     if (f in body) hall[f] = typeof body[f] === 'string' ? body[f].trim() || null : body[f];
   }
+  for (const f of PLAIN_FIELDS) if (hall[f]) hall[f] = plainName(hall[f]) || null;
   if ('max_guests' in hall) {
     hall.max_guests = hall.max_guests ? Number(hall.max_guests) : null;
     if (Number.isNaN(hall.max_guests)) throw new InputError('מקסימום אורחים חייב להיות מספר');
