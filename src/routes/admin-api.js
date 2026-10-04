@@ -7,6 +7,7 @@ import * as voicemails from '../repositories/voicemails.js';
 import * as mailLog from '../repositories/mail-log.js';
 import * as pronunciations from '../repositories/pronunciations.js';
 import { reloadNikud } from '../services/nikud.js';
+import { suggestNikud } from '../services/nikud-suggest.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
 import { hallFromBody, plainName, InputError } from '../lib/hall-input.js';
 
@@ -43,24 +44,39 @@ adminApi.put('/halls/:id', handle(async (req) => saved(await halls.update(idOf(r
 
 adminApi.get('/pronunciations', handle(() => pronunciations.listAll()));
 
-// הוספה או עדכון. word נשמר בלי ניקוד (כמו שמות האולמות); nikud הוא ההקראה
+// הוספה, עדכון או מחיקה. word נשמר בלי ניקוד (כמו שמות האולמות); nikud הוא ההקראה. nikud ריק = מחיקת השורה
 adminApi.put('/pronunciations', handle(async (req) => {
   const word = plainName(req.body?.word);
   const nikud = String(req.body?.nikud ?? '').replace(/\s+/g, ' ').trim();
   if (!word || word.length > 100) throw new InputError('חסר שם (עד 100 תווים)');
-  if (!nikud || nikud.length > 200 || !/[א-ת]/.test(nikud)) throw new InputError('חסר ניקוד: יש לכתוב את השם עם ניקוד');
-  if (nikud === word) throw new InputError('הניקוד זהה לשם בלי ניקוד');
-  const row = await pronunciations.save(word, nikud);
+  let row;
+  if (!nikud) {
+    await pronunciations.remove(word);
+    row = { word, nikud: '' };
+  } else {
+    if (nikud.length > 200 || !/[א-ת]/.test(nikud)) throw new InputError('הניקוד חייב לכלול אותיות עבריות (עד 200 תווים)');
+    if (nikud === word) throw new InputError('הניקוד זהה לשם בלי ניקוד');
+    row = await pronunciations.save(word, nikud);
+  }
   reloadNikud().catch((e) => console.error('nikud:', e.message)); // ההקראה בטלפון מתעדכנת מיד
   return row;
 }));
 
-adminApi.delete('/pronunciations', handle(async (req) => {
-  const word = plainName(req.body?.word);
-  if (!word) throw new InputError('חסר שם');
-  await pronunciations.remove(word);
-  reloadNikud().catch((e) => console.error('nikud:', e.message));
-  return { ok: true };
+// הצעת ניקוד מ-OpenAI (לא נשמרת). items: [{ text, kind }], previous: { [text]: [הצעות קודמות] }
+const SUGGEST_MAX_ITEMS = 30;
+adminApi.post('/pronunciations/suggest', handle(async (req) => {
+  const items = (Array.isArray(req.body?.items) ? req.body.items : []).slice(0, SUGGEST_MAX_ITEMS)
+    .map((i) => ({ text: plainName(i?.text), kind: String(i?.kind ?? '') })).filter((i) => i.text && i.text.length <= 100);
+  if (!items.length) throw new InputError('אין שמות להצעה');
+  const previous = Object.fromEntries(items.map((i) => [i.text, (Array.isArray(req.body?.previous?.[i.text]) ? req.body.previous[i.text] : []).slice(-5).map(String)]));
+  const all = await pronunciations.listAll();
+  const examples = [...all].sort(() => Math.random() - 0.5).slice(0, 12); // דוגמאות מהטבלה שלך, כדי שההצעה תתאים לסגנון
+  try {
+    return { suggestions: await suggestNikud(items, previous, examples) };
+  } catch (e) {
+    console.error('nikud-suggest:', e.message);
+    throw new InputError('ההצעה מ-OpenAI נכשלה. נסה שוב', 502);
+  }
 }));
 
 // ---------- שיחות וסטטיסטיקה ----------

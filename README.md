@@ -25,6 +25,7 @@ src/
     transcriber.js            תמלול הקלטה (ימות → OpenAI), הורדה ומחיקה של הקלטות
     hall-directory.js         אולמות פעילים בזיכרון, וחיפוש לפי כמות/עיר/שכונה
     nikud.js                  ניקוד שמות להקראה (טבלת pronunciations)
+    nikud-suggest.js          הצעת ניקוד מ-OpenAI לאתר הניהול
     keep-alive.js             מונע מ-Render להירדם
   repositories/
     halls.js                  גישה לטבלת האולמות
@@ -52,7 +53,8 @@ dev/                          כלי פיתוח: שרת דמה לאתר הניה
 | משתנה | מה זה |
 |---|---|
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | חיבור למסד הנתונים (חובה: בלעדיהם השרת לא עולה) |
-| `OPENAI_API_KEY` | תמלול דיבור |
+| `OPENAI_API_KEY` | תמלול דיבור והצעת ניקוד באתר הניהול |
+| `OPENAI_NIKUD_MODEL` | (לא חובה) מודל להצעת ניקוד, ברירת מחדל `gpt-4o-mini` |
 | `YEMOT_TOKEN` | `מספר_מערכת:סיסמה`, להורדת הקלטות מימות |
 | `BREVO_API_KEY`, `MAIL_FROM` | מיילים לאולמות והודעות קוליות |
 | `ADMIN_PASSWORD` | סיסמה לאתר הניהול |

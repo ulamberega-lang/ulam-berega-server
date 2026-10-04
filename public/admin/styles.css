@@ -405,9 +405,9 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
 .nikud-table td.word, .nikud-missing-table td.word { font-weight: 500; }
 .nk-input { width: 100%; min-width: 220px; }
 .nk-actions { display: flex; gap: 6px; align-items: center; }
-.nk-actions .icon-btn { width: 42px; flex: none; }
+.nk-input.suggested { border-style: dashed; border-color: var(--accent); } /* הצעה מ-OpenAI שעוד לא נשמרה */
 @media (max-width: 700px) {
-  .rt td.nk-actions { grid-column: 1 / -1; }
+  .rt td.nk-actions { display: flex; grid-column: 1 / -1; } /* שני הכפתורים על כל רוחב הכרטיס, זה ליד זה */
   .nk-input { min-width: 0; }
   .nk-actions .btn { flex: 1; }
 }

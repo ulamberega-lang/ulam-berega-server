@@ -1,7 +1,7 @@
 // בדיקות שרת מלאות מול מסד נתונים מדומה: הודעות קוליות, יומן מיילים, API אולמות, זרימת שיחה. הרצה: npm test
 import test, { before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { hallsChanged, transcripts, boot, seedHalls, ivr, sleep, emails, yemotCalls, behavior, db, resetDb, realFetch, adminHeaders, strip } from '../dev/sim/harness.mjs';
+import { hallsChanged, transcripts, chatReplies, boot, seedHalls, ivr, sleep, emails, yemotCalls, behavior, db, resetDb, realFetch, adminHeaders, strip } from '../dev/sim/harness.mjs';
 
 let app, headers;
 const admin = (path, method = 'GET', body) => realFetch(app.base + path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -230,7 +230,6 @@ test('ניקוד הקראה: הוספה, עדכון, מחיקה ובדיקות �
   assert.equal((await put('מֵאָה שְׁעָרִים', 'מֵאָה שְׁעָרִים'))[1].word, 'מאה שערים');
 
   assert.equal((await put('', 'אָ'))[0], 400);
-  assert.equal((await put('מילה', ''))[0], 400);
   assert.equal((await put('מילה', 'מילה'))[0], 400, 'ניקוד זהה לשם בלי ניקוד נדחה');
   assert.equal((await put('מילה', 'abc'))[0], 400, 'בלי אותיות עבריות');
 
@@ -242,10 +241,40 @@ test('ניקוד הקראה: הוספה, עדכון, מחיקה ובדיקות �
   await sleep(100);
   assert.equal(withNikud('קריית ספר'), 'קִרְיַת סֶפֶר');
 
-  assert.equal((await admin('/admin/api/pronunciations', 'DELETE', { word: 'קריית ספר' })).status, 200);
-  assert.equal((await admin('/admin/api/pronunciations', 'DELETE', { word: 'מאה שערים' })).status, 200);
+  // שדה ריק = מחיקה
+  assert.deepEqual(await (await admin('/admin/api/pronunciations', 'PUT', { word: 'קריית ספר', nikud: '' })).json(), { word: 'קריית ספר', nikud: '' });
+  assert.equal((await put('מאה שערים', ''))[0], 200);
   await sleep(100);
   assert.equal(db.pronunciations.length, 0);
   assert.equal(withNikud('קריית ספר'), 'קריית ספר');
-  assert.equal((await admin('/admin/api/pronunciations', 'DELETE', {})).status, 400);
+});
+
+test('הצעת ניקוד מ-OpenAI: מוצעת ולא נשמרת, הצעות פסולות נזרקות, וכשל מוצג בהודעה', async () => {
+  db.pronunciations.push({ word: 'שמחה', nikud: 'שִׂמְחָה' });                      // דוגמה מהטבלה
+  const suggest = async (items, previous = {}) => { const r = await admin('/admin/api/pronunciations/suggest', 'POST', { items, previous }); return [r.status, await r.json()]; };
+
+  chatReplies.push({ result: { 'בית וגן': 'בֵּית וָגָן', 'גאולה': 'גאולה', 'רמות': 'רָמוֹת.' } });   // השנייה זהה לשם, ובשלישית יש נקודה
+  const [status, body] = await suggest([{ text: 'בית וגן', kind: 'hood' }, { text: 'גאולה', kind: 'hood' }, { text: 'רמות', kind: 'hood' }]);
+  assert.equal(status, 200);
+  assert.deepEqual(body.suggestions, { 'בית וגן': 'בֵּית וָגָן', 'רמות': 'רָמוֹת' });
+  assert.equal(db.pronunciations.length, 1, 'ההצעה לא נשמרת בטבלה');
+
+  // רענון: ההצעות הקודמות נשלחות למודל, כדי שיציע משהו שונה
+  const realFetchMock = globalThis.fetch;
+  let sent;
+  globalThis.fetch = async (url, opts) => { if (String(url).includes('chat/completions')) sent = JSON.parse(opts.body); return realFetchMock(url, opts); };
+  try {
+    chatReplies.push({ result: { 'בית וגן': 'בַּיִת וָגָן' } });
+    const again = await suggest([{ text: 'בית וגן', kind: 'hood' }], { 'בית וגן': ['בֵּית וָגָן'] });
+    assert.equal(again[1].suggestions['בית וגן'], 'בַּיִת וָגָן');
+  } finally { globalThis.fetch = realFetchMock; }
+  assert.match(sent.messages[1].content, /בֵּית וָגָן/, 'ההצעה הקודמת נשלחה');
+  assert.match(sent.messages[1].content, /שמחה → שִׂמְחָה/, 'דוגמה מהטבלה נשלחה');
+  assert.equal(sent.temperature, 1);
+
+  assert.equal((await suggest([]))[0], 400);
+  const failure = await suggest([{ text: 'רמות', kind: 'hood' }]);        // אין תשובה מדומה: OpenAI "נכשל"
+  assert.equal(failure[0], 502);
+  assert.match(failure[1].error, /נכשלה/);
+  assert.equal((await realFetch(`${app.base}/admin/api/pronunciations/suggest`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 401);
 });
