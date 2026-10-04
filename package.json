@@ -1,7 +1,7 @@
 {
   "name": "ulam-berega",
   "version": "2.0.0",
-  "description": "מערכת טלפונית וניהול לגמ\"ח אולם ברגע",
+  "description": "מערכת טלפונית וניהול שמחה בשיחה",
   "type": "module",
   "main": "server.js",
   "scripts": {
