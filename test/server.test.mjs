@@ -211,3 +211,41 @@ test('רשימת שכונות: בסוף הרשימה "אולמות נוספים 
   assert.match(said, /אולם גאולה/);
   assert.doesNotMatch(said, /בלי שכונה/);
 });
+
+test('ניקוד הקראה: הוספה, עדכון, מחיקה ובדיקות קלט, וההקראה בטלפון מתעדכנת מיד', async () => {
+  const put = async (word, nikud) => { const r = await admin('/admin/api/pronunciations', 'PUT', { word, nikud }); return [r.status, await r.json()]; };
+  assert.equal((await realFetch(`${app.base}/admin/api/pronunciations`)).status, 401);
+
+  const [status, row] = await put('קריית ספר', 'קִרְיַת סֵפֶר');
+  assert.equal(status, 200);
+  assert.equal(row.word, 'קריית ספר');
+  assert.equal(db.pronunciations.length, 1);
+
+  // עדכון אותה מילה: שורה אחת, לא כפולה
+  await put('קריית ספר', 'קִרְיַת סֶפֶר');
+  assert.equal(db.pronunciations.length, 1);
+  assert.equal(db.pronunciations[0].nikud, 'קִרְיַת סֶפֶר');
+
+  // word נשמר בלי ניקוד גם אם הוקלד עם ניקוד
+  assert.equal((await put('מֵאָה שְׁעָרִים', 'מֵאָה שְׁעָרִים'))[1].word, 'מאה שערים');
+
+  assert.equal((await put('', 'אָ'))[0], 400);
+  assert.equal((await put('מילה', ''))[0], 400);
+  assert.equal((await put('מילה', 'מילה'))[0], 400, 'ניקוד זהה לשם בלי ניקוד נדחה');
+  assert.equal((await put('מילה', 'abc'))[0], 400, 'בלי אותיות עבריות');
+
+  const list = await (await admin('/admin/api/pronunciations')).json();
+  assert.equal(list.length, 2);
+
+  // ההקראה בטלפון משתמשת בניקוד שנשמר (בלי לחכות לרענון)
+  const { withNikud } = await import('../src/services/nikud.js');
+  await sleep(100);
+  assert.equal(withNikud('קריית ספר'), 'קִרְיַת סֶפֶר');
+
+  assert.equal((await admin('/admin/api/pronunciations', 'DELETE', { word: 'קריית ספר' })).status, 200);
+  assert.equal((await admin('/admin/api/pronunciations', 'DELETE', { word: 'מאה שערים' })).status, 200);
+  await sleep(100);
+  assert.equal(db.pronunciations.length, 0);
+  assert.equal(withNikud('קריית ספר'), 'קריית ספר');
+  assert.equal((await admin('/admin/api/pronunciations', 'DELETE', {})).status, 400);
+});

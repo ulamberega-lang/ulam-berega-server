@@ -267,10 +267,46 @@
       <p class="note">"נשלח" = המייל התקבל אצל שירות השליחה (Brevo). אם הוא לא הגיע לתיבה, כדאי לבדוק גם בספאם של האולם.</p>
     </section>
 
+    <!-- ניקוד הקראה (נפתח מכפתור בלשונית "ניהול אולמות") -->
+    <section id="tab-nikud" role="tabpanel" hidden>
+      <div class="section-head"><h2>ניקוד הקראה</h2><span class="count" id="nikudMissingCount"></span></div>
+      <p class="note">שמות באתר נשמרים בלי ניקוד. כאן קובעים איך המערכת הטלפונית מקריאה אותם: כותבים את השם עם ניקוד ושומרים, וזה נקלט מיד.
+        שם שלא מנוקד כאן מוקרא בלי ניקוד, וההגייה עלולה להיות שגויה.</p>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="nikudSearch" placeholder="חיפוש שם או ניקוד" aria-label="חיפוש" enterkeyhint="search" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי חיפוש"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+      </div>
+      <h3 class="sub-head">שמות בלי ניקוד</h3>
+      <div class="table-box">
+        <table class="rt nikud-missing-table">
+          <thead><tr><th>שם</th><th>ניקוד</th><th></th></tr></thead>
+          <tbody id="nikudMissing"></tbody>
+        </table>
+      </div>
+
+      <div class="section-head"><h2>ניקודים שנשמרו</h2><span class="count" id="nikudCount"></span></div>
+      <div class="toolbar">
+        <div class="sortbox" id="nikudSort">
+          <select aria-label="מיון לפי"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+      </div>
+      <div class="table-box">
+        <table class="rt nikud-table">
+          <thead><tr><th data-sort="word">שם</th><th data-sort="nikud">ניקוד</th><th></th></tr></thead>
+          <tbody id="nikudList"></tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- ניהול אולמות -->
     <section id="tab-halls" role="tabpanel" hidden>
       <div class="section-head">
         <h2>אולמות</h2><span class="count" id="hallsCount"></span>
+        <button class="btn ghost" id="openNikud">ניקוד הקראה</button>
         <button class="btn" id="addHall"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>הוסף אולם</button>
       </div>
       <div class="toolbar">

@@ -77,6 +77,29 @@ export function suggestExtension(halls, city) {
   return null;
 }
 
+// ---------- ניקוד הקראה ----------
+// שמות שאין להם ניקוד בטבלת pronunciations. כמו בהקראה (withNikud): קודם הביטוי השלם, ואם אין - מילה-מילה.
+// עיר ושכונה: מציעים את הביטוי השלם. שם אולם ובית כנסת: את המילים שחסרות (מילה אחת מנוקדת משמשת בכל השמות).
+// dictWords = כל ה-word שבטבלה. מחזיר [{ text, kind }]: kind = city | hood | word
+export function missingPronunciations(halls, dictWords) {
+  const have = new Set(dictWords.map((w) => String(w).trim()));
+  const covered = (text) => have.has(text) || text.split(' ').every((w) => have.has(w));
+  const found = new Map();
+  const add = (text, kind) => { if (text && !found.has(text)) found.set(text, kind); };
+  for (const h of halls) {
+    const city = String(h.city_name ?? '').trim();
+    if (city && !covered(city)) add(city, 'city');
+    for (const hood of splitHoods(h.neighborhood_name)) if (!covered(hood)) add(hood, 'hood');
+    for (const name of [h.name, h.synagogue_name]) {
+      const text = String(name ?? '').trim();
+      if (!text || covered(text)) continue;
+      for (const word of text.split(' ')) if (/[א-ת]/.test(word) && !have.has(word)) add(word, 'word'); // מספרים לא צריכים ניקוד
+    }
+  }
+  const order = { city: 0, hood: 1, word: 2 };
+  return [...found].map(([text, kind]) => ({ text, kind })).sort((a, b) => order[a.kind] - order[b.kind] || a.text.localeCompare(b.text, 'he'));
+}
+
 // ---------- פירוט "לא נענו" לפי סיבה (כל סיבה בגוון אדום משלה) ----------
 export const REASONS = [
   { key: 'noAnswer', label: 'לא ענו', cls: 'r1' },
