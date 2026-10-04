@@ -78,25 +78,23 @@ export function suggestExtension(halls, city) {
 }
 
 // ---------- ניקוד הקראה ----------
-// שמות שאין להם ניקוד בטבלת pronunciations. כמו בהקראה (withNikud): קודם הביטוי השלם, ואם אין - מילה-מילה.
-// עיר ושכונה: מציעים את הביטוי השלם. שם אולם ובית כנסת: את המילים שחסרות (מילה אחת מנוקדת משמשת בכל השמות).
-// dictWords = כל ה-word שבטבלה. מחזיר [{ text, kind }]: kind = city | hood | word
+// שמות שאין להם ניקוד בטבלת pronunciations. כל שם מוצע כביטוי שלם (עיר, שכונה, אולם, בית כנסת), גם אם כל מילה בו
+// מנוקדת בנפרד: ההגייה של שתי מילים יחד (סמיכות) שונה מהגייה של כל אחת לבד. dictWords = כל ה-word שבטבלה.
+// מחזיר [{ text, kind }]: kind = city | hood | hall | synagogue
 export function missingPronunciations(halls, dictWords) {
   const have = new Set(dictWords.map((w) => String(w).trim()));
-  const covered = (text) => have.has(text) || text.split(' ').every((w) => have.has(w));
   const found = new Map();
-  const add = (text, kind) => { if (text && !found.has(text)) found.set(text, kind); };
+  const add = (value, kind) => {
+    const text = String(value ?? '').trim();
+    if (text && /[א-ת]/.test(text) && !have.has(text) && !found.has(text)) found.set(text, kind); // מספרים בלבד לא צריכים ניקוד
+  };
   for (const h of halls) {
-    const city = String(h.city_name ?? '').trim();
-    if (city && !covered(city)) add(city, 'city');
-    for (const hood of splitHoods(h.neighborhood_name)) if (!covered(hood)) add(hood, 'hood');
-    for (const name of [h.name, h.synagogue_name]) {
-      const text = String(name ?? '').trim();
-      if (!text || covered(text)) continue;
-      for (const word of text.split(' ')) if (/[א-ת]/.test(word) && !have.has(word)) add(word, 'word'); // מספרים לא צריכים ניקוד
-    }
+    add(h.city_name, 'city');
+    for (const hood of splitHoods(h.neighborhood_name)) add(hood, 'hood');
+    add(h.name, 'hall');
+    add(h.synagogue_name, 'synagogue');
   }
-  const order = { city: 0, hood: 1, word: 2 };
+  const order = { city: 0, hood: 1, hall: 2, synagogue: 3 };
   return [...found].map(([text, kind]) => ({ text, kind })).sort((a, b) => order[a.kind] - order[b.kind] || a.text.localeCompare(b.text, 'he'));
 }
 

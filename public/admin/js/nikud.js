@@ -1,5 +1,5 @@
 // לשונית "ניקוד הקראה": טבלת pronunciations (איך המערכת הטלפונית מקריאה שמות). אפשר להוסיף, לשנות ולמחוק,
-// ולמעלה מוצעים כל השמות (ערים, שכונות ומילים בשמות אולמות ובתי כנסת) שעוד אין להם ניקוד.
+// ולמעלה מוצעים כל השמות (ערים, שכונות, אולמות ובתי כנסת, כל שם כביטוי שלם) שעוד אין להם ניקוד.
 import { api } from './api.js';
 import { $, escapeHtml, formatNumber, toast, pref, savePref, matches } from './dom.js';
 import { initSearch, initSort, sortBy } from './controls.js';
@@ -7,7 +7,7 @@ import { missingPronunciations } from './data.js';
 
 const SORTS = [{ key: 'word', label: 'שם', text: true }, { key: 'nikud', label: 'ניקוד', text: true }];
 const GETTERS = { word: (e) => e.word, nikud: (e) => e.nikud };
-const KIND = { city: 'עיר', hood: 'שכונה', word: 'מילה בשם אולם' };
+const KIND = { city: 'עיר', hood: 'שכונה', hall: 'אולם', synagogue: 'בית כנסת' };
 
 let entries = [];
 let halls = [];

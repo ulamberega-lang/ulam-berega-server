@@ -183,7 +183,8 @@ await p.click('#openNikud'); await p.waitForSelector('#nikudMissing tr[data-word
 check(await p.getAttribute('button[data-tab=halls]', 'aria-selected') === 'true', 'ניקוד: הלשונית "ניהול אולמות" נשארת מסומנת');
 const missingBefore = await p.$$eval('#nikudMissing tr[data-word]', (t) => t.length);
 check(missingBefore > 0 && await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בני ברק'))), 'ניקוד: מוצעים שמות בלי ניקוד (כולל עיר)');
-check(!(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.trim().startsWith('אולם ')))), 'ניקוד: מילה שכבר מנוקדת לא מוצעת');
+check(!(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.trim().startsWith('ירושלים ')))), 'ניקוד: שם שכבר מנוקד בטבלה לא מוצע');
+check(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בית שמש'))), 'ניקוד: ביטוי של שתי מילים מוצע כשלם');
 const savedBefore = await p.$$eval('#nikudList tr[data-word]', (t) => t.length);
 await p.fill('#nikudMissing tr[data-word] .nk-input >> nth=0', 'ניקוד לדוגמה');
 await p.click('#nikudMissing tr[data-word] .nk-save >> nth=0'); await p.waitForTimeout(400);

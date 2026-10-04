@@ -227,21 +227,22 @@ test('splitHoods: כמה שכונות בשדה אחד', () => {
   assert.deepEqual(splitHoods(null), []);
 });
 
-test('missingPronunciations: עיר ושכונה כביטוי שלם, ובשמות אולמות רק מילים שחסרות', () => {
+test('missingPronunciations: כל שם מוצע כביטוי שלם, גם אם כל מילה בו מנוקדת לבד', () => {
   const halls = [
     { name: 'היכל חמדה 2000', synagogue_name: 'אוהל דוד', city_name: 'בית שמש', neighborhood_name: 'רמת בית שמש ב / גבעה א' },
     { name: 'אולם כתר', city_name: 'ירושלים', neighborhood_name: 'גאולה' },
   ];
-  // בטבלה: ירושלים, "אולם", "כתר" (ולכן "אולם כתר" מכוסה), וגם "היכל"
-  const missing = missingPronunciations(halls, ['ירושלים', 'אולם', 'כתר', 'היכל']);
+  // בטבלה: ירושלים, וגם כל המילים של "אולם כתר" ו"בית שמש" לבד
+  const missing = missingPronunciations(halls, ['ירושלים', 'אולם', 'כתר', 'בית', 'שמש']);
   assert.deepEqual(missing.map((m) => [m.text, m.kind]), [
     ['בית שמש', 'city'],
     ['גאולה', 'hood'], ['גבעה א', 'hood'], ['רמת בית שמש ב', 'hood'],
-    ['אוהל', 'word'], ['דוד', 'word'], ['חמדה', 'word'],
+    ['אולם כתר', 'hall'], ['היכל חמדה 2000', 'hall'],
+    ['אוהל דוד', 'synagogue'],
   ]);
 });
 
-test('missingPronunciations: ביטוי שמכוסה מילה-מילה, או שנמצא כשלם, לא מוצע', () => {
-  const halls = [{ name: 'אולם', city_name: 'הר נוף', neighborhood_name: 'בית וגן' }];
-  assert.deepEqual(missingPronunciations(halls, ['הר', 'נוף', 'בית וגן', 'אולם']), []);
+test('missingPronunciations: שם שהביטוי השלם שלו בטבלה, או שהוא מספרים בלבד, לא מוצע', () => {
+  const halls = [{ name: 'אולם', city_name: 'הר נוף', neighborhood_name: '2000' }];
+  assert.deepEqual(missingPronunciations(halls, ['הר נוף', 'אולם']), []);
 });
