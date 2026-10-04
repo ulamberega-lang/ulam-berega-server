@@ -18,10 +18,11 @@ test('hallFromBody: עיר ושכונה נשמרות בלי ניקוד (שכונ
   assert.equal(hall.neighborhood_name, 'גאולה / בית וגן');
 });
 
-test('hallFromBody: שם אולם ובית כנסת נשארים כפי שהוקלדו', () => {
-  const hall = hallFromBody({ ...ok, name: 'הֵיכַל', synagogue_name: 'אוֹהֶל' }, true);
-  assert.equal(hall.name, 'הֵיכַל');
-  assert.equal(hall.synagogue_name, 'אוֹהֶל');
+test('hallFromBody: גם שם אולם ושם בית כנסת נשמרים בלי ניקוד', () => {
+  const hall = hallFromBody({ ...ok, name: 'הֵיכַל חֶמְדָּה', synagogue_name: 'אוֹהֶל דָּוִד' }, true);
+  assert.equal(hall.name, 'היכל חמדה');
+  assert.equal(hall.synagogue_name, 'אוהל דוד');
+  assert.equal(hallFromBody({ synagogue_name: 'אוֹהֶל' }, false).synagogue_name, 'אוהל');   // גם בעריכה
 });
 
 test('hallFromBody: עיר שכולה ניקוד נחשבת ריקה', () => {
