@@ -3,6 +3,8 @@ import { Router } from 'express';
 import * as halls from '../repositories/halls.js';
 import { hallsChanged } from '../services/hall-directory.js';
 import * as calls from '../repositories/calls.js';
+import * as voicemails from '../repositories/voicemails.js';
+import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
 
 export const adminApi = Router();
 
@@ -78,3 +80,41 @@ adminApi.get('/calls', handle((req) => {
   const { from, to, hallId } = range(req);
   return calls.listCalls(from, to, hallId);
 }));
+
+// ---------- הודעות קוליות ----------
+
+const idOf = (req) => {
+  if (!/^\d+$/.test(req.params.id)) throw new Error('מזהה לא תקין');
+  return req.params.id;
+};
+
+adminApi.get('/voicemails', handle(() => voicemails.listAll()));
+adminApi.put('/voicemails/:id', handle((req) => voicemails.setHandled(idOf(req), Boolean(req.body?.handled))));
+adminApi.delete('/voicemails/:id', handle(async (req) => {
+  const row = await voicemails.findById(idOf(req));
+  if (!row) throw new Error('ההודעה לא נמצאה');
+  await voicemails.remove(row.id);
+  deleteRecordingFile(row.yemot_path); // ברקע; נרשם בלוג אם נכשל
+  return { ok: true };
+}));
+
+// ההקלטה עצמה, מימות. תמיכה ב-Range, כי Safari באייפון דורש אותה להשמעת אודיו.
+adminApi.get('/voicemails/:id/audio', async (req, res) => {
+  try {
+    const row = /^\d+$/.test(req.params.id) ? await voicemails.findById(req.params.id) : null;
+    const audio = row && await downloadRecording(row.yemot_path);
+    if (!audio) return res.status(404).json({ error: 'ההקלטה לא נמצאה בימות' });
+
+    const size = audio.length;
+    res.set({ 'content-type': 'audio/wav', 'accept-ranges': 'bytes', 'cache-control': 'private, max-age=300' });
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (!range) return res.set('content-length', size).end(audio);
+    const start = range[1] === '' ? Math.max(0, size - Number(range[2])) : Number(range[1]);
+    const end = range[1] === '' || range[2] === '' ? size - 1 : Math.min(Number(range[2]), size - 1);
+    if (start > end || start >= size) return res.status(416).set('content-range', `bytes */${size}`).end();
+    return res.status(206).set({ 'content-range': `bytes ${start}-${end}/${size}`, 'content-length': end - start + 1 }).end(audio.subarray(start, end + 1));
+  } catch (err) {
+    console.error('admin:', err.message);
+    return res.status(500).json({ error: 'שגיאה בהורדת ההקלטה' });
+  }
+});

@@ -14,6 +14,10 @@ export const api = {
   createHall: (hall) => request('halls', { method: 'POST', body: JSON.stringify(hall) }),
   updateHall: (id, hall) => request(`halls/${id}`, { method: 'PUT', body: JSON.stringify(hall) }),
 
+  listVoicemails: () => request('voicemails'),
+  setVoicemailHandled: (id, handled) => request(`voicemails/${id}`, { method: 'PUT', body: JSON.stringify({ handled }) }),
+  deleteVoicemail: (id) => request(`voicemails/${id}`, { method: 'DELETE', body: '{}' }),
+
   statsByHall: ({ from, to }) => request(`stats/halls?${query({ from, to })}`),
   statsByDay: ({ from, to }, hall) => request(`stats/days?${query({ from, to, hall })}`),
   listCalls: ({ from, to }, hall) => request(`calls?${query({ from, to, hall })}`),

@@ -65,3 +65,6 @@ export async function downloadRecording(path) {
   if (!file.ok || type.includes('json') || type.includes('text')) return null;
   return Buffer.from(await file.arrayBuffer());
 }
+
+// מחיקת הקלטה מימות (למשל כשמוחקים הודעה קולית באתר הניהול)
+export const deleteRecordingFile = (path) => deleteRecording(path, encodeURIComponent(config.yemotToken));

@@ -24,6 +24,7 @@
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
       <symbol id="i-more" viewBox="0 0 24 24"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></symbol>
       <symbol id="i-logout" viewBox="0 0 24 24"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></symbol>
@@ -50,6 +51,7 @@
         <button role="tab" data-tab="stats" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><span>שיחות לפי אולם</span></button>
         <button role="tab" data-tab="calls" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><span>יומן שיחות</span></button>
         <button role="tab" data-tab="halls" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-hall"/></svg><span>ניהול אולמות</span></button>
+        <button role="tab" data-tab="voicemails" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><span>הודעות</span><span class="tab-count" id="voicemailBadge" hidden></span></button>
       </nav>
       <button id="logout" class="back logout" aria-label="יציאה" title="יציאה"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg><span>יציאה</span></button>
     </div>
@@ -194,6 +196,39 @@
         </table>
       </div>
       <p class="note" id="callsNote"></p>
+    </section>
+
+    <!-- הודעות קוליות -->
+    <section id="tab-voicemails" role="tabpanel" hidden>
+      <div class="section-head"><h2>הודעות קוליות</h2><span class="count" id="voicemailCount"></span></div>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="voicemailSearch" placeholder="חיפוש לפי מספר טלפון" aria-label="חיפוש" enterkeyhint="search" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי חיפוש"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="sortbox" id="voicemailSort">
+          <select aria-label="מיון לפי"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+        <div class="chips" id="voicemailView" role="group" aria-label="מצב טיפול">
+          <button data-value="all">הכל<span class="n"></span></button>
+          <button data-value="open">לא טופלו<span class="n"></span></button>
+          <button data-value="done">טופלו<span class="n"></span></button>
+        </div>
+      </div>
+      <div class="table-box">
+        <table class="rt voicemail-table">
+          <thead><tr>
+            <th data-sort="when">מתי</th>
+            <th data-sort="phone">מתקשר</th>
+            <th>הקלטה</th>
+            <th data-sort="status">מצב</th>
+            <th class="more"><span class="sr">מחיקה</span></th>
+          </tr></thead>
+          <tbody id="voicemailList"></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ניהול אולמות -->
