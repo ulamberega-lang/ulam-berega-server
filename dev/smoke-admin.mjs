@@ -171,6 +171,10 @@ await p.click('#mailView button[data-value=all]');
 await p.fill('#mailSearch', 'hall1@'); await p.waitForTimeout(200);
 check(await p.$$eval('#mailList tr', (t) => t.length) === 1, 'מיילים: חיפוש לפי כתובת');
 await p.fill('#mailSearch', '');
+await p.click('#mailList .hall-link >> nth=0'); await p.waitForSelector('#detailsDialog[open]');
+check(await p.textContent('#detailsBody [data-act=calls]') === 'יומן השיחות של האולם' && !(await p.$('#detailsBody [data-act=days]')), 'מיילים: האולם נפתח בחלון הפרטים עם כפתור ליומן השיחות');
+await p.click('#detailsBody [data-act=calls]'); await p.waitForTimeout(500);
+check(await p.getAttribute('button[data-tab=calls]', 'aria-selected') === 'true', 'מיילים: הכפתור מעביר ליומן השיחות');
 
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);

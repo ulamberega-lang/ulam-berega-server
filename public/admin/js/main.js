@@ -25,7 +25,7 @@ async function refresh() {
     if (tab === 'stats') await loadStats(state.range, state.halls, isCurrent);
     else if (tab === 'calls') await loadCalls(state.range, state.halls, isCurrent);
     else if (tab === 'voicemails') await loadVoicemails(state.range, state.halls, isCurrent);
-    else if (tab === 'mails') await loadMails(isCurrent);
+    else if (tab === 'mails') await loadMails(state.halls, isCurrent);
     else await loadHalls(state.range, state.halls, isCurrent);
     if (isCurrent()) $('#updated').textContent = `עודכן ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
   } catch (err) {

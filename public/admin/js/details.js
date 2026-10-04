@@ -37,7 +37,7 @@ function statsBlock(title, s) {
 
 const field = (label, value) => (value ? `<div><dt>${label}</dt><dd>${value}</dd></div>` : '');
 
-function render(hall, range, stats) {
+function render(hall, range, stats, toCalls) {
   const e = escapeHtml;
   const phone = hall.gabbai_phone ? `<a href="tel:${e(hall.gabbai_phone)}">${e(hall.gabbai_phone)}</a>` : '';
   const mail = hall.gabbai_email ? `<a href="mailto:${e(hall.gabbai_email)}">${e(hall.gabbai_email)}</a>` : '';
@@ -66,16 +66,17 @@ function render(hall, range, stats) {
     ${counts}
     <div class="d-actions">
       <button class="btn" data-act="edit">${icon('edit')}עריכת האולם</button>
-      <button class="btn ghost" data-act="days">שיחות לפי יום של האולם</button>
+      ${toCalls ? '<button class="btn ghost" data-act="calls">יומן השיחות של האולם</button>' : '<button class="btn ghost" data-act="days">שיחות לפי יום של האולם</button>'}
     </div>`;
 }
 
-async function open(id) {
+// toCalls: נפתח מלשונית המיילים - הכפתור השני מוביל ליומן השיחות של האולם (ולא ל"לפי יום")
+async function open(id, toCalls = false) {
   const hall = ctx.getHalls().find((h) => String(h.id) === String(id));
   if (!hall) return;
   const range = ctx.getRange();
   const mine = ++openSeq;
-  render(hall, range, null);
+  render(hall, range, null, toCalls);
   if (!dialog().open) {
     dialog().showModal();
     history.pushState({ ...history.state, n: (history.state?.n ?? 0) + 1, dialog: true }, '');
@@ -88,7 +89,7 @@ async function open(id) {
     ]);
     if (mine !== openSeq || !dialog().open) return;
     const pick = (rows) => rows?.find((r) => String(r.hall_id) === String(hall.id));
-    render(hall, range, { period: pick(period), all: pick(all ?? period) });
+    render(hall, range, { period: pick(period), all: pick(all ?? period) }, toCalls);
   } catch (err) {
     if (mine !== openSeq) return;
     $('#detailsBody .d-loading')?.replaceWith(Object.assign(document.createElement('p'), { className: 'muted', textContent: `מספרי השיחות לא נטענו. ${err.message}` }));
@@ -110,7 +111,7 @@ function leaveThen(action) {
 
 export function initDetails(options) {
   ctx = { ...ctx, ...options };
-  document.addEventListener('open-details', (e) => open(e.detail.id));
+  document.addEventListener('open-details', (e) => open(e.detail.id, e.detail.toCalls));
   const dlg = dialog();
   dlg.addEventListener('cancel', (e) => { e.preventDefault(); dismiss(); }); // Escape
   dlg.addEventListener('click', (e) => {
@@ -120,6 +121,7 @@ export function initDetails(options) {
     const hall = ctx.getHalls().find((h) => String($('#detailsBody').dataset.id) === String(h.id));
     if (act === 'close') dismiss();
     else if (hall && act === 'days') leaveThen(() => document.dispatchEvent(new CustomEvent('open-days', { detail: { hall } })));
+    else if (hall && act === 'calls') leaveThen(() => document.dispatchEvent(new CustomEvent('open-calls', { detail: { hall } })));
     else if (hall && act === 'edit') leaveThen(() => document.dispatchEvent(new CustomEvent('edit-hall', { detail: { hall } })));
   });
 }

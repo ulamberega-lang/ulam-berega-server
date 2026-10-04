@@ -26,7 +26,10 @@ let view, sort;
 
 export const isBad = (m) => m.status !== 'sent';
 
-export async function loadMails(isCurrent = () => true) {
+let halls = [];
+
+export async function loadMails(allHalls, isCurrent = () => true) {
+  halls = allHalls;
   const rows = await api.listMails();
   if (!isCurrent()) return;
   list = rows;
@@ -43,7 +46,7 @@ function renderMails() {
 
   $('#mailList').innerHTML = visible.length ? visible.map((m) => `<tr>
       <td class="span-all when digits">${formatDateTime(m.created_at)} <span class="heb">${hebrewOf(m.created_at)}</span></td>
-      <td class="hall span-all">${escapeHtml(m.hall_name)}</td>
+      <td class="hall span-all">${halls.some((h) => String(h.id) === String(m.hall_id)) ? `<button class="link hall-link" data-hall="${m.hall_id}">${escapeHtml(m.hall_name)}</button>` : escapeHtml(m.hall_name)}</td>
       <td class="to span-all digits" dir="ltr">${escapeHtml(m.to_email) || '<span class="muted">-</span>'}</td>
       <td class="phone digits" data-label="מתקשר">${escapeHtml(m.caller_phone) || '<span class="muted">חסוי</span>'}</td>
       <td class="status ${isBad(m) ? 'bad' : ''}" data-label="מצב">${STATUS[m.status] || escapeHtml(m.status)}${m.answered ? '' : ' <span class="muted">(שיחה שלא נענתה)</span>'}${m.error ? `<span class="err" dir="ltr">${escapeHtml(m.error)}</span>` : ''}</td>
@@ -54,6 +57,10 @@ function renderMails() {
 }
 
 export function initMails() {
+  $('#mailList').addEventListener('click', (e) => {
+    const id = e.target.closest('.hall-link')?.dataset.hall;
+    if (id) document.dispatchEvent(new CustomEvent('open-details', { detail: { id, toCalls: true } }));
+  });
   initSearch($('#mailSearch'), (value) => { term = value; renderMails(); });
   view = initChips($('#mailView'), pref('mailView', { value: 'all' }).value, (value) => { savePref('mailView', { value }); renderMails(); });
   sort = initSort({
