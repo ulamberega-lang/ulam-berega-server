@@ -24,7 +24,8 @@ export const goToFolder = (folder, ...parts) => `id_list_message=${say(parts)}&g
 export const tapOptions = (maxDigits, waitSec = 7, allowed = '') => `${maxDigits},1,${waitSec},No,no,no,,${allowed}`;
 
 // הגדרות read בהקלטה: record,תיקייה,קובץ,בלי_תפריט_אישור,שמירה_בניתוק,הוספה,מינ,מקס
-export const recordOptions = (dir, file, maxSec) => `record,${dir},${file},no,,,,${maxSec}`;
+// saveOnHangup: המתקשר שמנתק באמצע ההקלטה (בלי סולמית) - ההקלטה נשמרת
+export const recordOptions = (dir, file, maxSec, saveOnHangup = false) => `record,${dir},${file},no,${saveOnHangup ? 'yes' : ''},,,${maxSec}`;
 
 // העברה למספר חיצוני. ערכי routing לפי הסדר: 1 מספר ... 9 זמן המתנה, 10 מעבר בסיום.
 // (הודעה לעונה וזיהוי יוצא מוגדרים ב-ext.ini של השלוחה הראשית בימות)

@@ -5,7 +5,8 @@
 import { Router } from 'express';
 import { readParams, lastValue, clean, hangup, goToFolder } from '../lib/yemot.js';
 import { getSession, createSession, deleteSession, resetSession } from '../ivr/sessions.js';
-import { prompt, handleAnswer, isSpeechStep, transcribeAnswer, fallbackToList } from '../ivr/flow.js';
+import { prompt, handleAnswer, isSpeechStep, transcribeAnswer, fallbackToList, voicemailPath } from '../ivr/flow.js';
+import { saveVoicemail } from '../services/voicemail.js';
 import { routeToHall } from '../ivr/route-to-hall.js';
 import { callStarted, callEnded, callNotAnswered, routingFinished } from '../services/call-log.js';
 
@@ -27,6 +28,9 @@ ivrRouter.all('/', async (req, res) => {
   res.type('text/plain; charset=utf-8');
   try {
     if (q.hangup === 'yes') {
+      // המתקשר ניתק באמצע הקלטת הודעה (בלי סולמית): ההקלטה נשמרת בימות, ושולחים אותה במייל
+      const leaving = getSession(id);
+      if (leaving?.step === 'voicemail') saveVoicemail({ path: voicemailPath(leaving), callerPhone: q.ApiPhone }).catch((e) => console.error('voicemail:', e.message));
       deleteSession(id);
       await callEnded(id);
       return res.send('');

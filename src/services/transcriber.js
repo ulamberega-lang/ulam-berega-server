@@ -55,3 +55,13 @@ function deleteRecording(path, token) {
     .then((j) => { if (!j.success) console.error('delete:', JSON.stringify(j).slice(0, 200)); })
     .catch((e) => console.error('delete:', e.message));
 }
+
+// מוריד הקלטה מימות (בלי למחוק אותה). מחזיר Buffer, או null אם אין הקלטה או שההורדה נכשלה
+export async function downloadRecording(path) {
+  const token = encodeURIComponent(config.yemotToken);
+  const file = await fetch(`${config.yemotApi}/DownloadFile?token=${token}&path=${encodeURIComponent(path)}`,
+    { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
+  const type = file.headers.get('content-type') || '';
+  if (!file.ok || type.includes('json') || type.includes('text')) return null;
+  return Buffer.from(await file.arrayBuffer());
+}
