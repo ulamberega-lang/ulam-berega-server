@@ -19,6 +19,7 @@ const drafts = new Map();      // שם → מה שמוצג בשדה (הצעה א
 const suggested = new Set();   // שמות שהוצעה להם הצעה (כדי שהצעה לא תימחק אחרי שהמנהל עורך)
 const options = new Map();     // שם → { list: [אפשרויות ניקוד מהסבירה לפחות], index }: "רענון" עובר לאפשרות הבאה בלי קריאה נוספת
 const failed = new Set();      // שמות שההצעה שלהם נכשלה (לא מנסים שוב בלי בקשה מפורשת)
+const failReasons = new Map();  // שם → למה לא התקבלה הצעה (להצגה בלחיצה על רענון)
 const pending = new Set();     // שמות שמחכים עכשיו להצעה (השדה מציג "מציע ניקוד…")
 const kindOf = new Map();      // שם → סוג (city / hood / hall / synagogue)
 const CHUNK = 25;
@@ -76,7 +77,8 @@ async function suggestMissing(isCurrent) {
       banner(`מציע ניקוד… ${Math.min(i, todo.length)} מתוך ${todo.length} שמות`);
       const chunk = todo.slice(i, i + CHUNK);
       try {
-        const { suggestions } = await api.suggestPronunciations(chunk.map((m) => ({ text: m.text, kind: m.kind })), {});
+        const { suggestions, reasons } = await api.suggestPronunciations(chunk.map((m) => ({ text: m.text, kind: m.kind })), {});
+        for (const m of chunk) if (reasons?.[m.text]) failReasons.set(m.text, reasons[m.text]);
         for (const m of chunk) {
           const list = suggestions[m.text];
           if (list?.length && !drafts.has(m.text)) { drafts.set(m.text, list[0]); suggested.add(m.text); options.set(m.text, { list, index: 0 }); }
@@ -114,9 +116,9 @@ async function refresh(row) {
   button.textContent = 'מציע…';
   try {
     const seen = [...(known?.list ?? []), input.value.trim()].filter(Boolean);
-    const { suggestions } = await api.suggestPronunciations([{ text: word, kind: kindOf.get(word) ?? '' }], { [word]: seen });
+    const { suggestions, reasons } = await api.suggestPronunciations([{ text: word, kind: kindOf.get(word) ?? '' }], { [word]: seen });
     const more = suggestions[word];
-    if (!more?.length) throw new Error('אין עוד הצעות. אפשר להקליד ידנית');
+    if (!more?.length) throw new Error(`אין עוד הצעות (${reasons?.[word] ?? failReasons.get(word) ?? 'לא ידוע'}). אפשר להקליד ידנית`);
     const list = [...(known?.list ?? []), ...more];
     options.set(word, { list, index: list.length - more.length });
     show(more[0]);

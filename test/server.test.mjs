@@ -262,6 +262,13 @@ test('הצעת ניקוד מ-OpenAI: כמה אפשרויות, לא נשמרת, �
   assert.equal(status, 200);
   assert.deepEqual(body.suggestions, { 'בית וגן': ['בֵּית וָגָן', 'בַּיִת וָגָן'], 'רמות': ['רָמוֹת'] });
   assert.equal(db.pronunciations.length, 1, 'ההצעה לא נשמרת בטבלה');
+  assert.match(body.reasons['גאולה'], /זהה לשם/, 'שם בלי הצעה תקינה מוסבר');
+
+  // המודל החזיר מפתח עם ניקוד / בלי תשובה לשם: מזהים לפי השם בלי ניקוד, ושם בלי תשובה מוסבר
+  chatReplies.push({ result: { 'בֵּית שֶׁמֶשׁ': { options: ['בֵּית שֶׁמֶשׁ'] } } });
+  const keyed = await suggest([{ text: 'בית שמש', kind: 'city' }, { text: 'אלעד', kind: 'city' }]);
+  assert.deepEqual(keyed[1].suggestions, { 'בית שמש': ['בֵּית שֶׁמֶשׁ'] });
+  assert.match(keyed[1].reasons['אלעד'], /לא החזיר תשובה/);
 
   // בקשה נוספת: מה שכבר הוצג נשלח למודל, ומה שהוא מחזיר שוב מסונן
   const realFetchMock = globalThis.fetch;
