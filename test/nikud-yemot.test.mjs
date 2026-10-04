@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import '../dev/sim/harness.mjs';
 import { withPrefix } from '../src/services/nikud.js';
 import { clean, say, tapOptions, recordOptions, lastValue, readParams } from '../src/lib/yemot.js';
+import { startOfIsraelDay } from '../src/lib/israel-day.js';
 import { gematria, hebrewDate } from '../public/admin/js/hebrew-date.js';
 
 // סימני ניקוד יכולים להיכתב בסדר שונה: משווים אחרי נרמול
@@ -38,4 +39,11 @@ test('תאריך עברי: גימטריה ותאריך', () => {
   assert.equal(gematria(5787), 'תשפ״ז');
   assert.equal(gematria(30), 'ל׳');
   assert.match(hebrewDate('2026-09-23T12:00:00Z'), /^[א-ת׳״]+ ב[א-ת ]+ תשפ״ז$/);
+});
+
+test('startOfIsraelDay: חצות בשעון ישראל, בקיץ ובחורף', () => {
+  assert.equal(startOfIsraelDay(new Date('2026-07-10T15:30:00Z')).toISOString(), '2026-07-09T21:00:00.000Z');  // קיץ (UTC+3)
+  assert.equal(startOfIsraelDay(new Date('2026-01-10T15:30:00Z')).toISOString(), '2026-01-09T22:00:00.000Z');  // חורף (UTC+2)
+  assert.equal(startOfIsraelDay(new Date('2026-07-09T20:59:59Z')).toISOString(), '2026-07-08T21:00:00.000Z');  // רגע לפני חצות
+  assert.equal(startOfIsraelDay(new Date('2026-07-09T21:00:00Z')).toISOString(), '2026-07-09T21:00:00.000Z');  // בדיוק חצות
 });

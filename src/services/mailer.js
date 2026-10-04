@@ -3,15 +3,15 @@ import { IVR } from '../config.js';
 import * as halls from '../repositories/halls.js';
 import * as mailLog from '../repositories/mail-log.js';
 import { hebrewDate } from '../lib/hebrew-date.js';
+import { startOfIsraelDay } from '../lib/israel-day.js';
 import { escapeHtml, mailConfigured, sendMail } from '../lib/brevo.js';
 
-// מתקשר שהתקשר כמה פעמים לאותו אולם ולא נענה: נשלח רק מייל אחד (עד שהאולם יענה לו, או עד שעוברות 24 שעות)
-const REPEAT_MS = 24 * 60 * 60 * 1000;
+// מתקשר שהתקשר כמה פעמים לאותו אולם ולא נענה: נשלח רק מייל אחד (עד שהאולם יענה לו, או עד חצות - ההגבלה מתאפסת בכל יום אזרחי)
 
 async function isRepeatMiss(hall, callerPhone) {
   if (!callerPhone) return false; // מספר חסוי: אי אפשר לזהות שזה אותו מתקשר
   try {
-    const last = await mailLog.lastForCaller(hall.id, callerPhone, new Date(Date.now() - REPEAT_MS).toISOString());
+    const last = await mailLog.lastForCaller(hall.id, callerPhone, startOfIsraelDay().toISOString());
     return last?.answered === false; // המייל האחרון שנשלח על המתקשר הזה היה על שיחה שלא נענתה
   } catch (e) {
     console.error('mail-log:', e.message);
