@@ -149,7 +149,7 @@ export async function prompt(s) {
 
 
     case 'voicemail':
-      return ask(s, ['הַשְׁאֵר הוֹדָעָה אַחֲרֵי הַצְּלִיל. אֱמוֹר אֶת שִׁמְךָ וְאֶת מִסְפַּר הַטֵּלֵפוֹן שֶׁלְּךָ, וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'],
+      return ask(s, ['הַשְׁאֵר הוֹדָעָה אַחֲרֵי הַצְּלִיל. אֱמוֹר אֶת שִׁמְךָ וְאֶת סִבַּת הַפְּנִיָּה, וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'],
         recordOptions(IVR.REC_DIR, voicemailFile(s, s.n + 1), IVR.VOICEMAIL_MAX_SEC, true));
 
     case 'ownerInfo':
