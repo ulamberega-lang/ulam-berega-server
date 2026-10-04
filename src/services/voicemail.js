@@ -9,6 +9,7 @@ const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024; // מעבר לזה Brevo עלול�
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export async function saveVoicemail({ path, callerPhone }) {
+  console.log('voicemail: received, downloading', path);
   const audio = await downloadRecording(path);
   if (!audio) return console.error('voicemail: no recording at', path);
   if (!config.brevoKey || !config.mailFrom) return console.error('voicemail: mail is not configured');
@@ -33,4 +34,5 @@ export async function saveVoicemail({ path, callerPhone }) {
     }),
   });
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  console.log(`voicemail: sent ${tooBig ? 'without attachment' : 'with attachment'} (${audio.length} bytes) from ${callerPhone || 'hidden'} to ${config.mailFrom}`);
 }
