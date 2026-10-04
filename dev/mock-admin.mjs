@@ -62,6 +62,8 @@ const makeVoicemails = () => Array.from({ length: 8 }, (_, i) => ({
   caller_phone: i % 4 === 3 ? '' : `05${i % 5}${String(2000000 + i * 311).slice(0, 7)}`,
   yemot_path: `ivr2:/8/vm_${i}.wav`, handled: i % 3 === 0 && i > 0 }));
 let voicemails = makeVoicemails();
+const makePronunciations = () => [{ word: 'ירושלים', nikud: 'יְרוּשָׁלַיִם' }, { word: 'אולם', nikud: 'אוּלָם' }, { word: 'שמחה', nikud: 'שִׂמְחָה' }];
+let pronunciations = makePronunciations();
 const mails = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1, hall_id: i + 1, created_at: new Date(Date.now() - i * 3600e3 * 5).toISOString(), hall_name: `אולם ${['שמחה', 'גן עדן', 'היכל', 'פאר', 'נוף', 'כתר'][i]}`,
   to_email: i === 4 ? '' : `hall${i}@example.com`, caller_phone: i === 2 ? '' : `052${1000000 + i * 4111}`, answered: i % 2 === 0,
@@ -80,7 +82,18 @@ http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const json = (data) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(data)); };
 
-  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
+  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
+  if (url.pathname === '/admin/api/pronunciations') {
+    if (req.method === 'GET') return json(pronunciations);
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    return req.on('end', () => {
+      const { word, nikud } = JSON.parse(body || '{}');
+      pronunciations = pronunciations.filter((p) => p.word !== word);
+      if (req.method === 'PUT') pronunciations.push({ word, nikud });
+      return json(req.method === 'PUT' ? { word, nikud } : { ok: true });
+    });
+  }
   if (url.pathname === '/admin/api/mails') return json(mails);
 
   const vm = /^\/admin\/api\/voicemails(?:\/(\d+)(\/audio)?)?$/.exec(url.pathname);

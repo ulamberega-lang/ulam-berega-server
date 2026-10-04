@@ -77,6 +77,27 @@ export function suggestExtension(halls, city) {
   return null;
 }
 
+// ---------- ניקוד הקראה ----------
+// שמות שאין להם ניקוד בטבלת pronunciations. כל שם מוצע כביטוי שלם (עיר, שכונה, אולם, בית כנסת), גם אם כל מילה בו
+// מנוקדת בנפרד: ההגייה של שתי מילים יחד (סמיכות) שונה מהגייה של כל אחת לבד. dictWords = כל ה-word שבטבלה.
+// מחזיר [{ text, kind }]: kind = city | hood | hall | synagogue
+export function missingPronunciations(halls, dictWords) {
+  const have = new Set(dictWords.map((w) => String(w).trim()));
+  const found = new Map();
+  const add = (value, kind) => {
+    const text = String(value ?? '').trim();
+    if (text && /[א-ת]/.test(text) && !have.has(text) && !found.has(text)) found.set(text, kind); // מספרים בלבד לא צריכים ניקוד
+  };
+  for (const h of halls) {
+    add(h.city_name, 'city');
+    for (const hood of splitHoods(h.neighborhood_name)) add(hood, 'hood');
+    add(h.name, 'hall');
+    add(h.synagogue_name, 'synagogue');
+  }
+  const order = { city: 0, hood: 1, hall: 2, synagogue: 3 };
+  return [...found].map(([text, kind]) => ({ text, kind })).sort((a, b) => order[a.kind] - order[b.kind] || a.text.localeCompare(b.text, 'he'));
+}
+
 // ---------- פירוט "לא נענו" לפי סיבה (כל סיבה בגוון אדום משלה) ----------
 export const REASONS = [
   { key: 'noAnswer', label: 'לא ענו', cls: 'r1' },

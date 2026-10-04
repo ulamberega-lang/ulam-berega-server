@@ -1,7 +1,7 @@
 // בדיקות לפונקציות הנקיות של אתר הניהול. הרצה: npm test
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { suggestExtension, buildRows } from '../public/admin/js/data.js';
+import { suggestExtension, buildRows, missingPronunciations } from '../public/admin/js/data.js';
 import { matches, escapeHtml, percent } from '../public/admin/js/dom.js';
 import { sortBy } from '../public/admin/js/controls.js';
 
@@ -225,4 +225,24 @@ test('splitHoods: כמה שכונות בשדה אחד', () => {
   assert.deepEqual(splitHoods('א,ב / ג'), ['א', 'ב', 'ג']);
   assert.deepEqual(splitHoods('גאולה'), ['גאולה']);
   assert.deepEqual(splitHoods(null), []);
+});
+
+test('missingPronunciations: כל שם מוצע כביטוי שלם, גם אם כל מילה בו מנוקדת לבד', () => {
+  const halls = [
+    { name: 'היכל חמדה 2000', synagogue_name: 'אוהל דוד', city_name: 'בית שמש', neighborhood_name: 'רמת בית שמש ב / גבעה א' },
+    { name: 'אולם כתר', city_name: 'ירושלים', neighborhood_name: 'גאולה' },
+  ];
+  // בטבלה: ירושלים, וגם כל המילים של "אולם כתר" ו"בית שמש" לבד
+  const missing = missingPronunciations(halls, ['ירושלים', 'אולם', 'כתר', 'בית', 'שמש']);
+  assert.deepEqual(missing.map((m) => [m.text, m.kind]), [
+    ['בית שמש', 'city'],
+    ['גאולה', 'hood'], ['גבעה א', 'hood'], ['רמת בית שמש ב', 'hood'],
+    ['אולם כתר', 'hall'], ['היכל חמדה 2000', 'hall'],
+    ['אוהל דוד', 'synagogue'],
+  ]);
+});
+
+test('missingPronunciations: שם שהביטוי השלם שלו בטבלה, או שהוא מספרים בלבד, לא מוצע', () => {
+  const halls = [{ name: 'אולם', city_name: 'הר נוף', neighborhood_name: '2000' }];
+  assert.deepEqual(missingPronunciations(halls, ['הר נוף', 'אולם']), []);
 });

@@ -398,6 +398,20 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .voicemail-table td.handled { order: 4; }
 }
 
+/* ניקוד הקראה */
+/* הערת הסבר מעל סרגל חיפוש */
+.note + .toolbar { margin-top: 10px; }
+.sub-head { margin: 18px 0 8px; font-size: 1rem; }
+.nikud-table td.word, .nikud-missing-table td.word { font-weight: 500; }
+.nk-input { width: 100%; min-width: 220px; }
+.nk-actions { display: flex; gap: 6px; align-items: center; }
+.nk-actions .icon-btn { width: 42px; flex: none; }
+@media (max-width: 700px) {
+  .rt td.nk-actions { grid-column: 1 / -1; }
+  .nk-input { min-width: 0; }
+  .nk-actions .btn { flex: 1; }
+}
+
 @media print {
   .topbar, .toolbar, .range, .icon-btn, .progress { display: none !important; }
   body { background: #fff; }

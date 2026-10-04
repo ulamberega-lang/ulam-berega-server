@@ -10,6 +10,9 @@ async function load() {
   dictionary = new Map(data.map((r) => [r.word.trim(), r.nikud]));
 }
 
+// אחרי שינוי באתר הניהול: טוענים מיד, בלי לחכות לרענון הבא
+export const reloadNikud = () => load();
+
 export function startNikudRefresh() {
   const safeLoad = () => load().catch((e) => console.error('nikud:', e.message));
   safeLoad();

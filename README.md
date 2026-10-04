@@ -24,13 +24,14 @@ src/
     voicemail.js              הודעה קולית (אפשרות 5): שמירה ומייל
     transcriber.js            תמלול הקלטה (ימות → OpenAI), הורדה ומחיקה של הקלטות
     hall-directory.js         אולמות פעילים בזיכרון, וחיפוש לפי כמות/עיר/שכונה
-    nikud.js                  ניקוד שמות להקראה
+    nikud.js                  ניקוד שמות להקראה (טבלת pronunciations)
     keep-alive.js             מונע מ-Render להירדם
   repositories/
     halls.js                  גישה לטבלת האולמות
     calls.js                  גישה ליומן השיחות ולסטטיסטיקה
     voicemails.js             גישה לטבלת ההודעות הקוליות
     mail-log.js               גישה ליומן המיילים
+    pronunciations.js         גישה לטבלת הניקוד
   lib/
     yemot.js                  בניית תשובות בפורמט של ימות
     text-match.js             התאמת מה שנאמר לשמות ערים ושכונות

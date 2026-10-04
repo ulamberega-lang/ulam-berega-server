@@ -177,9 +177,29 @@ check(await p.textContent('#detailsBody [data-act=calls]') === 'יומן השי�
 await p.click('#detailsBody [data-act=calls]'); await p.waitForTimeout(500);
 check(await p.getAttribute('button[data-tab=calls]', 'aria-selected') === 'true', 'מיילים: הכפתור מעביר ליומן השיחות');
 
+// ---- ניקוד הקראה ----
+await p.click('button[data-tab=halls]'); await p.waitForSelector('.hall-card');
+await p.click('#openNikud'); await p.waitForSelector('#nikudMissing tr[data-word]');
+check(await p.getAttribute('button[data-tab=halls]', 'aria-selected') === 'true', 'ניקוד: הלשונית "ניהול אולמות" נשארת מסומנת');
+const missingBefore = await p.$$eval('#nikudMissing tr[data-word]', (t) => t.length);
+check(missingBefore > 0 && await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בני ברק'))), 'ניקוד: מוצעים שמות בלי ניקוד (כולל עיר)');
+check(!(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.trim().startsWith('ירושלים ')))), 'ניקוד: שם שכבר מנוקד בטבלה לא מוצע');
+check(await p.$$eval('#nikudMissing td.word', (t) => t.some((x) => x.textContent.includes('בית שמש'))), 'ניקוד: ביטוי של שתי מילים מוצע כשלם');
+const savedBefore = await p.$$eval('#nikudList tr[data-word]', (t) => t.length);
+await p.fill('#nikudMissing tr[data-word] .nk-input >> nth=0', 'ניקוד לדוגמה');
+await p.click('#nikudMissing tr[data-word] .nk-save >> nth=0'); await p.waitForTimeout(400);
+check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === savedBefore + 1, 'ניקוד: שמירה מעבירה את השם לרשימת הנשמרים');
+check(await p.$$eval('#nikudMissing tr[data-word]', (t) => t.length) === missingBefore - 1, 'ניקוד: השם יוצא מההצעות');
+p.once('dialog', (d) => d.accept());
+await p.click('#nikudList .nk-delete >> nth=0'); await p.waitForTimeout(400);
+check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === savedBefore, 'ניקוד: מחיקה');
+await p.fill('#nikudSearch', 'ירושלים'); await p.waitForTimeout(200);
+check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === 1, 'ניקוד: חיפוש');
+await p.fill('#nikudSearch', '');
+
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
-for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails']) {
+for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'nikud']) {
   await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
   check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
 }

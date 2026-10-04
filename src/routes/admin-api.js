@@ -5,8 +5,10 @@ import { hallsChanged } from '../services/hall-directory.js';
 import * as calls from '../repositories/calls.js';
 import * as voicemails from '../repositories/voicemails.js';
 import * as mailLog from '../repositories/mail-log.js';
+import * as pronunciations from '../repositories/pronunciations.js';
+import { reloadNikud } from '../services/nikud.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
-import { hallFromBody, InputError } from '../lib/hall-input.js';
+import { hallFromBody, plainName, InputError } from '../lib/hall-input.js';
 
 export const adminApi = Router();
 
@@ -36,6 +38,30 @@ adminApi.get('/halls', handle(() => halls.listAll()));
 const saved = (hall) => { hallsChanged(); return hall; };
 adminApi.post('/halls', handle(async (req) => saved(await halls.create(hallFromBody(req.body, true)))));
 adminApi.put('/halls/:id', handle(async (req) => saved(await halls.update(idOf(req), hallFromBody(req.body, false)))));
+
+// ---------- ניקוד הקראה (טבלת pronunciations) ----------
+
+adminApi.get('/pronunciations', handle(() => pronunciations.listAll()));
+
+// הוספה או עדכון. word נשמר בלי ניקוד (כמו שמות האולמות); nikud הוא ההקראה
+adminApi.put('/pronunciations', handle(async (req) => {
+  const word = plainName(req.body?.word);
+  const nikud = String(req.body?.nikud ?? '').replace(/\s+/g, ' ').trim();
+  if (!word || word.length > 100) throw new InputError('חסר שם (עד 100 תווים)');
+  if (!nikud || nikud.length > 200 || !/[א-ת]/.test(nikud)) throw new InputError('חסר ניקוד: יש לכתוב את השם עם ניקוד');
+  if (nikud === word) throw new InputError('הניקוד זהה לשם בלי ניקוד');
+  const row = await pronunciations.save(word, nikud);
+  reloadNikud().catch((e) => console.error('nikud:', e.message)); // ההקראה בטלפון מתעדכנת מיד
+  return row;
+}));
+
+adminApi.delete('/pronunciations', handle(async (req) => {
+  const word = plainName(req.body?.word);
+  if (!word) throw new InputError('חסר שם');
+  await pronunciations.remove(word);
+  reloadNikud().catch((e) => console.error('nikud:', e.message));
+  return { ok: true };
+}));
 
 // ---------- שיחות וסטטיסטיקה ----------
 
