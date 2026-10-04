@@ -190,9 +190,16 @@ await p.waitForFunction(() => document.querySelector('#nikudMissing .nk-input').
 const first = await p.inputValue('#nikudMissing tr[data-word] .nk-input >> nth=0');
 check(first.length > 0 && await p.$eval('#nikudMissing tr[data-word] .nk-input', (i) => i.classList.contains('suggested')), 'ניקוד: הצעה מתמלאת אוטומטית וסומנה כהצעה');
 check(await p.$$eval('#nikudMissing tr[data-word] .nk-input', (t) => t.every((i) => i.value !== '')), 'ניקוד: הצעה בכל השורות');
-// רענון: הצעה אחרת
-await p.click('#nikudMissing tr[data-word] .nk-refresh >> nth=0'); await p.waitForTimeout(400);
-check(await p.inputValue('#nikudMissing tr[data-word] .nk-input >> nth=0') !== first, 'ניקוד: רענון מציע ניקוד אחר');
+// רענון: האפשרות הבאה מהרשימה (מיידי), ואחרי שנגמרו - אפשרויות חדשות; בלי חזרות
+const seenValues = new Set([first]);
+let repeated = false;
+for (let i = 0; i < 5; i++) {
+  await p.click('#nikudMissing tr[data-word] .nk-refresh >> nth=0'); await p.waitForTimeout(350);
+  const v = await p.inputValue('#nikudMissing tr[data-word] .nk-input >> nth=0');
+  if (seenValues.has(v)) repeated = true;
+  seenValues.add(v);
+}
+check(!repeated && seenValues.size === 6, 'ניקוד: חמישה רענונים רצופים נותנים חמש אפשרויות שונות (גם אחרי שנגמרה הרשימה הראשונה)');
 // הצעה שנערכה ידנית לא נדרסת, ושמירה מעבירה לרשימת הנשמרים
 const savedBefore = await p.$$eval('#nikudList tr[data-word]', (t) => t.length);
 await p.fill('#nikudMissing tr[data-word] .nk-input >> nth=0', 'ניקוד לדוגמה');

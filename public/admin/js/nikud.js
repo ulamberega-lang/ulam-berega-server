@@ -17,7 +17,7 @@ let sort;
 // הצעות מ-OpenAI: מוצגות בשדה כטיוטה ולא נשמרות עד לחיצה על "שמור"
 const drafts = new Map();      // שם → מה שמוצג בשדה (הצעה או מה שהוקלד) ועוד לא נשמר
 const suggested = new Set();   // שמות שהוצעה להם הצעה (כדי שהצעה לא תימחק אחרי שהמנהל עורך)
-const previous = new Map();    // שם → הצעות קודמות (הרענון מבקש הצעה אחרת)
+const options = new Map();     // שם → { list: [אפשרויות ניקוד מהסבירה לפחות], index }: "רענון" עובר לאפשרות הבאה בלי קריאה נוספת
 const failed = new Set();      // שמות שההצעה שלהם נכשלה (לא מנסים שוב בלי בקשה מפורשת)
 const kindOf = new Map();      // שם → סוג (city / hood / hall / synagogue)
 const CHUNK = 25;
@@ -68,7 +68,8 @@ async function suggestMissing(isCurrent) {
       try {
         const { suggestions } = await api.suggestPronunciations(chunk.map((m) => ({ text: m.text, kind: m.kind })), {});
         for (const m of chunk) {
-          if (suggestions[m.text] && !drafts.has(m.text)) { drafts.set(m.text, suggestions[m.text]); suggested.add(m.text); previous.set(m.text, [suggestions[m.text]]); }
+          const list = suggestions[m.text];
+          if (list?.length && !drafts.has(m.text)) { drafts.set(m.text, list[0]); suggested.add(m.text); options.set(m.text, { list, index: 0 }); }
           else failed.add(m.text);
         }
         renderNikud();
@@ -84,22 +85,27 @@ async function suggestMissing(isCurrent) {
   }
 }
 
-// כפתור "רענון": הצעה אחרת לשם אחד (גם לשם שכבר נשמר)
+// כפתור "רענון": האפשרות הבאה מהרשימה שהמודל כבר החזיר (מיידי, בלי עלות). כשנגמרו - מבקש אפשרויות חדשות.
+// עובד גם לשם שכבר נשמר (אז ההצעה הראשונה היא אלטרנטיבה לניקוד השמור)
 async function refresh(row) {
   const word = row.dataset.word;
   const button = row.querySelector('.nk-refresh');
   const input = row.querySelector('.nk-input');
+  const show = (value) => { drafts.set(word, value); suggested.add(word); input.value = value; input.classList.add('suggested'); };
+
+  const known = options.get(word);
+  if (known && known.index + 1 < known.list.length) { known.index++; show(known.list[known.index]); return; }
+
   button.disabled = true;
   button.textContent = 'מציע…';
   try {
-    const { suggestions } = await api.suggestPronunciations([{ text: word, kind: kindOf.get(word) ?? '' }], { [word]: [...(previous.get(word) ?? []), input.value.trim()].filter(Boolean) });
-    const next = suggestions[word];
-    if (!next) throw new Error('לא התקבלה הצעה. נסה שוב');
-    previous.set(word, [...(previous.get(word) ?? []), next]);
-    suggested.add(word);
-    drafts.set(word, next);
-    input.value = next;
-    input.classList.add('suggested');
+    const seen = [...(known?.list ?? []), input.value.trim()].filter(Boolean);
+    const { suggestions } = await api.suggestPronunciations([{ text: word, kind: kindOf.get(word) ?? '' }], { [word]: seen });
+    const more = suggestions[word];
+    if (!more?.length) throw new Error('אין עוד הצעות. אפשר להקליד ידנית');
+    const list = [...(known?.list ?? []), ...more];
+    options.set(word, { list, index: list.length - more.length });
+    show(more[0]);
   } catch (err) {
     toast(err.message, 'error');
   } finally {

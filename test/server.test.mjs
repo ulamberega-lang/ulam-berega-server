@@ -249,28 +249,40 @@ test('ניקוד הקראה: הוספה, עדכון, מחיקה ובדיקות �
   assert.equal(withNikud('קריית ספר'), 'קריית ספר');
 });
 
-test('הצעת ניקוד מ-OpenAI: מוצעת ולא נשמרת, הצעות פסולות נזרקות, וכשל מוצג בהודעה', async () => {
+test('הצעת ניקוד מ-OpenAI: כמה אפשרויות, לא נשמרת, פסולות נזרקות, רענון לא חוזר על מה שהוצג, וכשל מוצג בהודעה', async () => {
   db.pronunciations.push({ word: 'שמחה', nikud: 'שִׂמְחָה' });                      // דוגמה מהטבלה
   const suggest = async (items, previous = {}) => { const r = await admin('/admin/api/pronunciations/suggest', 'POST', { items, previous }); return [r.status, await r.json()]; };
 
-  chatReplies.push({ result: { 'בית וגן': 'בֵּית וָגָן', 'גאולה': 'גאולה', 'רמות': 'רָמוֹת.' } });   // השנייה זהה לשם, ובשלישית יש נקודה
+  chatReplies.push({ result: {
+    'בית וגן': { pronunciation: 'beit vagan', options: ['בֵּית וָגָן', 'בַּיִת וָגָן', 'בֵּית וָגָן', 'בית וגן', 'x'] },   // כפולה, זהה לשם ובלי עברית - נזרקות
+    'גאולה': { pronunciation: 'geula', options: ['גאולה'] },                                                       // רק זהה לשם: אין הצעה
+    'רמות': 'רָמוֹת.',                                                                                              // מחרוזת אחת (גם זה מתקבל), הנקודה מוסרת
+  } });
   const [status, body] = await suggest([{ text: 'בית וגן', kind: 'hood' }, { text: 'גאולה', kind: 'hood' }, { text: 'רמות', kind: 'hood' }]);
   assert.equal(status, 200);
-  assert.deepEqual(body.suggestions, { 'בית וגן': 'בֵּית וָגָן', 'רמות': 'רָמוֹת' });
+  assert.deepEqual(body.suggestions, { 'בית וגן': ['בֵּית וָגָן', 'בַּיִת וָגָן'], 'רמות': ['רָמוֹת'] });
   assert.equal(db.pronunciations.length, 1, 'ההצעה לא נשמרת בטבלה');
 
-  // רענון: ההצעות הקודמות נשלחות למודל, כדי שיציע משהו שונה
+  // בקשה נוספת: מה שכבר הוצג נשלח למודל, ומה שהוא מחזיר שוב מסונן
   const realFetchMock = globalThis.fetch;
-  let sent;
-  globalThis.fetch = async (url, opts) => { if (String(url).includes('chat/completions')) sent = JSON.parse(opts.body); return realFetchMock(url, opts); };
+  const sent = [];
+  globalThis.fetch = async (url, opts) => { if (String(url).includes('chat/completions')) sent.push(JSON.parse(opts.body)); return realFetchMock(url, opts); };
   try {
-    chatReplies.push({ result: { 'בית וגן': 'בַּיִת וָגָן' } });
-    const again = await suggest([{ text: 'בית וגן', kind: 'hood' }], { 'בית וגן': ['בֵּית וָגָן'] });
-    assert.equal(again[1].suggestions['בית וגן'], 'בַּיִת וָגָן');
+    chatReplies.push({ result: { 'בית וגן': { options: ['בֵּית וָגָן', 'בֵּית וְגָן', 'בֵּית וֶגָן'] } } });
+    const again = await suggest([{ text: 'בית וגן', kind: 'hood' }], { 'בית וגן': ['בֵּית וָגָן', 'בַּיִת וָגָן'] });
+    assert.deepEqual(again[1].suggestions['בית וגן'], ['בֵּית וְגָן', 'בֵּית וֶגָן'], 'אפשרות שכבר הוצגה לא חוזרת');
+    assert.match(sent[0].messages[1].content, /בַּיִת וָגָן/, 'מה שהוצג נשלח למודל');
+    assert.match(sent[0].messages[1].content, /שמחה → שִׂמְחָה/, 'דוגמה מהטבלה נשלחה');
+    assert.equal(sent[0].temperature, 0.3);
+
+    // דגם שדוחה טמפרטורה: ניסיון חוזר בלי ההגדרה
+    sent.length = 0;
+    chatReplies.push({ __status: 400 }, { result: { 'רמות': { options: ['רָמוֹת'] } } });
+    const retry = await suggest([{ text: 'רמות', kind: 'hood' }]);
+    assert.deepEqual(retry[1].suggestions, { 'רמות': ['רָמוֹת'] });
+    assert.equal(sent.length, 2);
+    assert.equal('temperature' in sent[1], false);
   } finally { globalThis.fetch = realFetchMock; }
-  assert.match(sent.messages[1].content, /בֵּית וָגָן/, 'ההצעה הקודמת נשלחה');
-  assert.match(sent.messages[1].content, /שמחה → שִׂמְחָה/, 'דוגמה מהטבלה נשלחה');
-  assert.equal(sent.temperature, 1);
 
   assert.equal((await suggest([]))[0], 400);
   const failure = await suggest([{ text: 'רמות', kind: 'hood' }]);        // אין תשובה מדומה: OpenAI "נכשל"

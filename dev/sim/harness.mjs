@@ -30,6 +30,7 @@ globalThis.fetch = async (url, opts = {}) => {
   if (u.includes('api.openai.com/v1/chat/completions')) {
     const reply = chatReplies.shift();
     if (reply === undefined) return new Response('boom', { status: 500 });
+    if (reply.__status) return new Response('{"error":{"message":"Unsupported value: temperature"}}', { status: reply.__status }); // דגם שדוחה הגדרה
     return new Response(JSON.stringify({ choices: [{ message: { content: typeof reply === 'string' ? reply : JSON.stringify(reply) } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (u.includes('api.openai.com')) {
