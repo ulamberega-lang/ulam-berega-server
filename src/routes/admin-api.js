@@ -62,15 +62,15 @@ adminApi.put('/pronunciations', handle(async (req) => {
   return row;
 }));
 
-// הצעת ניקוד מ-OpenAI (לא נשמרת). items: [{ text, kind }], previous: { [text]: [הצעות קודמות] }
+// הצעת ניקוד מ-OpenAI (לא נשמרת): לכל שם עד 4 אפשרויות. items: [{ text, kind }], previous: { [text]: [אפשרויות שכבר הוצגו] }
 const SUGGEST_MAX_ITEMS = 30;
 adminApi.post('/pronunciations/suggest', handle(async (req) => {
   const items = (Array.isArray(req.body?.items) ? req.body.items : []).slice(0, SUGGEST_MAX_ITEMS)
     .map((i) => ({ text: plainName(i?.text), kind: String(i?.kind ?? '') })).filter((i) => i.text && i.text.length <= 100);
   if (!items.length) throw new InputError('אין שמות להצעה');
-  const previous = Object.fromEntries(items.map((i) => [i.text, (Array.isArray(req.body?.previous?.[i.text]) ? req.body.previous[i.text] : []).slice(-5).map(String)]));
+  const previous = Object.fromEntries(items.map((i) => [i.text, (Array.isArray(req.body?.previous?.[i.text]) ? req.body.previous[i.text] : []).slice(-12).map(String)]));
   const all = await pronunciations.listAll();
-  const examples = [...all].sort(() => Math.random() - 0.5).slice(0, 12); // דוגמאות מהטבלה שלך, כדי שההצעה תתאים לסגנון
+  const examples = [...all].sort(() => Math.random() - 0.5).slice(0, 25); // דוגמאות מהטבלה שלך, כדי שההצעה תתאים לסגנון
   try {
     return { suggestions: await suggestNikud(items, previous, examples) };
   } catch (e) {

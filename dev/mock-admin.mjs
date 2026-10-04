@@ -89,9 +89,13 @@ http.createServer((req, res) => {
     req.on('data', (chunk) => { body += chunk; });
     return req.on('end', () => {
       const data = JSON.parse(body || '{}');
-      if (url.pathname.endsWith('/suggest')) { // "הצעה": שם + סימן ניקוד; בכל רענון סימן אחר
-        const marks = ['\u05B8', '\u05B6', '\u05B4'];
-        return json({ suggestions: Object.fromEntries(data.items.map((i) => [i.text, `${i.text}${marks[(data.previous?.[i.text]?.length ?? 0) % marks.length]}`])) });
+      if (url.pathname.endsWith('/suggest')) { // שלוש אפשרויות לכל שם (שונות מהקודמות)
+        const marks = ['\u05B8', '\u05B6', '\u05B4', '\u05B7', '\u05B5', '\u05B9'];
+        return json({ suggestions: Object.fromEntries(data.items.map((i) => {
+          const seen = data.previous?.[i.text] ?? [];
+          const list = marks.map((m) => `${i.text}${m}`).filter((x) => !seen.includes(x)).slice(0, 3);
+          return [i.text, list];
+        })) });
       }
       pronunciations = pronunciations.filter((p) => p.word !== data.word);
       if (data.nikud) pronunciations.push({ word: data.word, nikud: data.nikud });
