@@ -48,6 +48,9 @@ export async function findActiveByExtension(extension) {
   return (await activeHalls()).find((h) => h.extension === String(extension)) ?? null;
 }
 
+// ערך מיוחד לשכונה: האולמות בלי שכונה ("אולמות נוספים בעיר" בסוף רשימת השכונות)
+export const NO_HOOD = '__no_hood__';
+
 // בטווח המתאים: מקטן לגדול לפי מקסימום אורחים, ואז לפי שם.
 // size: "larger" - בלי גבול עליון (כשהמתקשר ביקש לשמוע אולמות גדולים יותר);
 //       "smaller" - אולמות קטנים מהטווח, מהגדול לקטן (הקרובים לכמות קודם)
@@ -56,7 +59,8 @@ export async function findActiveByExtension(extension) {
 export function pickHalls(cityHalls, { neighborhood, guests, size }) {
   const min = guests - halls.guestMargin(guests);
   const max = size === 'larger' ? Infinity : halls.guestCeiling(guests);
-  const inScope = cityHalls.filter((h) => !neighborhood || splitHoods(h.neighborhood_name).includes(neighborhood));
+  const inScope = cityHalls.filter((h) => !neighborhood
+    || (neighborhood === NO_HOOD ? !splitHoods(h.neighborhood_name).length : splitHoods(h.neighborhood_name).includes(neighborhood)));
   const byName = (a, b) => a.name.localeCompare(b.name, 'he');
   if (size === 'near') {
     return inScope.filter((h) => h.max_guests < min || h.max_guests > max)
@@ -65,6 +69,9 @@ export function pickHalls(cityHalls, { neighborhood, guests, size }) {
   if (size === 'smaller') return inScope.filter((h) => h.max_guests < min).sort((a, b) => b.max_guests - a.max_guests || byName(a, b));
   return inScope.filter((h) => h.max_guests >= min && h.max_guests <= max).sort((a, b) => a.max_guests - b.max_guests || byName(a, b));
 }
+
+// יש בעיר אולם בלי שכונה בגודל מתאים? (להצגת "אולמות נוספים בעיר" ברשימת השכונות)
+export const hasNoHoodHalls = async (city, guests) => (await searchHalls({ city, neighborhood: NO_HOOD, guests })).length > 0;
 
 export async function searchHalls({ city, neighborhood, guests, size }) {
   return pickHalls(await getActiveHallsInCity(city), { neighborhood, guests, size });

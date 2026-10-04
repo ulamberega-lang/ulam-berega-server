@@ -1,7 +1,7 @@
 // בדיקות שרת מלאות מול מסד נתונים מדומה: הודעות קוליות, יומן מיילים, API אולמות, זרימת שיחה. הרצה: npm test
 import test, { before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { boot, seedHalls, ivr, sleep, emails, yemotCalls, behavior, db, resetDb, realFetch, adminHeaders, strip } from '../dev/sim/harness.mjs';
+import { hallsChanged, transcripts, boot, seedHalls, ivr, sleep, emails, yemotCalls, behavior, db, resetDb, realFetch, adminHeaders, strip } from '../dev/sim/harness.mjs';
 
 let app, headers;
 const admin = (path, method = 'GET', body) => realFetch(app.base + path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -163,4 +163,51 @@ test('כניסה ישירה לשלוחה שלא קיימת, ושלוחה קיי�
   assert.match(strip(missing.text), /שלוחה לא קיימת/);
   const routed = await ivr(app.base, { ApiCallId: 'EX-2', ApiYFCallId: 'EX-2', ApiPhone: '0521234567', ext: '101' });
   assert.match(routed.text, /routing=0501111111/);
+});
+
+test('רשימת שכונות: בסוף הרשימה "אולמות נוספים בעיר" (בלי שכונה); באמירת שם שכונה הם לא מושמעים', async () => {
+  seedHalls([
+    { name: 'אולם גאולה', city_name: 'ירושלים', neighborhood_name: 'גאולה', extension: '111', gabbai_phone: '0501111111', max_guests: 300 },
+    { name: 'אולם רמות', city_name: 'ירושלים', neighborhood_name: 'רמות', extension: '112', gabbai_phone: '0501111112', max_guests: 300 },
+    { name: 'אולם בלי שכונה', city_name: 'ירושלים', extension: '113', gabbai_phone: '0501111113', max_guests: 300 },
+    { name: 'אולם בלי שכונה קטן', city_name: 'ירושלים', extension: '114', gabbai_phone: '0501111114', max_guests: 20 }, // לא מתאים ל-300
+  ]);
+  hallsChanged(); await sleep(100);
+  // שיחה חדשה עד שאלת השכונה: תפריט 1, כמות 300, אישור, עיר (בדיבור), אישור. מחזיר פונקציה לשליחת התשובות הבאות (v6...)
+  const toHoodQuestion = async (id, ...spoken) => {
+    const b = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
+    transcripts.push('ירושלים', ...spoken);
+    let params = b;
+    for (const answer of ['1', '300', '1', '/8/c.wav', '1']) { await ivr(app.base, params); params = { ...params, [`v${Object.keys(params).filter((k) => /^v\d+$/.test(k)).length + 1}`]: answer }; }
+    await ivr(app.base, params);                                   // תשובת "אישור עיר" → שאלת השכונה (n=6)
+    let n = 6;
+    return async (answer) => { params = { ...params, [`v${n++}`]: answer }; return strip((await ivr(app.base, params)).text); };
+  };
+
+  // הקשה 2: רשימה. שתי שכונות ואחריהן "אולמות נוספים בעיר" (3)
+  const list = await toHoodQuestion('NH-1');
+  const menu = await list('2');
+  assert.match(menu, /גאולה הקש 1/);
+  assert.match(menu, /רמות הקש 2/);
+  assert.match(menu, /לאולמות נוספים בעיר הקש 3/);
+  const extra = await list('3');
+  assert.match(extra, /נמצא אולם אחד/);
+  assert.match(extra, /אולם בלי שכונה/);
+  assert.doesNotMatch(extra, /אולם גאולה|בלי שכונה קטן/);
+  assert.doesNotMatch(extra, /בשכונת/, 'אולם בלי שכונה לא מוקרא עם שכונה');
+
+  // בחירת שכונה רגילה מהרשימה: בלי אולמות בלי שכונה
+  const second = await toHoodQuestion('NH-2');
+  await second('2');
+  const hood = await second('1');
+  assert.match(hood, /אולם גאולה/);
+  assert.doesNotMatch(hood, /בלי שכונה/);
+
+  // הקשה 1: אמירת שם שכונה - האולמות בלי שכונה לא מושמעים
+  const third = await toHoodQuestion('NH-3', 'גאולה');
+  await third('1');                       // 1 = אמירה
+  await third('/8/h.wav');                // → אישור שכונה
+  const said = await third('1');
+  assert.match(said, /אולם גאולה/);
+  assert.doesNotMatch(said, /בלי שכונה/);
 });
