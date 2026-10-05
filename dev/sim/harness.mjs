@@ -7,6 +7,9 @@ process.env.BREVO_API_KEY = 'k';
 process.env.MAIL_FROM = 'noreply@example.com';
 process.env.YEMOT_TOKEN = '0777:key';
 process.env.OPENAI_API_KEY = 'sk';
+process.env.WA_ACCESS_TOKEN = 'wa-token';
+process.env.WA_APP_SECRET = 'wa-secret';
+process.env.WA_VERIFY_TOKEN = 'wa-verify';
 process.env.SUPABASE_URL = 'http://fake';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake';
 register('./loader.mjs', import.meta.url);
@@ -16,6 +19,7 @@ export const emails = [];        // מיילים ש-Brevo "קיבלה"
 export const yemotCalls = [];    // כתובות שנקראו בימות (הורדה / מחיקה)
 export const transcripts = [];   // תור הטקסטים ש-OpenAI "ישמע"
 export const chatReplies = [];    // תשובות "OpenAI" להשלמת צ'אט (הצעת ניקוד): מחרוזת JSON או אובייקט
+export const whatsappSent = [];  // הודעות שהבוט שלח ל-Meta
 export const behavior = { brevoStatus: 201 };   // לבדיקת כשל בשליחה
 
 globalThis.fetch = async (url, opts = {}) => {
@@ -25,6 +29,7 @@ globalThis.fetch = async (url, opts = {}) => {
     emails.push(JSON.parse(opts.body));
     return new Response(behavior.brevoStatus < 300 ? '{}' : '{"message":"rejected"}', { status: behavior.brevoStatus });
   }
+  if (u.includes('graph.facebook.com')) { whatsappSent.push({ url: u, body: JSON.parse(opts.body) }); return new Response('{}', { status: 200 }); }
   if (u.includes('DownloadFile')) { yemotCalls.push(u); return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'audio/wav' } }); }
   if (u.includes('FileAction')) { yemotCalls.push(u); return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'content-type': 'application/json' } }); }
   if (u.includes('api.openai.com/v1/chat/completions')) {
