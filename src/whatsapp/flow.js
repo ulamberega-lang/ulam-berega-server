@@ -7,7 +7,7 @@
 // ctx:   { dial } המספר שאליו המשתמש כותב (הוא גם מספר המרכזייה)
 // הודעה: { kind: 'text', text } | { kind: 'buttons', body, buttons: [[id, title]] } | { kind: 'list', body, button, rows: [[id, title, description?]] }
 import * as halls from '../services/hall-directory.js';
-import { splitHoods } from '../lib/hoods.js';
+import { splitHoods, splitNames } from '../lib/hoods.js';
 import { bestMatch, parseNumber } from '../lib/text-match.js';
 import { CITY_WORDS, HALL_WORDS, HOOD_WORDS } from '../ivr/flow.js';
 import { T } from './texts.js';
@@ -256,9 +256,9 @@ export async function handleMessage(s, input, ctx = {}) {
     case 'hallName': {
       if (id === 'h:list') { s.hallChoices = s.cityHalls; s.listPage = 0; return go('hallMenu'); }
       if (!raw) return invalid();
-      const names = [...new Set(s.cityHalls.flatMap((h) => [h.name, h.synagogue_name]).filter(Boolean))];
+      const names = [...new Set(s.cityHalls.flatMap((h) => [...splitNames(h.name), h.synagogue_name]).filter(Boolean))];
       const name = bestMatch(raw, names, { generic: HALL_WORDS });
-      const matches = name ? s.cityHalls.filter((h) => h.name === name || h.synagogue_name === name) : [];
+      const matches = name ? s.cityHalls.filter((h) => splitNames(h.name).includes(name) || h.synagogue_name === name) : [];
       if (matches.length === 1) return hallCard(s, matches[0], ctx);
       if (matches.length) { s.hallChoices = matches; s.listPage = 0; return go('hallMenu'); }
       s.lastName = raw;

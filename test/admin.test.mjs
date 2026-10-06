@@ -219,7 +219,7 @@ test('preset תמיד: מתחילת המערכת ועד היום', () => {
   assert.deepEqual(preset('all'), { from: ALL_FROM, to: today() });
 });
 
-import { splitHoods } from '../public/admin/js/hoods.js';
+import { splitHoods, splitNames, primaryName } from '../public/admin/js/hoods.js';
 test('splitHoods: כמה שכונות בשדה אחד', () => {
   assert.deepEqual(splitHoods('גאולה / בית וגן'), ['גאולה', 'בית וגן']);
   assert.deepEqual(splitHoods('א,ב / ג'), ['א', 'ב', 'ג']);
@@ -245,4 +245,16 @@ test('missingPronunciations: כל שם מוצע כביטוי שלם, גם אם �
 test('missingPronunciations: שם שהביטוי השלם שלו בטבלה, או שהוא מספרים בלבד, לא מוצע', () => {
   const halls = [{ name: 'אולם', city_name: 'הר נוף', neighborhood_name: '2000' }];
   assert.deepEqual(missingPronunciations(halls, ['הר נוף', 'אולם']), []);
+});
+
+test('splitNames / primaryName: אולם עם כמה שמות מופרדים ב-/', () => {
+  assert.deepEqual(splitNames('היכל משה / אולם דוד'), ['היכל משה', 'אולם דוד']);
+  assert.deepEqual(splitNames('אולם כתר'), ['אולם כתר']);
+  assert.equal(primaryName('היכל משה / אולם דוד'), 'היכל משה');
+  assert.equal(primaryName(''), '');
+});
+
+test('missingPronunciations: אולם עם כמה שמות - כל שם מוצע בנפרד', () => {
+  const halls = [{ name: 'היכל משה / אולם דוד', city_name: 'ירושלים' }];
+  assert.deepEqual(missingPronunciations(halls, ['ירושלים']).map((m) => m.text), ['אולם דוד', 'היכל משה']);
 });

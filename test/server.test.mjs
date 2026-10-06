@@ -212,6 +212,22 @@ test('רשימת שכונות: בסוף הרשימה "אולמות נוספים 
   assert.doesNotMatch(said, /בלי שכונה/);
 });
 
+test('אולם עם כמה שמות (/): אפשר לומר כל אחד מהם, ומוקרא הראשון בלבד', async () => {
+  seedHalls([{ name: 'היכל משה / אולם דוד', city_name: 'ירושלים', extension: '121', gabbai_phone: '0501111121', max_guests: 300 }]);
+  hallsChanged(); await sleep(100);
+  for (const [id, said] of [['MN-1', 'דוד'], ['MN-2', 'היכל משה']]) {
+    transcripts.push('ירושלים', said);
+    let params = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
+    let text = '';
+    for (const [i, answer] of [null, '3', '/8/c.wav', '1', '/8/h.wav'].entries()) {
+      if (answer !== null) params = { ...params, [`v${i}`]: answer };
+      text = strip((await ivr(app.base, params)).text);
+    }
+    assert.match(text, /היכל משה/, `נבחר האולם כשאמרו "${said}"`);
+    assert.doesNotMatch(text, /דוד/, 'מוקרא השם הראשון בלבד');
+  }
+});
+
 test('ניקוד הקראה: הוספה, עדכון, מחיקה ובדיקות קלט, וההקראה בטלפון מתעדכנת מיד', async () => {
   const put = async (word, nikud) => { const r = await admin('/admin/api/pronunciations', 'PUT', { word, nikud }); return [r.status, await r.json()]; };
   assert.equal((await realFetch(`${app.base}/admin/api/pronunciations`)).status, 401);
