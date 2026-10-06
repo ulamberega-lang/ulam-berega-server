@@ -1,6 +1,6 @@
 // נתוני אולמות משותפים: שורה לכל אולם עם מספרי השיחות שלו בתקופה.
 import { escapeHtml } from './dom.js';
-import { splitHoods } from './hoods.js';
+import { splitHoods, splitNames } from './hoods.js';
 
 export function buildRows(halls, statsRows) {
   const stats = new Map(statsRows.map((r) => [Number(r.hall_id), r]));
@@ -91,7 +91,7 @@ export function missingPronunciations(halls, dictWords) {
   for (const h of halls) {
     add(h.city_name, 'city');
     for (const hood of splitHoods(h.neighborhood_name)) add(hood, 'hood');
-    add(h.name, 'hall');
+    for (const name of splitNames(h.name)) add(name, 'hall'); // אולם עם כמה שמות: כל שם בנפרד
     add(h.synagogue_name, 'synagogue');
   }
   const order = { city: 0, hood: 1, hall: 2, synagogue: 3 };

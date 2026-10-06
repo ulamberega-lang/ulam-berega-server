@@ -160,3 +160,14 @@ test('webhook: אימות כתובת, חתימה, שליחה וסינון כפי
     assert.match(whatsappSent[2].body.text.body, /מוזמנים/);
   } finally { close(); }
 });
+
+test('אולם עם כמה שמות (/): חיפוש לפי כל שם', async () => {
+  seedHalls([hall('היכל דוד / אולם רחל', '301', 200, 'חיפה')]);
+  hallsChanged(); await sleep(100);
+  for (const name of ['אולם רחל', 'היכל דוד']) {
+    const s = newSession('שלום');
+    await say(s, { id: 'm:name' }); await say(s, 'חיפה');
+    const card = bodyOf(await say(s, name));
+    assert.match(card, /היכל דוד \/ אולם רחל/, name);
+  }
+});

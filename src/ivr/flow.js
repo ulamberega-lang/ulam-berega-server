@@ -15,7 +15,7 @@ import { saveVoicemail } from '../services/voicemail.js';
 import { bestMatch, dropGeneric, normalize, parseNumber } from '../lib/text-match.js';
 import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix, synagogueSuffix } from '../services/nikud.js';
-import { splitHoods } from '../lib/hoods.js';
+import { splitHoods, splitNames, nameFor } from '../lib/hoods.js';
 import { transcribeRecording } from '../services/transcriber.js';
 import { resetSession } from './sessions.js';
 import { OWNER_PARTS, OWNER_OPTIONS } from './owner-info.js';
@@ -83,6 +83,7 @@ export function fallbackToList(s) {
   s.listPage = 0;
   s.cityPage = 0;
   s.hoodPage = 0;
+  s.said = null;
   if (s.step === 'hallSay') s.hallChoices = s.cityHalls;
   s.step = SPEECH_STEPS[s.step].list;
   return prompt(s);
@@ -91,6 +92,7 @@ export function fallbackToList(s) {
 // אחרי שנמצא שם: אולם אחד → אישור; כמה באותו שם → בחירה ביניהם; אף אחד → כל אולמות העיר
 function chooseHall(s, name, pool, spoken) {
   const matches = name ? pool.filter((h) => hasName(h, name)) : [];
+  s.said = matches.length ? name : null; // השם שנאמר, להקראה באישור וב"מעביר"
   if (matches.length === 1) { s.hall = matches[0]; s.step = 'hallOk'; return prompt(s); }
   if (!matches.length && spoken.trim()) {
     return notFound(s, 'hallSay', `לֹא נִמְצָא אוּלָם בְּשֵׁם ${spoken}${s.city ? ` ${withPrefix('ב', s.city)}` : ''}`);
@@ -113,8 +115,8 @@ function notFound(s, step, note) {
 const afterCity = (s) => (s.mode === 'name' ? 'hallSay' : 'hood');
 
 // כל מה שאפשר לומר בחיפוש לפי שם: שם האולם, ושם בית הכנסת שלו
-const uniqueNames = (list) => [...new Set(list.flatMap((h) => [h.name, h.synagogue_name]).filter(Boolean))];
-const hasName = (h, name) => h.name === name || h.synagogue_name === name;
+const uniqueNames = (list) => [...new Set(list.flatMap((h) => [...splitNames(h.name), h.synagogue_name]).filter(Boolean))];
+const hasName = (h, name) => splitNames(h.name).includes(name) || h.synagogue_name === name;
 
 // "בשכונת X". אולם בכמה שכונות: אם חיפשו שכונה שהוא רשום בה - רק היא, אחרת כולן ("בשכונות X ו-Y")
 export function hoodPhrase(hall, searched) {
@@ -126,11 +128,12 @@ export function hoodPhrase(hall, searched) {
 
 // שם אולם להקראה. העיר - באישור, או כשברשימה יש כמה ערים; השכונה - כשיש בעיר שני אולמות באותו שם
 // אולם עם אותו שם באותה עיר: מבדילים לפי שכונה, ואם גם השכונה זהה (או חסרה) - לפי הכתובת
-function hallLabel(hall, list, withCity = new Set(list.map((h) => h.city_name)).size > 1, prefix = '') {
+// said: השם שהמתקשר אמר בחיפוש לפי שם (אולם עם כמה שמות מוקרא בשם שחיפש)
+function hallLabel(hall, list, withCity = new Set(list.map((h) => h.city_name)).size > 1, prefix = '', said = null) {
   const twins = list.filter((h) => h !== hall && h.name === hall.name && h.city_name === hall.city_name
     && (h.synagogue_name ?? '') === (hall.synagogue_name ?? ''));
   const sameHood = twins.some((h) => (h.neighborhood_name ?? '') === (hall.neighborhood_name ?? ''));
-  return (prefix ? withPrefix(prefix, hall.name) : withNikud(hall.name)) + synagogueSuffix(hall)
+  return (prefix ? withPrefix(prefix, nameFor(hall.name, said)) : withNikud(nameFor(hall.name, said))) + synagogueSuffix(hall)
     + (withCity ? ` ${withPrefix('ב', hall.city_name)}` : '')
     + (twins.length && hall.neighborhood_name ? ` ${hoodPhrase(hall)}` : '')
     + (sameHood && hall.address ? ` ${withNikud(hall.address)}` : '');
@@ -187,13 +190,13 @@ export async function prompt(s) {
       s.cityHalls = await halls.getActiveHallsInCity(s.city);
       return ask(s, ['אֱמוֹר אֶת שֵׁם הָאוּלָם אַחֲרֵי הַצְּלִיל וּבְסִיּוּם הַקֵּשׁ סוּלָמִית'], recordAnswer(s));
     case 'hallOk':
-      return ask(s, [`הֵבַנְתִּי ${hallLabel(s.hall, s.cityHalls, true)}`, 'לְמַעֲבָר לָאוּלָם הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tapOptions(1));
+      return ask(s, [`הֵבַנְתִּי ${hallLabel(s.hall, s.cityHalls, true, '', s.said)}`, 'לְמַעֲבָר לָאוּלָם הַקֵּשׁ 1', 'לְתִיקּוּן הַקֵּשׁ 2'], tapOptions(1));
     case 'hallMenu': {
       const list = s.hallChoices;
       const from = s.listPage * IVR.MENU_PAGE;
       s.listMore = list.length > from + IVR.MENU_PAGE;
       return ask(s, ['לְאֵיזֶה אוּלָם',
-        ...list.slice(from, from + IVR.MENU_PAGE).map((h, i) => `${hallLabel(h, list, undefined, 'ל')} הַקֵּשׁ ${i + 1}`),
+        ...list.slice(from, from + IVR.MENU_PAGE).map((h, i) => `${hallLabel(h, list, undefined, 'ל', s.said)} הַקֵּשׁ ${i + 1}`),
         s.listMore && 'לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9',
         'לַאֲמִירַת הַשֵּׁם שׁוּב הַקֵּשׁ 0'], tapOptions(1));
     }
@@ -276,7 +279,7 @@ async function promptResults(s) {
   if (s.page === 0) parts.push(found.length === 1 ? 'נִמְצָא אוּלָם אֶחָד' : `נִמְצְאוּ ${found.length} אוּלַמּוֹת`);
   // מקישים את מספר השלוחה עצמו (למשל 101) - כדי שהמתקשר יזכור אותו לפעם הבאה
   for (const h of page) {
-    parts.push(withNikud(h.name) + synagogueSuffix(h), h.neighborhood_name && hoodPhrase(h, s.hood),
+    parts.push(withNikud(nameFor(h.name)) + synagogueSuffix(h), h.neighborhood_name && hoodPhrase(h, s.hood),
       `עַד ${h.max_guests} אוֹרְחִים`, `לְמַעֲבָר לָאוּלָם הַקֵּשׁ ${h.extension} וְסוּלָמִית`);
   }
   if (s.more) parts.push('לְאוּלַמּוֹת נוֹסָפִים הַקֵּשׁ 9 וְסוּלָמִית');
@@ -363,7 +366,7 @@ export async function handleAnswer(s, q, val, raw) {
       return chooseHall(s, matchName('hallSay', val, uniqueNames(s.cityHalls), HALL_WORDS), s.cityHalls, dropGeneric(val, HALL_WORDS)); // בהודעת "לא נמצא" בלי "אולם" כפול
     }
     case 'hallOk':
-      if (val === '1') return (await routeToHall(q, s.hall.extension, { brief: true })) ?? invalid();
+      if (val === '1') return (await routeToHall(q, s.hall.extension, { brief: true, said: s.said })) ?? invalid();
       if (val === '2') return go('hallSay');
       return retry('לֹא הֵבַנְתִּי');
     case 'hallMenu': {
@@ -371,7 +374,7 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '9' && s.listMore) { s.listPage++; return go('hallMenu'); }
       const hall = pickFromPage(s.hallChoices, s.listPage);
       if (!hall) return invalid();
-      return (await routeToHall(q, hall.extension, { brief: true })) ?? invalid();
+      return (await routeToHall(q, hall.extension, { brief: true, said: s.said })) ?? invalid();
     }
 
     case 'hood':

@@ -212,6 +212,26 @@ test('רשימת שכונות: בסוף הרשימה "אולמות נוספים 
   assert.doesNotMatch(said, /בלי שכונה/);
 });
 
+test('אולם עם כמה שמות (/): חיפוש לפי כל שם, ומוקרא השם שנאמר (באישור ובהעברה)', async () => {
+  seedHalls([{ name: 'היכל משה / אולם דוד', city_name: 'ירושלים', extension: '121', gabbai_phone: '0501111121', max_guests: 300 }]);
+  hallsChanged(); await sleep(100);
+  for (const [id, said, other] of [['MN-1', 'דוד', /משה/], ['MN-2', 'היכל משה', /דוד/]]) {
+    transcripts.push('ירושלים', said);
+    let params = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
+    const texts = [];
+    for (const [i, answer] of [null, '3', '/8/c.wav', '1', '/8/h.wav', '1'].entries()) {
+      if (answer !== null) params = { ...params, [`v${i}`]: answer };
+      texts.push(strip((await ivr(app.base, params)).text));
+    }
+    const [confirm, routing] = texts.slice(-2);
+    assert.match(confirm, new RegExp(said), `באישור נאמר "${said}"`);
+    assert.doesNotMatch(confirm, other);
+    assert.match(routing, /routing=0501111121/);
+    assert.match(routing, new RegExp(`מעביר ל.*${said}`));
+    assert.doesNotMatch(routing, other);
+  }
+});
+
 test('ניקוד הקראה: הוספה, עדכון, מחיקה ובדיקות קלט, וההקראה בטלפון מתעדכנת מיד', async () => {
   const put = async (word, nikud) => { const r = await admin('/admin/api/pronunciations', 'PUT', { word, nikud }); return [r.status, await r.json()]; };
   assert.equal((await realFetch(`${app.base}/admin/api/pronunciations`)).status, 401);
