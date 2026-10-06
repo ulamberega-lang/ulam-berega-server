@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { ivrRouter } from './routes/ivr.js';
 import { adminApi } from './routes/admin-api.js';
 import { adminAuth } from './middleware/admin-auth.js';
+import { whatsappRouter } from './routes/whatsapp.js';
 import { requireJson } from './middleware/admin-guard.js';
 
 const adminSite = fileURLToPath(new URL('../public/admin', import.meta.url));
@@ -16,6 +17,7 @@ export function createApp() {
     res.set({ 'x-frame-options': 'DENY', 'content-security-policy': "frame-ancestors 'none'", 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin' });
     next();
   });
+  app.use('/api/whatsapp', whatsappRouter); // לפני express.json: החתימה מחושבת על הגוף הגולמי
   app.use(express.json());
 
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render

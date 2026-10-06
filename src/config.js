@@ -11,6 +11,9 @@ export const config = {
   brevoKey: process.env.BREVO_API_KEY,
   mailFrom: process.env.MAIL_FROM,
   adminPassword: process.env.ADMIN_PASSWORD,
+  waToken: process.env.WA_ACCESS_TOKEN,               // בוט הוואטסאפ (WhatsApp Cloud API של Meta)
+  waAppSecret: process.env.WA_APP_SECRET,             // לאימות חתימת ה-webhook
+  waVerifyToken: process.env.WA_VERIFY_TOKEN,         // לאימות הכתובת בהגדרת ה-webhook אצל Meta
   publicUrl: process.env.RENDER_EXTERNAL_URL,           // Render מגדיר אוטומטית
 };
 
@@ -23,5 +26,5 @@ export const IVR = {
   RESULTS_PAGE: 5,       // כמה אולמות להקריא בכל פעם
   MENU_PAGE: 8,          // כמה ערים/שכונות בכל עמוד תפריט (9 = עוד)
   SESSION_TTL_MS: 60 * 60 * 1000,
-  CALLER_ID_SUFFIX: '666666',  // הספרות שימות מוסיפה למספר המתקשר (routing_your_id_add בשלוחה הראשית)
+  CALLER_ID_SUFFIX: '000000',  // הספרות שימות מוסיפה למספר המתקשר (routing_your_id_add בשלוחה הראשית)
 };

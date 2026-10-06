@@ -29,7 +29,7 @@
 ## הגדרות בימות (לא בקוד - לא לשנות מהקוד)
 הכתובות בשלוחה הראשית (`api_link`, `routing_api_link`) ובשלוחה 9 (`api_link`) חייבות להצביע על הדומיין הנוכחי של Render (`ulam-berega.onrender.com`). מעבר לשירות אחר = לעדכן את שלושתן.
 - **שלוחה ראשית:** `type=api`, `api_link=.../api/ivr`, וגם:
-  `routing_answer_play=yes` (מי שעונה באולם שומע את M1692), `routing_your_id_add=666666` (ספרות בסוף מספר המתקשר - חייב להתאים ל-`IVR.CALLER_ID_SUFFIX`), `routing_api_send=yes` + `routing_api_link=.../api/ivr/routing-status` (תוצאת החיוג), `api_wait_answer_music_on_hold=yes`.
+  `routing_answer_play=yes` (מי שעונה באולם שומע את M1692), `routing_your_id_add=000000` (ספרות בסוף מספר המתקשר - חייב להתאים ל-`IVR.CALLER_ID_SUFFIX`), `routing_api_send=yes` + `routing_api_link=.../api/ivr/routing-status` (תוצאת החיוג), `api_wait_answer_music_on_hold=yes`.
 - **שלוחה 9:** `type=api`, `api_link=.../api/ivr/no-answer` - לכאן עוברת שיחה שהאולם לא ענה לה.
 - **שלוחה 8:** ריקה. תיקיית ההקלטות הזמניות (`IVR.REC_DIR`).
 
@@ -81,6 +81,13 @@
 - אחרי שמירת אולם מוצגת הודעה (`toast`), ובזמן טעינה מוצג חיווי.
 - הנגן בלשונית "הודעות" שומר בזיכרון עד 5 הקלטות אחרונות ל-5 דקות (`recordingOf` ב-`admin-api.js`), כי Safari שולח כמה בקשות לאותה הקלטה.
 - שם עיצוב `bar` שמור לפס התקדמות השיחות, לא לכותרת.
+
+## בוט וואטסאפ (`src/whatsapp`, `src/routes/whatsapp.js`)
+- ערוץ נוסף לצד הטלפון, על אותו מספר (WhatsApp Cloud API של Meta, ישירות בלי חברה מתווכת). הבוט **רק מוסר מספר שלוחה**: המשתמש מחייג בעצמו למרכזייה ומקיש 2 ושלוחה, ולכן ההעברה, המיילים ויומן השיחות זהים לשיחה רגילה. הבוט לא שולח מיילים ולא רושם שיחות.
+- `flow.js`: מכונת מצבים נפרדת מזרימת הטלפון (אותה לוגיקת חיפוש: `searchHalls`, `noFit`, `near`, `redoGuests`, `NO_HOOD`), `handleMessage(session, {id|text}, ctx)` מחזירה הודעות (`text` / `buttons` עד 3 / `list` עד 10 שורות, 8 פריטים בעמוד + "עוד"). טקסטים בעברית ובאנגלית ב-`texts.js` (שמות אולמות, ערים ושכונות נשארים כפי שהם בטבלה). שפה: אוטומטית לפי ההודעה הראשונה, ואפשר להחליף ב"עוד אפשרויות".
+- webhook: `GET` מאמת כתובת (`WA_VERIFY_TOKEN`), `POST` מאמת חתימת `X-Hub-Signature-256` על הגוף הגולמי (`WA_APP_SECRET`; בלי הסוד - כל בקשה נדחית), עונה 200 מיד ומטפל ברקע, מסנן כפילויות לפי מזהה הודעה, ומטפל בהודעות של אותו משתמש בתור. מזהה המספר (`phone_number_id`) והמספר שמוצג למשתמש מגיעים מהבקשה עצמה. נתיב ה-webhook נטען לפני `express.json()`.
+- משתני סביבה ב-Render: `WA_ACCESS_TOKEN` (טוקן קבוע של System User), `WA_APP_SECRET`, `WA_VERIFY_TOKEN` (מחרוזת שבוחרים ומזינים גם בהגדרת ה-webhook אצל Meta). הכתובת: `https://ulam-berega.onrender.com/api/whatsapp`, ונרשמים לשדה `messages`.
+- מצב השיחה בזיכרון (6 שעות), כמו בטלפון. עדיין לא נעשה: הודעה קולית, סטטיסטיקה לפי ערוץ.
 
 ## אבטחה ואמינות (מסקירת קוד)
 - `/admin/api`: בקשה שמשנה נתונים חייבת להיות JSON, ו-Origin זר נחסם (`src/middleware/admin-guard.js`). טפסים רגילים (`urlencoded`) מתקבלים רק ב-`/api/ivr`, כי ימות שולחת אותם.
