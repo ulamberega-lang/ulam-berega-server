@@ -212,19 +212,23 @@ test('רשימת שכונות: בסוף הרשימה "אולמות נוספים 
   assert.doesNotMatch(said, /בלי שכונה/);
 });
 
-test('אולם עם כמה שמות (/): אפשר לומר כל אחד מהם, ומוקרא הראשון בלבד', async () => {
+test('אולם עם כמה שמות (/): חיפוש לפי כל שם, ומוקרא השם שנאמר (באישור ובהעברה)', async () => {
   seedHalls([{ name: 'היכל משה / אולם דוד', city_name: 'ירושלים', extension: '121', gabbai_phone: '0501111121', max_guests: 300 }]);
   hallsChanged(); await sleep(100);
-  for (const [id, said] of [['MN-1', 'דוד'], ['MN-2', 'היכל משה']]) {
+  for (const [id, said, other] of [['MN-1', 'דוד', /משה/], ['MN-2', 'היכל משה', /דוד/]]) {
     transcripts.push('ירושלים', said);
     let params = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
-    let text = '';
-    for (const [i, answer] of [null, '3', '/8/c.wav', '1', '/8/h.wav'].entries()) {
+    const texts = [];
+    for (const [i, answer] of [null, '3', '/8/c.wav', '1', '/8/h.wav', '1'].entries()) {
       if (answer !== null) params = { ...params, [`v${i}`]: answer };
-      text = strip((await ivr(app.base, params)).text);
+      texts.push(strip((await ivr(app.base, params)).text));
     }
-    assert.match(text, /היכל משה/, `נבחר האולם כשאמרו "${said}"`);
-    assert.doesNotMatch(text, /דוד/, 'מוקרא השם הראשון בלבד');
+    const [confirm, routing] = texts.slice(-2);
+    assert.match(confirm, new RegExp(said), `באישור נאמר "${said}"`);
+    assert.doesNotMatch(confirm, other);
+    assert.match(routing, /routing=0501111121/);
+    assert.match(routing, new RegExp(`מעביר ל.*${said}`));
+    assert.doesNotMatch(routing, other);
   }
 });
 
