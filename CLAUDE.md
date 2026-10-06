@@ -29,7 +29,7 @@
 ## הגדרות בימות (לא בקוד - לא לשנות מהקוד)
 הכתובות בשלוחה הראשית (`api_link`, `routing_api_link`) ובשלוחה 9 (`api_link`) חייבות להצביע על הדומיין הנוכחי של Render (`ulam-berega.onrender.com`). מעבר לשירות אחר = לעדכן את שלושתן.
 - **שלוחה ראשית:** `type=api`, `api_link=.../api/ivr`, וגם:
-  `routing_answer_play=yes` (מי שעונה באולם שומע את M1692), `routing_your_id_add=666666` (ספרות בסוף מספר המתקשר - חייב להתאים ל-`IVR.CALLER_ID_SUFFIX`), `routing_api_send=yes` + `routing_api_link=.../api/ivr/routing-status` (תוצאת החיוג), `api_wait_answer_music_on_hold=yes`.
+  `routing_answer_play=yes` (מי שעונה באולם שומע את M1692), `routing_your_id_add=000000` (ספרות בסוף מספר המתקשר - חייב להתאים ל-`IVR.CALLER_ID_SUFFIX`), `routing_api_send=yes` + `routing_api_link=.../api/ivr/routing-status` (תוצאת החיוג), `api_wait_answer_music_on_hold=yes`.
 - **שלוחה 9:** `type=api`, `api_link=.../api/ivr/no-answer` - לכאן עוברת שיחה שהאולם לא ענה לה.
 - **שלוחה 8:** ריקה. תיקיית ההקלטות הזמניות (`IVR.REC_DIR`).
 

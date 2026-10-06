@@ -26,5 +26,5 @@ export const IVR = {
   RESULTS_PAGE: 5,       // כמה אולמות להקריא בכל פעם
   MENU_PAGE: 8,          // כמה ערים/שכונות בכל עמוד תפריט (9 = עוד)
   SESSION_TTL_MS: 60 * 60 * 1000,
-  CALLER_ID_SUFFIX: '666666',  // הספרות שימות מוסיפה למספר המתקשר (routing_your_id_add בשלוחה הראשית)
+  CALLER_ID_SUFFIX: '000000',  // הספרות שימות מוסיפה למספר המתקשר (routing_your_id_add בשלוחה הראשית)
 };
