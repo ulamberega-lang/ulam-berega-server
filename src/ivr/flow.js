@@ -323,8 +323,8 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '3') { s.mode = 'name'; return go('city'); }
       if (val === '4') return go('ownerInfo');
       if (val === '5') return go('voicemail');
-      // כניסה סמויה לחייגן היוצא (שלוחה 6): רק מספרי בעל הפרויקט; לכל השאר 6 היא בחירה לא תקינה
-      if (val === '6' && isOwnerPhone(q.ApiPhone)) { deleteSession(s.id); await callDiscarded(s.id); return 'go_to_folder=/6'; }
+      // כניסה סמויה לחייגן היוצא (שלוחה 7): רק מספרי בעל הפרויקט; לכל השאר 7 היא בחירה לא תקינה
+      if (val === '7' && isOwnerPhone(q.ApiPhone)) { deleteSession(s.id); await callDiscarded(s.id); return 'go_to_folder=/7'; }
       return invalid();
     case 'voicemail':
       // ההקלטה נשלחת במייל ברקע (לא מעכבת את השיחה), וחוזרים לתפריט הראשי
