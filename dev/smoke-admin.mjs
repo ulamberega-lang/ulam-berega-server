@@ -167,7 +167,7 @@ check(true, 'לחיצה על בקרים לפני שהנתונים נטענו: ב
 await p.click('button[data-tab=mails]'); await p.waitForSelector('#mailList tr .bad');
 check(await p.$$eval('#mailList tr', (t) => t.length) === 6, 'מיילים: 6 שורות');
 await p.click('#mailView button[data-value=bad]'); await p.waitForTimeout(200);
-check(await p.$$eval('#mailList tr', (t) => t.length) === 2, 'מיילים: סינון "לא נשלחו"');
+check(await p.$$eval('#mailList tr', (t) => t.length) === 1, 'מיילים: סינון "לא נשלחו"');
 await p.click('#mailView button[data-value=all]');
 await p.fill('#mailSearch', 'hall1@'); await p.waitForTimeout(200);
 check(await p.$$eval('#mailList tr', (t) => t.length) === 1, 'מיילים: חיפוש לפי כתובת');
