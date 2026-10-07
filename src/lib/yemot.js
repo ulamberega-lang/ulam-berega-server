@@ -29,9 +29,6 @@ export const recordOptions = (dir, file, maxSec, saveOnHangup = false) => `recor
 
 // העברה למספר חיצוני. ערכי routing לפי הסדר: 1 מספר, 6 זיהוי יוצא (routing_your_id), 9 זמן המתנה, 10 מעבר בסיום.
 // (הודעה לעונה וזיהוי יוצא של השלוחה הראשית מוגדרים ב-ext.ini שלה בימות; yourId - רק כשצריך לקבוע זיהוי בהעברה עצמה)
-// בלי noAnswerExt אין ערך עשירי: בסיום השיחה מתנתקים
-export function routeCall(message, phone, waitSec, noAnswerExt, yourId = '') {
-  const values = [phone, '', '', '', '', yourId, '', '', waitSec, noAnswerExt];
-  while (values.at(-1) === '') values.pop();
-  return `id_list_message=${say(message)}&routing=${values.join(',')}`;
-}
+// הערך העשירי (routing_end_goto): ברירת המחדל בימות היא חזרה שלב אחד אחורה, ולכן לניתוק מעבירים hangup
+export const routeCall = (message, phone, waitSec, noAnswerExt, yourId = '') =>
+  `id_list_message=${say(message)}&routing=${[phone, '', '', '', '', yourId, '', '', waitSec, noAnswerExt].join(',')}`;

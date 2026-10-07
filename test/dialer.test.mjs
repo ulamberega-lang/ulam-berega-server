@@ -10,11 +10,11 @@ after(() => app.close());
 
 const dial = (params) => ivr(app.base, { ApiCallId: 'D-1', ApiYFCallId: 'D-1', ApiPhone: '0525645458', ...params }, '/api/dialer');
 
-test('חייגן: מספר מורשה - שאלה, ואחרי מספר תקין routing עם did בערך השישי ובלי שלוחת "אין מענה"', async () => {
+test('חייגן: מספר מורשה - שאלה, ואחרי מספר תקין routing עם did בערך השישי ובסיום מתנתקים (hangup בערך העשירי)', async () => {
   const first = await dial({});
   assert.match(first.text, /^read=t-.*=v1,no,10,1,10,/);
   const routed = await dial({ v1: '0501234567' });
-  assert.match(routed.text, /^id_list_message=t-.*&routing=0501234567,,,,,did,,,60$/);
+  assert.match(routed.text, /^id_list_message=t-.*&routing=0501234567,,,,,did,,,60,hangup$/);
 });
 
 test('חייגן: מספר לא תקין - הודעה ושאלה חוזרת במשתנה חדש, ואחר כך מספר תקין', async () => {
@@ -43,5 +43,5 @@ test('חייגן: לא נרשם ב-leads_log ולא נשלח מייל', async ()
 
 test('routeCall: ההתנהגות הקיימת לא השתנתה, ו-yourId נכנס בערך השישי', () => {
   assert.equal(routeCall(['א'], '0501111111', 35, '/9'), 'id_list_message=t-א&routing=0501111111,,,,,,,,35,/9');
-  assert.equal(routeCall(['א'], '0501111111', 60, '', 'did'), 'id_list_message=t-א&routing=0501111111,,,,,did,,,60');
+  assert.equal(routeCall(['א'], '0501111111', 60, 'hangup', 'did'), 'id_list_message=t-א&routing=0501111111,,,,,did,,,60,hangup');
 });

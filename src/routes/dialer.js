@@ -7,6 +7,7 @@ import { readParams, lastValue, say, tapOptions, routeCall } from '../lib/yemot.
 export const dialerRouter = Router();
 
 const DIAL_WAIT_SEC = 60;
+// בסיום החיוג מתנתקים: בלי ערך עשירי ימות מחזירה את המחייג שלב אחד אחורה (וזה היה שואל מספר שוב)
 const VALID_NUMBER = /^0\d{8,9}$/;
 
 // ימות שולחת את המספר המחייג בפורמט מקומי (0525645458); מקבלים גם 972525645458
@@ -30,5 +31,5 @@ dialerRouter.all('/', (req, res) => {
   if (!VALID_NUMBER.test(number)) return res.send(ask(n + 1, 'מִסְפָּר לֹא תָּקִין'));
 
   console.log(`dialer: ${localDigits(q.ApiPhone)} → ${number}`);
-  return res.send(routeCall(['מְחַיֵּג'], number, DIAL_WAIT_SEC, '', config.dialerCallerId));
+  return res.send(routeCall(['מְחַיֵּג'], number, DIAL_WAIT_SEC, 'hangup', config.dialerCallerId));
 });
