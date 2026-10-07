@@ -25,6 +25,7 @@ class Query {
   delete() { this.op = 'delete'; return this; }
   eq(c, v) { this.filters.push((r) => r[c] === v || (r[c] != null && v != null && String(r[c]) === String(v))); return this; }
   is(c, v) { this.filters.push((r) => (v === null ? r[c] == null : r[c] === v)); return this; }
+  neq(c, v) { this.filters.push((r) => r[c] !== v); return this; }
   not(c, op, v) { if (op === 'is' && v === null) this.filters.push((r) => r[c] != null); return this; }
   gte(c, v) { this.filters.push((r) => r[c] >= v); return this; }
   order(c, o = {}) { this.ord.push([c, o.ascending === false ? -1 : 1]); return this; }

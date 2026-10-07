@@ -67,7 +67,7 @@ let pronunciations = makePronunciations();
 const mails = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1, hall_id: i + 1, created_at: new Date(Date.now() - i * 3600e3 * 5).toISOString(), hall_name: `אולם ${['שמחה', 'גן עדן', 'היכל', 'פאר', 'נוף', 'כתר'][i]}`,
   to_email: i === 4 ? '' : `hall${i}@example.com`, caller_phone: i === 2 ? '' : `052${1000000 + i * 4111}`, answered: i % 2 === 0,
-  status: i === 4 ? 'no_email' : i === 3 ? 'failed' : 'sent', error: i === 3 ? '401 {"message":"Key not found"}' : '' }));
+  status: i === 4 ? 'repeat' : i === 3 ? 'failed' : 'sent', error: i === 3 ? '401 {"message":"Key not found"}' : '' }));
 // WAV של חצי שנייה שקט (8kHz, 16 סיביות), לבדיקת הנגן
 const silentWav = (() => {
   const samples = 4000, data = Buffer.alloc(samples * 2), h = Buffer.alloc(44);

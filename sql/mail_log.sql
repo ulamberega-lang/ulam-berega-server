@@ -1,5 +1,5 @@
 -- יומן המיילים שנשלחים לאולמות (לשונית "מיילים" באתר הניהול). להריץ פעם אחת ב-Supabase → SQL Editor.
--- status: sent (התקבל ב-Brevo) | failed (השליחה נכשלה, הסיבה ב-error) | no_email (לאולם אין כתובת מייל)
+-- status: sent (התקבל ב-Brevo) | failed (השליחה נכשלה, הסיבה ב-error) | repeat (לא נשלח: אותו מתקשר כבר התקשר ולא נענה). אולם בלי כתובת מייל לא נרשם
 create table if not exists mail_log (
   id bigint generated always as identity primary key,
   created_at timestamptz not null default now(),

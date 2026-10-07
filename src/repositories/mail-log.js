@@ -18,5 +18,6 @@ export async function lastForCaller(hallId, callerPhone, since) {
 // ה-500 האחרונים (היומן מיועד לבדיקת תקלות, לא לארכיון)
 export async function listRecent() {
   return unwrap(await supabase.from(TABLE).select('*')
+    .neq('status', 'no_email') // רשומות ישנות של אולם בלי כתובת (כבר לא נרשמות)
     .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(LIMIT));
 }
