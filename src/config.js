@@ -14,6 +14,8 @@ export const config = {
   waToken: process.env.WA_ACCESS_TOKEN,               // בוט הוואטסאפ (WhatsApp Cloud API של Meta)
   waAppSecret: process.env.WA_APP_SECRET,             // לאימות חתימת ה-webhook
   waVerifyToken: process.env.WA_VERIFY_TOKEN,         // לאימות הכתובת בהגדרת ה-webhook אצל Meta
+  ownerPhones: (process.env.OWNER_PHONES || '').split(',').map((p) => p.trim()).filter(Boolean), // מי רשאי להשתמש בחייגן היוצא (/api/dialer)
+  dialerCallerId: process.env.DIALER_CALLER_ID || 'did', // הזיהוי שיוצג לנמען (routing_your_id); did = מספר המערכת, או למשל special.033130858
   publicUrl: process.env.RENDER_EXTERNAL_URL,           // Render מגדיר אוטומטית
 };
 

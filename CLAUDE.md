@@ -24,13 +24,14 @@
 - **Supabase**: טבלאות `halls`, `leads_log`, `pronunciations`, ופונקציות הסטטיסטיקה ב-`sql/call_stats.sql`. שינויי סכמה - קובץ חדש ב-`sql/` שבעל הפרויקט מריץ ב-SQL Editor.
 - **OpenAI** (`gpt-transcribe`): תמלול הקלטות. **Brevo**: מיילים לאולמות (חינם עד 300 ביום).
 
-משתני סביבה: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `YEMOT_TOKEN` (`מספר_מערכת:API_KEY` - מפתח מ"חומת האש" של ימות עם הרשאות DownloadFile ו-FileAction), `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_PASSWORD`.
+משתני סביבה: `OWNER_PHONES` (מספרים שרשאים להשתמש בחייגן היוצא, מופרדים בפסיקים, למשל `0525645458`), `DIALER_CALLER_ID` (אופציונלי, ברירת מחדל `did`), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `YEMOT_TOKEN` (`מספר_מערכת:API_KEY` - מפתח מ"חומת האש" של ימות עם הרשאות DownloadFile ו-FileAction), `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_PASSWORD`.
 
 ## הגדרות בימות (לא בקוד - לא לשנות מהקוד)
 הכתובות בשלוחה הראשית (`api_link`, `routing_api_link`) ובשלוחה 9 (`api_link`) חייבות להצביע על הדומיין הנוכחי של Render (`ulam-berega.onrender.com`). מעבר לשירות אחר = לעדכן את שלושתן.
 - **שלוחה ראשית:** `type=api`, `api_link=.../api/ivr`, וגם:
   `routing_answer_play=yes` (מי שעונה באולם שומע את M1692), `routing_your_id_add=000000` (ספרות בסוף מספר המתקשר - חייב להתאים ל-`IVR.CALLER_ID_SUFFIX`), `routing_api_send=yes` + `routing_api_link=.../api/ivr/routing-status` (תוצאת החיוג), `api_wait_answer_music_on_hold=yes`.
 - **שלוחה 9:** `type=api`, `api_link=.../api/ivr/no-answer` - לכאן עוברת שיחה שהאולם לא ענה לה.
+- **שלוחה 6 (חייגן יוצא):** `type=api`, `api_link=https://ulam-berega.onrender.com/api/dialer`. מי שמחייג אליה ממספר שב-`OWNER_PHONES` מקיש מספר ישראלי (עד 10 ספרות וסולמית), והשרת מעביר אליו את השיחה כשהזיהוי אצל הנמען נקבע בערך השישי של `routing=` (`routing_your_id`, ברירת מחדל `did` = מספר המערכת; אפשר גם `special.033130858` ב-`DIALER_CALLER_ID`). מספר אחר - ניתוק מיד בלי הקראה. זמן המתנה 60 שניות, ובסיום השיחה מתנתקים. לא נרשם ב-`leads_log` ולא נשלחים מיילים, רק שורת לוג `dialer:` (`routes/dialer.js`). הזיהוי מבוסס על מספר המחייג שימות מוסרת (`ApiPhone`).
 - **שלוחה 8:** ריקה. תיקיית ההקלטות הזמניות (`IVR.REC_DIR`).
 
 ## עובדות על ה-API של ימות (נלמדו בניסוי ובפורום f2.freeivr.co.il)

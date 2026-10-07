@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { ivrRouter } from './routes/ivr.js';
 import { adminApi } from './routes/admin-api.js';
 import { adminAuth } from './middleware/admin-auth.js';
+import { dialerRouter } from './routes/dialer.js';
 import { whatsappRouter } from './routes/whatsapp.js';
 import { requireJson } from './middleware/admin-guard.js';
 
@@ -23,6 +24,8 @@ export function createApp() {
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
 
   app.use('/api/ivr', express.urlencoded({ extended: true }), ivrRouter); // רק ימות שולחת טפסים
+
+  app.use('/api/dialer', express.urlencoded({ extended: true }), dialerRouter); // חייגן יוצא: ימות שולחת טפסים
 
   // כניסה: דף משלנו ועוגייה חתומה. דף הכניסה ופעולות הכניסה והיציאה פתוחים; כל השאר מוגן
   const auth = adminAuth(config.adminPassword);

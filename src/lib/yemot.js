@@ -27,7 +27,11 @@ export const tapOptions = (maxDigits, waitSec = 7, allowed = '') => `${maxDigits
 // saveOnHangup: המתקשר שמנתק באמצע ההקלטה (בלי סולמית) - ההקלטה נשמרת
 export const recordOptions = (dir, file, maxSec, saveOnHangup = false) => `record,${dir},${file},no,${saveOnHangup ? 'yes' : ''},,,${maxSec}`;
 
-// העברה למספר חיצוני. ערכי routing לפי הסדר: 1 מספר ... 9 זמן המתנה, 10 מעבר בסיום.
-// (הודעה לעונה וזיהוי יוצא מוגדרים ב-ext.ini של השלוחה הראשית בימות)
-export const routeCall = (message, phone, waitSec, noAnswerExt) =>
-  `id_list_message=${say(message)}&routing=${[phone, '', '', '', '', '', '', '', waitSec, noAnswerExt].join(',')}`;
+// העברה למספר חיצוני. ערכי routing לפי הסדר: 1 מספר, 6 זיהוי יוצא (routing_your_id), 9 זמן המתנה, 10 מעבר בסיום.
+// (הודעה לעונה וזיהוי יוצא של השלוחה הראשית מוגדרים ב-ext.ini שלה בימות; yourId - רק כשצריך לקבוע זיהוי בהעברה עצמה)
+// בלי noAnswerExt אין ערך עשירי: בסיום השיחה מתנתקים
+export function routeCall(message, phone, waitSec, noAnswerExt, yourId = '') {
+  const values = [phone, '', '', '', '', yourId, '', '', waitSec, noAnswerExt];
+  while (values.at(-1) === '') values.pop();
+  return `id_list_message=${say(message)}&routing=${values.join(',')}`;
+}
