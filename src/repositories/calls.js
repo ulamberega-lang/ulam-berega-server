@@ -24,6 +24,11 @@ export async function recordRouting(callId, callerPhone, hallId, calledPhone) {
   }, { onConflict: 'yemot_call_id' }));
 }
 
+// שיחה שלא נחשבת שיחת מערכת (בעל הפרויקט עבר לחייגן היוצא)
+export async function deleteByCallId(callId) {
+  unwrap(await supabase.from(TABLE).delete().eq('yemot_call_id', callId));
+}
+
 export async function findByCallId(callId) {
   return unwrap(await supabase.from(TABLE)
     .select('created_at, answered, hall_id, caller_phone, ended_at, dial_status')

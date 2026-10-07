@@ -7,6 +7,7 @@ process.env.BREVO_API_KEY = 'k';
 process.env.MAIL_FROM = 'noreply@example.com';
 process.env.YEMOT_TOKEN = '0777:key';
 process.env.OPENAI_API_KEY = 'sk';
+process.env.OWNER_PHONES = '0525645458, 0501111111';
 process.env.WA_ACCESS_TOKEN = 'wa-token';
 process.env.WA_APP_SECRET = 'wa-secret';
 process.env.WA_VERIFY_TOKEN = 'wa-verify';
