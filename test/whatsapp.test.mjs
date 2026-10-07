@@ -61,6 +61,18 @@ test('שכונה: כתיבת שם שכונה, ו"אולמות נוספים בע�
   const menu = await say(s2, { id: 'k:pick' });
   assert.ok(rowIds(menu).includes('k:extra'));
   assert.match(bodyOf(await say(s2, { id: 'k:extra' })), /בלי שכונה/);
+
+  // בתוצאות שכונה מוצע "אולמות נוספים בעיר"; בכל העיר ובאולמות בלי שכונה - לא
+  const s3 = newSession('שלום');
+  await say(s3, { id: 'm:search' }); await say(s3, '200'); await say(s3, 'ירושלים');
+  const byHood = await say(s3, 'שכונת גאולה');
+  assert.ok(rowIds(byHood).includes('r:extra'));
+  const extra = await say(s3, { id: 'r:extra' });
+  assert.match(bodyOf(extra), /בלי שכונה/);
+  assert.ok(!rowIds(extra).includes('r:extra'));
+  const s4 = newSession('שלום');
+  await say(s4, { id: 'm:search' }); await say(s4, '200'); await say(s4, 'ירושלים');
+  assert.ok(!rowIds(await say(s4, { id: 'k:all' })).includes('r:extra'));
 });
 
 test('אין אולם בטווח: noFit עם קטנים יותר, ושינוי כמות ממשיך באותה עיר', async () => {

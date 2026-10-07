@@ -151,6 +151,7 @@ async function results(s, ctx, note) {
   const rows = [];
   if (s.more) rows.push(['r:more', t.rMore]);
   if (!s.sizeMode && (await halls.searchHalls({ ...where, size: 'near' })).length) rows.push(['r:near', t.rNear]);
+  if (s.hood && s.hood !== NO_HOOD && !s.sizeMode && await halls.hasNoHoodHalls(s.city, s.guests)) rows.push(['r:extra', cut(t.extraHalls, 24)]);
   if (s.hood) rows.push(['r:hood', t.rHood]);
   rows.push(['r:guests', t.rGuests], ['m:menu', t.back]);
   return withActions(s, body, t.nextButton, rows);
@@ -248,6 +249,7 @@ export async function handleMessage(s, input, ctx = {}) {
     case 'results':
       if (id === 'r:more' && s.more) { s.page++; return go('results'); }
       if (id === 'r:near' && !s.sizeMode) { s.sizeMode = 'near'; s.page = 0; return go('results'); }
+      if (id === 'r:extra' && s.hood && s.hood !== NO_HOOD && !s.sizeMode) { s.hood = NO_HOOD; s.page = 0; return go('results'); }
       if (id === 'r:hood' && s.hood) { s.hood = null; s.hoodPage = 0; return go('hood'); }
       if (id === 'r:guests') { s.redoGuests = true; return go('guests'); }
       return invalid();

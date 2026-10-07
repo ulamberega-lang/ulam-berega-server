@@ -253,6 +253,9 @@ async function noFitChoices(s) {
   return [...choices, 'guests'];
 }
 
+// מציעים "אולמות נוספים בעיר" כשחיפשו שכונה מסוימת (בלי גודל מיוחד) ויש בעיר אולם בלי שכונה בגודל מתאים
+const offerNoHood = async (s) => Boolean(s.hood) && s.hood !== NO_HOOD && !s.sizeMode && halls.hasNoHoodHalls(s.city, s.guests);
+
 async function promptResults(s) {
   const found = await halls.searchHalls({ city: s.city, neighborhood: s.hood, guests: s.guests, size: s.sizeMode });
   if (!found.length) {
@@ -287,6 +290,8 @@ async function promptResults(s) {
   if (!s.sizeMode && (await halls.searchHalls({ city: s.city, neighborhood: s.hood, guests: s.guests, size: 'near' })).length) {
     parts.push('לְאוּלַמּוֹת בְּגֹדֶל קָרוֹב הַקֵּשׁ 7 וְסוּלָמִית');
   }
+  // בחיפוש שכונה מסוימת: דרך לאולמות בעיר שלא רשומה להם שכונה (הם לא מופיעים בחיפוש שכונה)
+  if (await offerNoHood(s)) parts.push('לְאוּלַמּוֹת נוֹסָפִים בָּעִיר הַקֵּשׁ 6 וְסוּלָמִית');
   if (s.hood) parts.push('לְחִיפּוּשׂ בִּשְׁכוּנָה נוֹסֶפֶת הַקֵּשׁ 0 וְסוּלָמִית');
   parts.push('לִשְׁמִיעָה חוֹזֶרֶת הַקֵּשׁ 8 וְסוּלָמִית');
   return ask(s, parts, tapOptions(4, 7)); // סולמית מסיימת מיד; בלעדיה - המתנה עד 7 שניות
@@ -431,6 +436,7 @@ export async function handleAnswer(s, q, val, raw) {
         s.page = 0;
         return go('results');
       }
+      if (val === '6' && await offerNoHood(s)) { s.hood = NO_HOOD; s.page = 0; return go('results'); }
       if (val === '0' && s.hood) { s.hood = null; s.hoodPage = 0; return go('hood'); }
       return invalid();
   }
