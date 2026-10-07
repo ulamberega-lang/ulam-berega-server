@@ -26,7 +26,7 @@ export async function notifyHall({ hallId, callerPhone, startedAt, answered }) {
   const log = (status, error = '') => mailLog.record({ ...entry, status, error: String(error).slice(0, 300) })
     .catch((e) => console.error('mail-log:', e.message));
   if (!mailConfigured()) return log('failed', 'שליחת מיילים לא מוגדרת (BREVO_API_KEY / MAIL_FROM)');
-  if (!hall.gabbai_email) return log('no_email');
+  if (!hall.gabbai_email) return; // אין כתובת: אין מייל שהיה אמור להישלח, ולכן לא נרשם ביומן
   if (!answered && await isRepeatMiss(hall, callerPhone)) return log('repeat');
 
   const when = new Date(startedAt).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });

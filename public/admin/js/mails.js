@@ -11,7 +11,7 @@ const SORTS = [
   { key: 'phone', label: 'מספר מתקשר', text: true },
   { key: 'status', label: 'מצב' },
 ];
-const STATUS = { sent: 'נשלח', failed: 'השליחה נכשלה', no_email: 'אין כתובת מייל לאולם', repeat: 'לא נשלח: אותו מתקשר כבר התקשר ולא נענה' };
+const STATUS = { sent: 'נשלח', failed: 'השליחה נכשלה', repeat: 'לא נשלח: אותו מתקשר כבר התקשר ולא נענה' };
 const GETTERS = {
   when: (m) => Date.parse(m.created_at),
   hall: (m) => m.hall_name || '',
@@ -25,7 +25,7 @@ let term = '';
 let view, sort;
 
 // בעיה = מייל שהיה אמור להישלח ולא נשלח. "repeat" הוא החלטה (לא שולחים מייל שני על אותו מתקשר), לא תקלה
-export const isBad = (m) => m.status === 'failed' || m.status === 'no_email';
+export const isBad = (m) => m.status === 'failed';
 
 let halls = [];
 

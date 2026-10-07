@@ -76,11 +76,11 @@ test('אתר הניהול: רשימה, השמעה (Range), סימון טופל �
   assert.equal((await admin('/admin/api/voicemails/1', 'DELETE', {})).status, 404);
 });
 
-test('יומן מיילים: נשלח / אין כתובת / נכשל', async () => {
+test('יומן מיילים: נשלח / נכשל; אולם בלי כתובת לא נרשם', async () => {
   await callHall('ML-1', '101');
   await callHall('ML-2', '102');
   assert.ok(db.mail_log.some((m) => m.status === 'sent' && m.to_email === 'a@x.com' && m.hall_name === 'אולם א'));
-  assert.ok(db.mail_log.some((m) => m.status === 'no_email' && m.hall_name === 'אולם ב'));
+  assert.ok(!db.mail_log.some((m) => m.hall_name === 'אולם ב'), 'אולם בלי כתובת מייל לא נרשם ביומן');
 
   behavior.brevoStatus = 401;
   await callHall('ML-3', '101');
@@ -88,7 +88,7 @@ test('יומן מיילים: נשלח / אין כתובת / נכשל', async () 
   assert.ok(failed && /401/.test(failed.error), 'כשל בשליחה נרשם עם הסיבה');
 
   const list = await (await admin('/admin/api/mails')).json();
-  assert.equal(list.length, 3);
+  assert.equal(list.length, 2);
   assert.equal((await realFetch(`${app.base}/admin/api/mails`)).status, 401);
 });
 
