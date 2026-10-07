@@ -17,7 +17,9 @@ import * as halls from '../services/hall-directory.js';
 import { withNikud, withPrefix, synagogueSuffix } from '../services/nikud.js';
 import { splitHoods, splitNames, nameFor } from '../lib/hoods.js';
 import { transcribeRecording } from '../services/transcriber.js';
-import { resetSession } from './sessions.js';
+import { resetSession, deleteSession } from './sessions.js';
+import { callDiscarded } from '../services/call-log.js';
+import { isOwnerPhone } from '../lib/owner-phones.js';
 import { OWNER_PARTS, OWNER_OPTIONS } from './owner-info.js';
 import { routeToHall } from './route-to-hall.js';
 
@@ -321,6 +323,8 @@ export async function handleAnswer(s, q, val, raw) {
       if (val === '3') { s.mode = 'name'; return go('city'); }
       if (val === '4') return go('ownerInfo');
       if (val === '5') return go('voicemail');
+      // כניסה סמויה לחייגן היוצא (שלוחה 6): רק מספרי בעל הפרויקט; לכל השאר 6 היא בחירה לא תקינה
+      if (val === '6' && isOwnerPhone(q.ApiPhone)) { deleteSession(s.id); await callDiscarded(s.id); return 'go_to_folder=/6'; }
       return invalid();
     case 'voicemail':
       // ההקלטה נשלחת במייל ברקע (לא מעכבת את השיחה), וחוזרים לתפריט הראשי

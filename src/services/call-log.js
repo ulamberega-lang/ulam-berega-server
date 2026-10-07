@@ -9,6 +9,9 @@ export function callStarted(callId, callerPhone) {
   return calls.recordCallStart(callId, callerPhone).catch(logError('callStarted'));
 }
 
+// בעל הפרויקט עבר מהתפריט הראשי לחייגן היוצא: השיחה לא נרשמת ביומן (ההמשך מגיע לנתיב אחר, ולא היה נסגר)
+export const callDiscarded = (callId) => calls.deleteByCallId(callId).catch(logError('callDiscarded'));
+
 export function callRouted(callId, callerPhone, hall, calledPhone) {
   return calls.recordRouting(callId, callerPhone, hall.id, calledPhone).catch(logError('callRouted'));
 }

@@ -45,3 +45,22 @@ test('routeCall: ההתנהגות הקיימת לא השתנתה, ו-yourId נכ
   assert.equal(routeCall(['א'], '0501111111', 35, '/9'), 'id_list_message=t-א&routing=0501111111,,,,,,,,35,/9');
   assert.equal(routeCall(['א'], '0501111111', 60, 'hangup', 'did'), 'id_list_message=t-א&routing=0501111111,,,,,did,,,60,hangup');
 });
+
+test('כניסה מהתפריט הראשי: 6 ממספר בעל הפרויקט עוברת לשלוחה 6 ולא נרשמת ביומן; מכל מספר אחר - בחירה לא תקינה', async () => {
+  const open = (id, phone) => ivr(app.base, { ApiCallId: id, ApiYFCallId: id, ApiPhone: phone });
+  await open('MD-1', '0525645458');
+  await sleep(100);
+  assert.ok(db.leads_log.some((r) => r.yemot_call_id === 'MD-1'), 'פתיחת שיחה נרשמת');
+  const owner = await ivr(app.base, { ApiCallId: 'MD-1', ApiYFCallId: 'MD-1', ApiPhone: '0525645458', v1: '6' });
+  assert.equal(owner.text, 'go_to_folder=/6');
+  await sleep(100);
+  assert.ok(!db.leads_log.some((r) => r.yemot_call_id === 'MD-1'), 'השיחה נמחקה מהיומן');
+
+  await open('MD-2', '0529999999');
+  const other = await ivr(app.base, { ApiCallId: 'MD-2', ApiYFCallId: 'MD-2', ApiPhone: '0529999999', v1: '6' });
+  assert.match(other.text, /^read=/);
+  assert.ok(!other.text.includes('go_to_folder'));
+  await open('MD-3', '');
+  const hidden = await ivr(app.base, { ApiCallId: 'MD-3', ApiYFCallId: 'MD-3', v1: '6' });
+  assert.ok(!hidden.text.includes('go_to_folder'));
+});
