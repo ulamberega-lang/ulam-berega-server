@@ -202,6 +202,11 @@ test('רשימת שכונות: בסוף הרשימה "אולמות נוספים 
   const hood = await second('1');
   assert.match(hood, /אולם גאולה/);
   assert.doesNotMatch(hood, /בלי שכונה/);
+  assert.match(hood, /לאולמות נוספים בעיר הקש 6/, 'בתוצאות שכונה מוצעים אולמות בלי שכונה');
+  const noHood = await second('6');
+  assert.match(noHood, /אולם בלי שכונה/);
+  assert.doesNotMatch(noHood, /אולם גאולה/);
+  assert.doesNotMatch(noHood, /הקש 6/, 'באולמות בלי שכונה לא מציעים שוב');
 
   // הקשה 1: אמירת שם שכונה - האולמות בלי שכונה לא מושמעים
   const third = await toHoodQuestion('NH-3', 'גאולה');
