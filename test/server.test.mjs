@@ -118,6 +118,32 @@ test('מתקשרים שונים, או אולמות שונים: כל אחד מק�
   assert.equal(emails.length, 2);
 });
 
+test('שיחה שניסתה כמה אולמות: שורה לכל ניסיון ביומן, והניסיון הקודם נסגר', async () => {
+  const b = { ApiCallId: 'AT-1', ApiYFCallId: 'AT-1', ApiPhone: '0521234567' };
+  const status = (DialStatus) => ivr(app.base, { ApiCallId: 'AT-1', ApiYFCallId: 'AT-1', DialStatus, AnswerTime: '12', Phone: '0521234567' }, '/api/ivr/routing-status');
+  await ivr(app.base, b); await ivr(app.base, { ...b, v1: '2' }); await ivr(app.base, { ...b, v1: '2', v2: '101' }); // ניסיון 1: אולם א
+  await sleep(100);
+  await status('BUSY');
+  await ivr(app.base, { ApiCallId: 'AT-1', ApiYFCallId: 'AT-1' }, '/api/ivr/no-answer');                 // שלוחה 9: חזרה לתפריט
+  await sleep(100);
+  await ivr(app.base, { ...b, v1: '2', v2: '101' });                                                     // חזרה לתפריט הראשי (v3)
+  await ivr(app.base, { ...b, v1: '2', v2: '101', v3: '2' });
+  await ivr(app.base, { ...b, v1: '2', v2: '101', v3: '2', v4: '102' });                                  // ניסיון 2: אולם ב
+  await sleep(100);
+  await status('ANSWER');
+  await sleep(250);
+
+  const rows = db.leads_log.filter((r) => r.yemot_call_id === 'AT-1').sort((x, y) => x.attempt - y.attempt);
+  assert.equal(rows.length, 2, 'שורה לכל ניסיון');
+  const [first, second] = rows;
+  assert.equal(first.hall_id, db.halls.find((h) => h.extension === '101').id);
+  assert.equal(first.answered, false); assert.equal(first.dial_status, 'BUSY');
+  assert.ok(first.ended_at, 'הניסיון הראשון נסגר כשנפתח השני');
+  assert.equal(second.hall_id, db.halls.find((h) => h.extension === '102').id);
+  assert.equal(second.answered, true); assert.equal(second.dial_status, 'ANSWER');
+  assert.equal(emails.filter((m) => m.to[0].email === 'a@x.com').length, 1, 'מייל "לא נענתה" לאולם הראשון');
+});
+
 test('API אולמות: קלט לא תקין נדחה בהודעה ברורה, ושמירה תקינה מרעננת את הרשימה הטלפונית', async () => {
   const ok = { name: 'אולם ג', city_name: 'ירושלים', max_guests: 100, extension: '103', gabbai_phone: '0503333333' };
   const post = async (change) => { const r = await admin('/admin/api/halls', 'POST', { ...ok, ...change }); return [r.status, await r.json()]; };

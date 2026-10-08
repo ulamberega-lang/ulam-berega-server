@@ -2,7 +2,7 @@
 -- הטבלאות halls ו-leads_log נוצרו ב-Supabase לפני שהוחלט לשמור קבצי SQL במאגר. המבנה כאן משוחזר מהקוד
 -- (src/repositories, admin-api, call-log) ולא נבדק מול המסד האמיתי: יש להשוות אותו ל-Table Editor ב-Supabase
 -- ולתקן כאן מה שונה. אם נוצרת סביבה חדשה: ליצור את שתי הטבלאות לפי זה, ואז להריץ את שאר קבצי ה-SQL לפי הסדר:
--- call_stats.sql, call_stats_reasons.sql (אחריו), routing_status.sql (אם העמודות חסרות), synagogue_name.sql,
+-- call_stats.sql, call_stats_reasons.sql (אחריו), routing_status.sql (אם העמודות חסרות), call_attempts.sql (אחרי שלושתן), synagogue_name.sql,
 -- pronunciations.sql, voicemails.sql, mail_log.sql.
 
 create table if not exists halls (
@@ -23,7 +23,8 @@ create table if not exists halls (
 create table if not exists leads_log (
   id bigint generated always as identity primary key,
   created_at timestamptz not null default now(),
-  yemot_call_id text not null unique,   -- חובה: upsert ב-calls.js תלוי באילוץ הזה (onConflict)
+  yemot_call_id text not null,          -- אחרי call_attempts.sql: ייחודי רק יחד עם attempt (אינדקס leads_log_call_attempt_key); upsert ב-calls.js תלוי בו
+  attempt integer not null default 1,  -- ניסיון העברה בתוך השיחה (call_attempts.sql); בלי הקובץ אין את העמודה
   caller_phone text not null default '',
   source text,                          -- phone_ivr
   hall_id bigint references halls (id),
