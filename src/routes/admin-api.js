@@ -108,6 +108,8 @@ adminApi.get('/calls', handle((req) => {
 // ---------- הגדרת וואטסאפ (public/admin/whatsapp.html) ----------
 
 adminApi.post('/whatsapp/status', handle((req) => waSetup.phoneStatus(req.body?.phoneId)));
+adminApi.post('/whatsapp/subscribed', handle((req) => waSetup.subscribedApps(req.body?.wabaId)));
+adminApi.post('/whatsapp/subscribe', handle((req) => waSetup.subscribeApp(req.body?.wabaId)));
 adminApi.post('/whatsapp/request-code', handle((req) => waSetup.requestCode(req.body?.phoneId, req.body?.method)));
 adminApi.post('/whatsapp/verify-code', handle((req) => waSetup.verifyCode(req.body?.phoneId, req.body?.code)));
 adminApi.post('/whatsapp/register', handle((req) => waSetup.registerPhone(req.body?.phoneId, req.body?.pin)));

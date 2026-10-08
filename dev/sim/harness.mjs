@@ -30,7 +30,7 @@ globalThis.fetch = async (url, opts = {}) => {
     emails.push(JSON.parse(opts.body));
     return new Response(behavior.brevoStatus < 300 ? '{}' : '{"message":"rejected"}', { status: behavior.brevoStatus });
   }
-  if (u.includes('graph.facebook.com')) { whatsappSent.push({ url: u, body: JSON.parse(opts.body) }); return new Response('{}', { status: 200 }); }
+  if (u.includes('graph.facebook.com')) { whatsappSent.push({ url: u, body: opts.body ? JSON.parse(opts.body) : null }); return new Response('{}', { status: 200 }); }
   if (u.includes('DownloadFile')) { yemotCalls.push(u); return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'audio/wav' } }); }
   if (u.includes('FileAction')) { yemotCalls.push(u); return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'content-type': 'application/json' } }); }
   if (u.includes('api.openai.com/v1/chat/completions')) {

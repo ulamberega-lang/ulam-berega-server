@@ -27,6 +27,10 @@ const sixDigits = (v, what) => {
   return String(v);
 };
 
+// האפליקציות שמנויות להודעות של חשבון הוואטסאפ העסקי (WABA). בלי מנוי Meta לא שולחת הודעות ל-webhook
+export const subscribedApps = (wabaId) => graph(`${idOf(wabaId)}/subscribed_apps`, { method: 'GET' });
+export const subscribeApp = (wabaId) => graph(`${idOf(wabaId)}/subscribed_apps`);
+
 export const phoneStatus = (phoneId) => graph(`${idOf(phoneId)}?fields=${STATUS_FIELDS}`, { method: 'GET' });
 
 export const requestCode = (phoneId, method) =>
