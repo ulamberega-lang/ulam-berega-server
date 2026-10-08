@@ -34,8 +34,15 @@ const reset = (s) => Object.assign(s, { step: 'menu', mode: null, guests: null, 
 // ---------- הצגה ----------
 
 function menu(s, note, t = T[s.lang]) {
-  return [buttons([note, t.menuBody].filter(Boolean).join('\n'), [['m:search', t.search], ['m:name', t.byName], ['m:more', t.more]])];
+  return [list([note, t.menuBody].filter(Boolean).join('\n'), t.menuButton,
+    [['m:search', t.search, t.searchDesc], ['m:name', t.byName, t.byNameDesc], ['x:ext', t.ext, t.extDesc], ['x:owner', t.owner], ['x:lang', t.lang]])];
 }
+
+// קישור חיוג ישיר: דף בשרת שפותח את החייגן עם המספר, 2 והשלוחה (ctx.link = כתובת השרת)
+const dialUrl = (ctx, ext) => {
+  const num = String(ctx.dial ?? '').replace(/\D/g, '');
+  return ctx.link && num && ext ? `${ctx.link}/c/${num}/${ext}` : '';
+};
 
 // הודעה עם רשימת פעולות: אם הטקסט ארוך מדי לגוף ההודעה - נשלח קודם כהודעת טקסט
 function withActions(s, body, button, rows) {
@@ -52,12 +59,12 @@ function pageRows(s, items, label, pageKey, moreLabel, extra) {
   return { rows: [...rows, ...extra], more, from };
 }
 
-const hallLine = (h, t, hood) => {
+const hallLine = (h, t, hood, ctx = {}) => {
   const hoods = splitHoods(h.neighborhood_name);
   const shown = hood && hoods.includes(hood) ? [hood] : hoods;
   return [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
     [shown.length ? `${t.hoodWord} ${shown.join(' / ')}` : '', t.upTo(h.max_guests)].filter(Boolean).join(' · '),
-    `${t.extWord} *${h.extension}*`].join('\n');
+    `${t.extWord} *${h.extension}*`, dialUrl(ctx, h.extension)].filter(Boolean).join('\n');
 };
 
 function hallCard(s, h, ctx) {
@@ -65,7 +72,8 @@ function hallCard(s, h, ctx) {
   const hoods = splitHoods(h.neighborhood_name);
   const body = [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
     [h.address, hoods.length && `${t.hoodWord} ${hoods.join(' / ')}`, h.city_name].filter(Boolean).join(', '),
-    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension)].join('\n');
+    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension),
+    ...(dialUrl(ctx, h.extension) ? [`${t.dialLink}: ${dialUrl(ctx, h.extension)}`] : [])].join('\n');
   s.step = 'menu';
   return [buttons(body, [['m:menu', t.back]])];
 }
@@ -85,8 +93,6 @@ async function show(s, ctx, note) {
   if (['guests', 'city', 'hood', 'hoodMenu'].includes(s.step)) s.sizeMode = null;
   switch (s.step) {
     case 'menu': return menu(s, note);
-    case 'more':
-      return [list(t.moreBody, t.moreButton, [['x:ext', t.ext], ['x:owner', t.owner], ['x:lang', t.lang], ['m:menu', t.back]])];
     case 'guests': return [text(ask(t.askGuests))];
     case 'extEntry': return [text(ask(t.askExt))];
     case 'city': {
@@ -147,7 +153,7 @@ async function results(s, ctx, note) {
   const onPage = found.slice(from, from + RESULTS_PAGE);
   s.more = found.length > from + RESULTS_PAGE;
   const body = [note, s.page === 0 && (found.length === 1 ? t.found1 : t.foundN(found.length)), '',
-    ...onPage.map((h) => `${hallLine(h, t, s.hood)}\n`), t.callAll(ctx.dial)].filter((x) => x !== false && x !== null && x !== undefined).join('\n');
+    ...onPage.map((h) => `${hallLine(h, t, s.hood, ctx)}\n`), t.callAll(ctx.dial)].filter((x) => x !== false && x !== null && x !== undefined).join('\n');
   const rows = [];
   if (s.more) rows.push(['r:more', t.rMore]);
   if (!s.sizeMode && (await halls.searchHalls({ ...where, size: 'near' })).length) rows.push(['r:near', t.rNear]);
@@ -179,13 +185,10 @@ export async function handleMessage(s, input, ctx = {}) {
     case 'menu':
       if (id === 'm:search') { s.mode = 'filters'; return go('guests'); }
       if (id === 'm:name') { s.mode = 'name'; return go('city'); }
-      if (id === 'm:more') return go('more');
-      if (id) return invalid();
-      return show(s, ctx); // טקסט חופשי בתפריט: מציגים אותו שוב
-    case 'more':
       if (id === 'x:ext') return go('extEntry');
       if (id === 'x:owner') { reset(s); return [text(t.ownerInfo), ...menu(s)]; }
-      return invalid();
+      if (id) return invalid();
+      return show(s, ctx); // טקסט חופשי בתפריט: מציגים אותו שוב
     case 'extEntry': {
       const ext = raw.replace(/\D/g, '');
       const hall = ext && await halls.findActiveByExtension(ext);
