@@ -4,6 +4,7 @@ import { Router, raw } from 'express';
 import { config } from '../config.js';
 import { handleMessage, greet, newSession } from '../whatsapp/flow.js';
 import { sendAll } from '../whatsapp/api.js';
+import { localDigits } from '../lib/owner-phones.js';
 
 export const whatsappRouter = Router();
 
@@ -41,13 +42,21 @@ export function inputOf(msg) {
   return { text: '' }; // הקלטה, תמונה וכו': לא נתמך
 }
 
+// 97233130858 → 03-313-0858: בפורמט מקומי וואטסאפ הופך את המספר ללחיץ (פותח חייגן)
+export function prettyPhone(phone) {
+  const d = localDigits(phone);
+  if (d.length === 9) return `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}`;
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return String(phone ?? '');
+}
+
 async function process(phoneId, dial, msg) {
   const from = msg.from;
   const input = inputOf(msg);
   let s = sessions.get(from);
   const isNew = !s;
   if (isNew) { s = newSession(input.text); sessions.set(from, s); }
-  const ctx = { dial, link: config.publicUrl };
+  const ctx = { dial: prettyPhone(dial) };
   const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
   await sendAll(phoneId, from, out);
 }

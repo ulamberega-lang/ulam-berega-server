@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { boot, seedHalls, sleep, hallsChanged, realFetch, whatsappSent } from '../dev/sim/harness.mjs'; // ראשון: מחליף את Supabase
 const { handleMessage, greet, newSession } = await import('../src/whatsapp/flow.js');
 const { toPayload } = await import('../src/whatsapp/api.js');
+const { prettyPhone } = await import('../src/routes/whatsapp.js');
 
 const hall = (name, extension, max, city, hood = null, extra = {}) => ({ name, extension, max_guests: max, min_guests: 0, city_name: city, neighborhood_name: hood, ...extra });
 seedHalls([
@@ -18,7 +19,7 @@ seedHalls([
 hallsChanged();
 await sleep(50);
 
-const ctx = { dial: '02-1234567', link: 'https://x.test' };
+const ctx = { dial: '02-1234567' };
 const say = async (s, input) => handleMessage(s, typeof input === 'string' ? { text: input } : input, ctx);
 const bodyOf = (msgs) => msgs.map((m) => m.text ?? m.body).join('\n');
 const rowIds = (msgs) => msgs.flatMap((m) => (m.rows ?? m.buttons ?? []).map((r) => r[0]));
@@ -45,7 +46,7 @@ test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → �
   const text = bodyOf(res);
   assert.match(text, /אולם א/); assert.match(text, /אולם ב/); assert.match(text, /בלי שכונה/);
   assert.doesNotMatch(text, /ענק/);                          // 900 לא מתאים ל-200
-  assert.match(text, /שלוחה \*101\*/);
+  assert.match(text, /הקישו \*2\*, אחר כך \*101\* ואז/);
   assert.match(text, /02-1234567/);                          // המספר שאליו כתבו
   assert.ok(rowIds(res).includes('r:near'));                 // אולמות בגודל קרוב (ענק)
 });
@@ -109,7 +110,6 @@ test('מספר שלוחה: קיימת → כרטיס; לא קיימת → שוא
   const card = bodyOf(await say(s, '101'));
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
   assert.match(card, /סולמית/);
-  assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
 });
 
 test('אנגלית: מעבר שפה מהתפריט, והטקסטים באנגלית', async () => {
@@ -183,4 +183,9 @@ test('אולם עם כמה שמות (/): חיפוש לפי כל שם', async () 
     const card = bodyOf(await say(s, name));
     assert.match(card, /היכל דוד \/ אולם רחל/, name);
   }
+});
+
+test('מספר המרכזייה מוצג בפורמט מקומי (ליחיד לחיצה בוואטסאפ)', () => {
+  assert.equal(prettyPhone('97233130858'), '03-313-0858');
+  assert.equal(prettyPhone('972525645458'), '052-564-5458');
 });
