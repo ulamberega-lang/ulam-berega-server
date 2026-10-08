@@ -18,7 +18,7 @@ seedHalls([
 hallsChanged();
 await sleep(50);
 
-const ctx = { dial: '02-1234567' };
+const ctx = { dial: '02-1234567', link: 'https://x.test' };
 const say = async (s, input) => handleMessage(s, typeof input === 'string' ? { text: input } : input, ctx);
 const bodyOf = (msgs) => msgs.map((m) => m.text ?? m.body).join('\n');
 const rowIds = (msgs) => msgs.flatMap((m) => (m.rows ?? m.buttons ?? []).map((r) => r[0]));
@@ -32,7 +32,7 @@ test('שפה: טקסט לטיני בהודעה הראשונה → אנגלית, 
 test('ברכה: ברכה ותפריט בשלושה כפתורים', async () => {
   const msgs = await greet(newSession('שלום'), ctx);
   assert.equal(msgs[0].kind, 'text');
-  assert.deepEqual(rowIds(msgs), ['m:search', 'm:name', 'm:more']);
+  assert.deepEqual(rowIds(msgs), ['m:search', 'm:name', 'x:ext', 'x:owner', 'x:lang']);
 });
 
 test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → תוצאות עם מספרי שלוחה והוראת חיוג', async () => {
@@ -104,15 +104,16 @@ test('חיפוש לפי שם: שם אולם ושם בית כנסת, ושם של�
 
 test('מספר שלוחה: קיימת → כרטיס; לא קיימת → שואלים שוב', async () => {
   const s = newSession('שלום');
-  await say(s, { id: 'm:more' }); await say(s, { id: 'x:ext' });
+  await say(s, { id: 'x:ext' });
   assert.match(bodyOf(await say(s, '999')), /לא קיימת/);
   const card = bodyOf(await say(s, '101'));
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
+  assert.match(card, /סולמית/);
+  assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
 });
 
 test('אנגלית: מעבר שפה מהתפריט, והטקסטים באנגלית', async () => {
   const s = newSession('שלום');
-  await say(s, { id: 'm:more' });
   const m = await say(s, { id: 'x:lang' });
   assert.equal(s.lang, 'en');
   assert.match(bodyOf(m), /What would you like/);
@@ -124,7 +125,7 @@ test('"תפריט" חוזר לתפריט בכל שלב, ובחירה לא תקי
   const s = newSession('שלום');
   await say(s, { id: 'm:search' }); await say(s, '200');
   assert.match(bodyOf(await say(s, { id: 'zzz' })), /לא הבנתי/);
-  assert.deepEqual(rowIds(await say(s, 'תפריט')), ['m:search', 'm:name', 'm:more']);
+  assert.deepEqual(rowIds(await say(s, 'תפריט')), ['m:search', 'm:name', 'x:ext', 'x:owner', 'x:lang']);
 });
 
 test('toPayload: קיצור כותרות לפי מגבלות וואטסאפ', () => {
@@ -159,7 +160,7 @@ test('webhook: אימות כתובת, חתימה, שליחה וסינון כפי
     await sleep(100);
     assert.equal(whatsappSent.length, 2);                           // ברכה + תפריט
     assert.equal(whatsappSent[0].url.includes('/PID/messages'), true);
-    assert.equal(whatsappSent[1].body.interactive.type, 'button');
+    assert.equal(whatsappSent[1].body.interactive.type, 'list');
 
     await post(first, sign(first));                                 // אותה הודעה שוב (Meta ניסתה שוב)
     await sleep(100);
