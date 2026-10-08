@@ -192,6 +192,8 @@ test('הגדרת וואטסאפ: דורשת כניסה, בודקת קלט, וק�
   assert.ok(!(await res.text()).includes('wa-token'), 'הטוקן לא חוזר ללקוח');
   assert.equal((await post('register', { phoneId: '123456789', pin: '123456' })).status, 200);
   assert.deepEqual(whatsappSent.at(-1).body, { messaging_product: 'whatsapp', pin: '123456' });
+  assert.equal((await post('waba', { wabaId: '555666777' })).status, 200);
+  assert.match(whatsappSent.at(-1).url, /\/555666777\?fields=.*webhook_configuration/);
   assert.equal((await post('subscribe', { wabaId: 'x' })).status, 400);
   assert.equal((await post('subscribe', { wabaId: '555666777' })).status, 200);
   assert.match(whatsappSent.at(-1).url, /\/555666777\/subscribed_apps$/);

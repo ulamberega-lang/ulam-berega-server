@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { GRAPH } from './api.js';
 import { InputError } from '../lib/hall-input.js';
 
-const STATUS_FIELDS = 'display_phone_number,verified_name,status,name_status,code_verification_status,quality_rating,platform_type,account_mode';
+const STATUS_FIELDS = 'display_phone_number,verified_name,status,name_status,code_verification_status,quality_rating,platform_type,account_mode,webhook_configuration';
 
 async function graph(path, { method = 'POST', body } = {}) {
   if (!config.waToken) throw new InputError('WA_ACCESS_TOKEN לא מוגדר ב-Render', 400);
@@ -28,6 +28,10 @@ const sixDigits = (v, what) => {
 };
 
 // האפליקציות שמנויות להודעות של חשבון הוואטסאפ העסקי (WABA). בלי מנוי Meta לא שולחת הודעות ל-webhook
+// פרטי החשבון העסקי: כתובת webhook שמוגדרת עליו (override) גוברת על זו שבאפליקציה
+export const wabaStatus = (wabaId) =>
+  graph(`${idOf(wabaId)}?fields=name,account_review_status,business_verification_status,webhook_configuration`, { method: 'GET' });
+
 export const subscribedApps = (wabaId) => graph(`${idOf(wabaId)}/subscribed_apps`, { method: 'GET' });
 export const subscribeApp = (wabaId) => graph(`${idOf(wabaId)}/subscribed_apps`);
 
