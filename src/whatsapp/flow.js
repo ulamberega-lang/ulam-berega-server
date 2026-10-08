@@ -59,12 +59,18 @@ const telLink = (ctx, ext) => {
   return num ? `tel:${num},2,${ext}#` : '';
 };
 
+// קישור https לדף שפותח חייגן (לאנדרואיד, שבו וואטסאפ לא מפעילה קישורי tel:)
+const dialPage = (ctx, ext, t) => {
+  const num = String(ctx.dial ?? '').replace(/\D/g, '');
+  return ctx.link && num ? `${t.dialPage}: ${ctx.link}/c/${num}/${ext}` : undefined;
+};
+
 const hallLine = (h, t, hood, ctx = {}) => {
   const hoods = splitHoods(h.neighborhood_name);
   const shown = hood && hoods.includes(hood) ? [hood] : hoods;
   return [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
     [shown.length ? `${t.hoodWord} ${shown.join(' / ')}` : '', t.upTo(h.max_guests)].filter(Boolean).join(' · '),
-    t.hallDial(h.extension), telLink(ctx, h.extension)].filter(Boolean).join('\n');
+    t.hallDial(h.extension), telLink(ctx, h.extension), dialPage(ctx, h.extension, t)].filter(Boolean).join('\n');
 };
 
 function hallCard(s, h, ctx) {
@@ -72,7 +78,7 @@ function hallCard(s, h, ctx) {
   const hoods = splitHoods(h.neighborhood_name);
   const body = [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
     [h.address, hoods.length && `${t.hoodWord} ${hoods.join(' / ')}`, h.city_name].filter(Boolean).join(', '),
-    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), telLink(ctx, h.extension)].filter((x) => x !== undefined).join('\n');
+    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), telLink(ctx, h.extension), dialPage(ctx, h.extension, t)].filter((x) => x !== undefined).join('\n');
   s.step = 'menu';
   return [buttons(body, [['m:menu', t.back]])];
 }
