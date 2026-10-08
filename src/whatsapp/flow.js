@@ -58,7 +58,7 @@ const hallLine = (h, t, hood) => {
   const shown = hood && hoods.includes(hood) ? [hood] : hoods;
   return [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
     [shown.length ? `${t.hoodWord} ${shown.join(' / ')}` : '', t.upTo(h.max_guests)].filter(Boolean).join(' · '),
-    `${t.extWord} *${h.extension}*`].join('\n');
+    t.hallDial(h.extension)].join('\n');
 };
 
 function hallCard(s, h, ctx) {

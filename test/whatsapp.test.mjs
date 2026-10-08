@@ -46,7 +46,7 @@ test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → �
   const text = bodyOf(res);
   assert.match(text, /אולם א/); assert.match(text, /אולם ב/); assert.match(text, /בלי שכונה/);
   assert.doesNotMatch(text, /ענק/);                          // 900 לא מתאים ל-200
-  assert.match(text, /שלוחה \*101\*/);
+  assert.match(text, /הקישו \*2\*, אחר כך \*101\* ואז/);
   assert.match(text, /02-1234567/);                          // המספר שאליו כתבו
   assert.ok(rowIds(res).includes('r:near'));                 // אולמות בגודל קרוב (ענק)
 });
