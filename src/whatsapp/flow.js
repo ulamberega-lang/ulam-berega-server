@@ -53,32 +53,25 @@ function pageRows(s, items, label, pageKey, moreLabel, extra) {
   return { rows: [...rows, ...extra], more, from };
 }
 
-// ניסוי: קישור tel: עם שלוחה (פסיק = השהיה). לא בטוח שוואטסאפ הופכת אותו ללחיץ
-const telLink = (ctx, ext) => {
-  const num = String(ctx.dial ?? '').replace(/\D/g, '');
-  return num ? `tel:${num},2,${ext}#` : '';
-};
-
-// קישור https לדף שפותח חייגן (לאנדרואיד, שבו וואטסאפ לא מפעילה קישורי tel:)
+// קישור https לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
 const dialPage = (ctx, ext, t) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
   return ctx.link && num ? `${t.dialPage}: ${ctx.link}/c/${num}/${ext}` : undefined;
 };
 
-const hallLine = (h, t, hood, ctx = {}) => {
+// הודעת אולם אחת (בכרטיס ובכל אולם ברשימת התוצאות): שם, כתובת, אורחים, הוראת חיוג וקישור
+const hallBlock = (h, t, ctx = {}, hood) => {
   const hoods = splitHoods(h.neighborhood_name);
   const shown = hood && hoods.includes(hood) ? [hood] : hoods;
+  const link = dialPage(ctx, h.extension, t);
   return [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
-    [shown.length ? `${t.hoodWord} ${shown.join(' / ')}` : '', t.upTo(h.max_guests)].filter(Boolean).join(' · '),
-    t.hallDial(h.extension), telLink(ctx, h.extension), dialPage(ctx, h.extension, t)].filter(Boolean).join('\n');
+    [h.address, shown.length && `${t.hoodWord} ${shown.join(' / ')}`, h.city_name].filter(Boolean).join(', '),
+    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), ...(link ? ['', link] : [])].join('\n');
 };
 
 function hallCard(s, h, ctx) {
   const t = T[s.lang];
-  const hoods = splitHoods(h.neighborhood_name);
-  const body = [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
-    [h.address, hoods.length && `${t.hoodWord} ${hoods.join(' / ')}`, h.city_name].filter(Boolean).join(', '),
-    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), telLink(ctx, h.extension), dialPage(ctx, h.extension, t)].filter((x) => x !== undefined).join('\n');
+  const body = hallBlock(h, t, ctx);
   s.step = 'menu';
   return [buttons(body, [['m:menu', t.back]])];
 }
@@ -158,7 +151,7 @@ async function results(s, ctx, note) {
   const onPage = found.slice(from, from + RESULTS_PAGE);
   s.more = found.length > from + RESULTS_PAGE;
   const body = [note, s.page === 0 && (found.length === 1 ? t.found1 : t.foundN(found.length)), '',
-    ...onPage.map((h) => `${hallLine(h, t, s.hood, ctx)}\n`), t.callAll(ctx.dial)].filter((x) => x !== false && x !== null && x !== undefined).join('\n');
+    ...onPage.flatMap((h) => [hallBlock(h, t, ctx, s.hood), ''])].filter((x) => x !== false && x !== null && x !== undefined).join('\n');
   const rows = [];
   if (s.more) rows.push(['r:more', t.rMore]);
   if (!s.sizeMode && (await halls.searchHalls({ ...where, size: 'near' })).length) rows.push(['r:near', t.rNear]);

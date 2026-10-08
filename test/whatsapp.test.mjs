@@ -46,7 +46,9 @@ test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → �
   const text = bodyOf(res);
   assert.match(text, /אולם א/); assert.match(text, /אולם ב/); assert.match(text, /בלי שכונה/);
   assert.doesNotMatch(text, /ענק/);                          // 900 לא מתאים ל-200
-  assert.match(text, /הקישו \*2\*, אחר כך \*101\* ואז/);
+  assert.match(text, /הקישו \*2\*, \*101\*, \*ו-#\*\./);
+  assert.match(text, /או לחצו על הקישור: https:\/\/x\.test\/c\/021234567\/101/);
+  assert.match(text, /רחוב א 1, שכונת גאולה, ירושלים/);               // כתובת ועיר בכל אולם
   assert.match(text, /02-1234567/);                          // המספר שאליו כתבו
   assert.ok(rowIds(res).includes('r:near'));                 // אולמות בגודל קרוב (ענק)
 });
@@ -109,8 +111,7 @@ test('מספר שלוחה: קיימת → כרטיס; לא קיימת → שוא
   assert.match(bodyOf(await say(s, '999')), /לא קיימת/);
   const card = bodyOf(await say(s, '101'));
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
-  assert.match(card, /סולמית/);
-  assert.match(card, /tel:021234567,2,101#/);
+  assert.match(card, /הקישו \*2\*, \*101\*, \*ו-#\*\./);
   assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
 });
 
