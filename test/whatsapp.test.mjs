@@ -19,7 +19,7 @@ seedHalls([
 hallsChanged();
 await sleep(50);
 
-const ctx = { dial: '02-1234567' };
+const ctx = { dial: '02-1234567', link: 'https://x.test' };
 const say = async (s, input) => handleMessage(s, typeof input === 'string' ? { text: input } : input, ctx);
 const bodyOf = (msgs) => msgs.map((m) => m.text ?? m.body).join('\n');
 const rowIds = (msgs) => msgs.flatMap((m) => (m.rows ?? m.buttons ?? []).map((r) => r[0]));
@@ -111,6 +111,7 @@ test('מספר שלוחה: קיימת → כרטיס; לא קיימת → שוא
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
   assert.match(card, /סולמית/);
   assert.match(card, /tel:021234567,2,101#/);
+  assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
 });
 
 test('אנגלית: מעבר שפה מהתפריט, והטקסטים באנגלית', async () => {

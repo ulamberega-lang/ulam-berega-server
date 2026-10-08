@@ -69,7 +69,7 @@ async function process(phoneId, dial, msg) {
   let s = sessions.get(from);
   const isNew = !s;
   if (isNew) { s = newSession(input.text); sessions.set(from, s); }
-  const ctx = { dial: prettyPhone(dial) };
+  const ctx = { dial: prettyPhone(dial), link: config.publicUrl };
   const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
   await sendAll(phoneId, from, out);
 }
