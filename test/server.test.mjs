@@ -166,6 +166,15 @@ test('אולם לא ענה: "הקו תפוס" כשהתוצאה BUSY (גם אם �
   assert.match(plain, /אין מענה באולם/); assert.doesNotMatch(plain, /תפוס/);
 });
 
+test('דף נחיתה ומדיניות פרטיות פומביים (בלי כניסה)', async () => {
+  const home = await realFetch(app.base + '/');
+  assert.equal(home.status, 200);
+  assert.match(await home.text(), /שמחה בשיחה/);
+  const privacy = await realFetch(app.base + '/privacy');
+  assert.equal(privacy.status, 200);
+  assert.match(await privacy.text(), /מדיניות פרטיות/);
+});
+
 test('API אולמות: קלט לא תקין נדחה בהודעה ברורה, ושמירה תקינה מרעננת את הרשימה הטלפונית', async () => {
   const ok = { name: 'אולם ג', city_name: 'ירושלים', max_guests: 100, extension: '103', gabbai_phone: '0503333333' };
   const post = async (change) => { const r = await admin('/admin/api/halls', 'POST', { ...ok, ...change }); return [r.status, await r.json()]; };

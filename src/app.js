@@ -10,6 +10,7 @@ import { whatsappRouter } from './routes/whatsapp.js';
 import { requireJson } from './middleware/admin-guard.js';
 
 const adminSite = fileURLToPath(new URL('../public/admin', import.meta.url));
+const publicSite = fileURLToPath(new URL('../public/site', import.meta.url));
 
 export function createApp() {
   const app = express();
@@ -22,6 +23,9 @@ export function createApp() {
   app.use(express.json());
 
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
+  // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)
+  app.get('/', (req, res) => res.sendFile(`${publicSite}/index.html`));
+  app.get('/privacy', (req, res) => res.sendFile(`${publicSite}/privacy.html`));
 
   app.use('/api/ivr', express.urlencoded({ extended: true }), ivrRouter); // רק ימות שולחת טפסים
 
