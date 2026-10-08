@@ -53,10 +53,10 @@ function pageRows(s, items, label, pageKey, moreLabel, extra) {
   return { rows: [...rows, ...extra], more, from };
 }
 
-// ניסוי: קישור tel: עם שלוחה (פסיק = השהיה). לא בטוח שוואטסאפ הופכת אותו ללחיץ
+// קישור tel: עם שלוחה. כל פסיק = השהיה: בלי מספיק השהיה הספרות מגיעות לפני שהמרכזייה מוכנה, וימות מפרשת אותן כשלוחה ("השלוחה לא עובדת")
 const telLink = (ctx, ext) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
-  return num ? `tel:${num},2,${ext}#` : '';
+  return num ? `tel:${num},,,2,,,${ext}#` : '';
 };
 
 const hallLine = (h, t, hood, ctx = {}) => {

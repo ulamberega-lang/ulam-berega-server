@@ -110,7 +110,7 @@ test('מספר שלוחה: קיימת → כרטיס; לא קיימת → שוא
   const card = bodyOf(await say(s, '101'));
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
   assert.match(card, /סולמית/);
-  assert.match(card, /tel:021234567,2,101#/);
+  assert.match(card, /tel:021234567,,,2,,,101#/);
 });
 
 test('אנגלית: מעבר שפה מהתפריט, והטקסטים באנגלית', async () => {
