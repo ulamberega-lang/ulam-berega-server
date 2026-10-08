@@ -7,7 +7,7 @@ let idSeq = 1000;
 // ערכי ברירת מחדל של עמודות (כמו ב-sql/), כי המסד האמיתי ממלא אותן
 const DEFAULTS = {
   voicemails: () => ({ handled: false }),
-  leads_log: () => ({ answered: null, dial_status: null, answer_sec: null, ended_at: null, hall_id: null }),
+  leads_log: () => ({ attempt: 1, answered: null, dial_status: null, answer_sec: null, ended_at: null, hall_id: null }),
 };
 const withDefaults = (table, row) => ({ id: ++idSeq, created_at: new Date().toISOString(), ...(DEFAULTS[table]?.() ?? {}), ...row });
 
@@ -52,7 +52,7 @@ class Query {
     } else if (this.op === 'delete') {
       out = rows.filter(match); out.forEach((r) => rows.splice(rows.indexOf(r), 1));
     } else if (this.op === 'upsert') {
-      const key = this.opts.onConflict; let row = rows.find((x) => x[key] === this.payload[key]);
+      const keys = String(this.opts.onConflict).split(','); let row = rows.find((x) => keys.every((k) => x[k] === this.payload[k]));
       if (row) Object.assign(row, this.payload); else { row = withDefaults(this.table, this.payload); rows.push(row); }
       out = [{ ...row }];
     }
