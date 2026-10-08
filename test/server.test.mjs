@@ -1,7 +1,7 @@
 // בדיקות שרת מלאות מול מסד נתונים מדומה: הודעות קוליות, יומן מיילים, API אולמות, זרימת שיחה. הרצה: npm test
 import test, { before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { hallsChanged, transcripts, chatReplies, boot, seedHalls, ivr, sleep, emails, yemotCalls, behavior, db, resetDb, realFetch, adminHeaders, strip } from '../dev/sim/harness.mjs';
+import { whatsappSent, hallsChanged, transcripts, chatReplies, boot, seedHalls, ivr, sleep, emails, yemotCalls, behavior, db, resetDb, realFetch, adminHeaders, strip } from '../dev/sim/harness.mjs';
 
 let app, headers;
 const admin = (path, method = 'GET', body) => realFetch(app.base + path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -173,6 +173,25 @@ test('דף נחיתה ומדיניות פרטיות פומביים (בלי כנ�
   const privacy = await realFetch(app.base + '/privacy');
   assert.equal(privacy.status, 200);
   assert.match(await privacy.text(), /מדיניות פרטיות/);
+});
+
+test('הגדרת וואטסאפ: דורשת כניסה, בודקת קלט, וקוראת ל-Meta בלי לחשוף את הטוקן', async () => {
+  const post = (path, body, authed = true) => realFetch(`${app.base}/admin/api/whatsapp/${path}`, { method: 'POST', headers: authed ? headers : { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  assert.equal((await post('status', { phoneId: '123456789' }, false)).status, 401);
+  assert.equal((await post('status', { phoneId: 'abc' })).status, 400);
+  assert.equal((await post('verify-code', { phoneId: '123456789', code: '12' })).status, 400);
+  assert.equal((await post('register', { phoneId: '123456789', pin: '1234567' })).status, 400);
+
+  const before = whatsappSent.length;
+  const res = await post('request-code', { phoneId: '123456789', method: 'VOICE' });
+  assert.equal(res.status, 200);
+  const sent = whatsappSent.at(-1);
+  assert.equal(whatsappSent.length, before + 1);
+  assert.match(sent.url, /\/123456789\/request_code$/);
+  assert.deepEqual(sent.body, { code_method: 'VOICE', language: 'he' });
+  assert.ok(!(await res.text()).includes('wa-token'), 'הטוקן לא חוזר ללקוח');
+  assert.equal((await post('register', { phoneId: '123456789', pin: '123456' })).status, 200);
+  assert.deepEqual(whatsappSent.at(-1).body, { messaging_product: 'whatsapp', pin: '123456' });
 });
 
 test('API אולמות: קלט לא תקין נדחה בהודעה ברורה, ושמירה תקינה מרעננת את הרשימה הטלפונית', async () => {

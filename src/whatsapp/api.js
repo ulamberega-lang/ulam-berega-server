@@ -1,7 +1,7 @@
 // שליחת הודעות דרך WhatsApp Cloud API של Meta.
 import { config } from '../config.js';
 
-const GRAPH = 'https://graph.facebook.com/v21.0';
+export const GRAPH = 'https://graph.facebook.com/v26.0';
 const cut = (s, n) => (String(s).length > n ? `${String(s).slice(0, n - 1)}…` : String(s));
 
 // הודעה פנימית (flow.js) → גוף הבקשה של Meta. אורכי שדות לפי מגבלות וואטסאפ
