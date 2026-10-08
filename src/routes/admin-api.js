@@ -10,6 +10,7 @@ import { reloadNikud } from '../services/nikud.js';
 import { suggestNikud } from '../services/nikud-suggest.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
 import { hallFromBody, plainName, InputError } from '../lib/hall-input.js';
+import * as waSetup from '../whatsapp/setup.js';
 
 export const adminApi = Router();
 
@@ -103,6 +104,13 @@ adminApi.get('/calls', handle((req) => {
   const { from, to, hallId } = range(req);
   return calls.listCalls(from, to, hallId);
 }));
+
+// ---------- הגדרת וואטסאפ (public/admin/whatsapp.html) ----------
+
+adminApi.post('/whatsapp/status', handle((req) => waSetup.phoneStatus(req.body?.phoneId)));
+adminApi.post('/whatsapp/request-code', handle((req) => waSetup.requestCode(req.body?.phoneId, req.body?.method)));
+adminApi.post('/whatsapp/verify-code', handle((req) => waSetup.verifyCode(req.body?.phoneId, req.body?.code)));
+adminApi.post('/whatsapp/register', handle((req) => waSetup.registerPhone(req.body?.phoneId, req.body?.pin)));
 
 // ---------- הודעות קוליות ----------
 
