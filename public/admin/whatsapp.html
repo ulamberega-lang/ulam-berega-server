@@ -31,7 +31,7 @@
     <h2>מזהה חשבון וואטסאפ עסקי (WABA)</h2>
     <input id="wabaId" inputmode="numeric" placeholder="למשל 1393250629197872" value="1393250629197872">
     <p class="hint">בלי מנוי של החשבון לאפליקציה, Meta לא שולחת הודעות לבוט.</p>
-    <button id="subscribed">בדיקת מנוי</button><button id="subscribe" class="alt">הרשמה לאפליקציה</button>
+    <button id="waba" class="alt">פרטי החשבון</button><button id="subscribed">בדיקת מנוי</button><button id="subscribe" class="alt">הרשמה לאפליקציה</button>
   </section>
 
   <section>
@@ -76,6 +76,7 @@ async function call(path, extra = {}) {
   } catch (e) { $('out').textContent = 'שגיאה: ' + e.message; }
 }
 $('status').onclick = () => call('status');
+$('waba').onclick = () => call('waba', { wabaId: $('wabaId').value.trim() });
 $('subscribed').onclick = () => call('subscribed', { wabaId: $('wabaId').value.trim() });
 $('subscribe').onclick = () => call('subscribe', { wabaId: $('wabaId').value.trim() });
 $('voice').onclick = () => call('request-code', { method: 'VOICE' });
