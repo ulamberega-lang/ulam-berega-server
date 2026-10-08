@@ -53,7 +53,11 @@ async function process(phoneId, dial, msg) {
 }
 
 whatsappRouter.post('/', raw({ type: '*/*', limit: '1mb' }), (req, res) => {
-  if (!Buffer.isBuffer(req.body) || !validSignature(req)) return res.sendStatus(401);
+  if (!Buffer.isBuffer(req.body) || !validSignature(req)) {
+    console.error('whatsapp: בקשה נדחתה (חתימה לא תקינה או WA_APP_SECRET לא תואם)');
+    return res.sendStatus(401);
+  }
+  console.log('whatsapp: התקבל webhook');
   res.sendStatus(200); // עונים מיד; הטיפול ברקע
   let body;
   try { body = JSON.parse(req.body.toString('utf8')); } catch { return; }
