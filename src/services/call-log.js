@@ -54,6 +54,18 @@ export async function callNotAnswered(callId) {
   notify(await calls.markNotAnswered(callId), false);
 }
 
+// תוצאת החיוג של הניסיון הנוכחי (BUSY, NOANSWER...). ימות שולחת אותה לנתיב נפרד, ואולי אחרי שהמתקשר הגיע לשלוחה 9,
+// ולכן ממתינים עד waitMs אם עוד לא הגיעה. מחזיר null אם לא הגיעה
+export async function dialStatusOf(callId, waitMs = 1500) {
+  const until = Date.now() + waitMs;
+  for (;;) {
+    const row = await calls.findByCallId(callId).catch(() => null);
+    if (row?.dial_status) return row.dial_status;
+    if (Date.now() >= until) return null;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
 // ניתוק. תוצאת החיוג מגיעה מימות בנפרד (routingFinished). אם לא הגיעה - לא מנחשים "נענה":
 // השיחה נשארת בלי תוצאה (ביומן "ללא תוצאת חיוג"), ואין מייל לאולם. אם התוצאה תגיע מאוחר, היא תעדכן ותשלח מייל כרגיל.
 // בלוג נרשם אם עדיין אין תוצאה אחרי כמה שניות (בדרך כלל המתקשר ניתק באמצע החיוג, וימות לא דיווחה).

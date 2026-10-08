@@ -144,6 +144,28 @@ test('שיחה שניסתה כמה אולמות: שורה לכל ניסיון ב
   assert.equal(emails.filter((m) => m.to[0].email === 'a@x.com').length, 1, 'מייל "לא נענתה" לאולם הראשון');
 });
 
+test('אולם לא ענה: "הקו תפוס" כשהתוצאה BUSY (גם אם הגיעה אחרי שלוחה 9), אחרת "אין מענה"', async () => {
+  const route = async (id) => {
+    const b = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
+    await ivr(app.base, b); await ivr(app.base, { ...b, v1: '2' }); await ivr(app.base, { ...b, v1: '2', v2: '101' });
+    await sleep(100);
+  };
+  const status = (id, DialStatus) => ivr(app.base, { ApiCallId: id, ApiYFCallId: id, DialStatus, Phone: '0521234567' }, '/api/ivr/routing-status');
+  const noAnswer = async (id) => strip((await ivr(app.base, { ApiCallId: id, ApiYFCallId: id }, '/api/ivr/no-answer')).text);
+
+  await route('BZ-1'); await status('BZ-1', 'BUSY'); await sleep(100);       // התוצאה הגיעה לפני שלוחה 9
+  const early = await noAnswer('BZ-1');
+  assert.match(early, /תפוס/); assert.match(early, /go_to_folder=\//);       // אומרים תפוס וחוזרים לאפשרויות
+
+  await route('BZ-2');                                                          // התוצאה מגיעה מאוחר
+  setTimeout(() => status('BZ-2', 'BUSY'), 400);
+  assert.match(await noAnswer('BZ-2'), /תפוס/);
+
+  await route('BZ-3'); await status('BZ-3', 'NOANSWER'); await sleep(100);
+  const plain = await noAnswer('BZ-3');
+  assert.match(plain, /אין מענה באולם/); assert.doesNotMatch(plain, /תפוס/);
+});
+
 test('API אולמות: קלט לא תקין נדחה בהודעה ברורה, ושמירה תקינה מרעננת את הרשימה הטלפונית', async () => {
   const ok = { name: 'אולם ג', city_name: 'ירושלים', max_guests: 100, extension: '103', gabbai_phone: '0503333333' };
   const post = async (change) => { const r = await admin('/admin/api/halls', 'POST', { ...ok, ...change }); return [r.status, await r.json()]; };
