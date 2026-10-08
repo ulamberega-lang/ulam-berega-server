@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import { boot, seedHalls, sleep, hallsChanged, realFetch, whatsappSent } from '../dev/sim/harness.mjs'; // ראשון: מחליף את Supabase
 const { handleMessage, greet, newSession } = await import('../src/whatsapp/flow.js');
 const { toPayload } = await import('../src/whatsapp/api.js');
-const { prettyPhone } = await import('../src/routes/whatsapp.js');
+const { prettyPhone, allowMessage } = await import('../src/routes/whatsapp.js');
 
 const hall = (name, extension, max, city, hood = null, extra = {}) => ({ name, extension, max_guests: max, min_guests: 0, city_name: city, neighborhood_name: hood, ...extra });
 seedHalls([
@@ -189,4 +189,12 @@ test('אולם עם כמה שמות (/): חיפוש לפי כל שם', async () 
 test('מספר המרכזייה מוצג בפורמט מקומי (ליחיד לחיצה בוואטסאפ)', () => {
   assert.equal(prettyPhone('97233130858'), '03-313-0858');
   assert.equal(prettyPhone('972525645458'), '052-564-5458');
+});
+
+test('הגבלת קצב: 20 הודעות בדקה למשתמש, אחר כך מתעלמים, ובדקה הבאה חוזר לעבוד', () => {
+  const t0 = 1_000_000;
+  for (let i = 0; i < 20; i++) assert.equal(allowMessage('rate-user', t0 + i), true);
+  assert.equal(allowMessage('rate-user', t0 + 100), false);
+  assert.equal(allowMessage('other-user', t0 + 100), true);   // משתמש אחר לא מושפע
+  assert.equal(allowMessage('rate-user', t0 + 61_000), true);
 });

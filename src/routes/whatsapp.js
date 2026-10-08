@@ -13,7 +13,20 @@ const sessions = new Map(); // מספר משתמש → מצב
 const seen = new Map();     // מזהי הודעות שכבר טופלו (Meta שולחת שוב אם לא ענינו בזמן)
 const queues = new Map();   // מספר משתמש → תור: הודעות של אותו משתמש מטופלות בזה אחר זה
 
+// הגבלת קצב: עד RATE_MAX הודעות בדקה לכל משתמש, העודף מתעלמים ממנו בלי לענות (הגנה מהצפה וממגבלת Meta על המספר)
+const RATE_MAX = 20;
+const RATE_WINDOW_MS = 60 * 1000;
+const hits = new Map();     // מספר משתמש → זמני הודעות אחרונים
+export function allowMessage(from, now = Date.now()) {
+  const recent = (hits.get(from) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_MAX) { hits.set(from, recent); return false; }
+  recent.push(now);
+  hits.set(from, recent);
+  return true;
+}
+
 setInterval(() => {
+  for (const [k, list] of hits) if (!list.some((t) => Date.now() - t < RATE_WINDOW_MS)) hits.delete(k);
   const cutoff = Date.now() - SESSION_TTL_MS;
   for (const [k, s] of sessions) if (s.t < cutoff) sessions.delete(k);
   for (const [k, t] of seen) if (t < cutoff) seen.delete(k);
@@ -77,6 +90,7 @@ whatsappRouter.post('/', raw({ type: '*/*', limit: '1mb' }), (req, res) => {
     for (const msg of v.messages ?? []) {
       if (!msg.id || !msg.from || !phoneId || seen.has(msg.id)) continue;
       seen.set(msg.id, Date.now());
+      if (!allowMessage(msg.from)) { console.error(`whatsapp: הגבלת קצב, הודעה נזרקה (${msg.from.slice(-4)})`); continue; }
       const prev = queues.get(msg.from) ?? Promise.resolve();
       const next = prev.then(() => process(phoneId, dial, msg)).catch((e) => console.error('whatsapp:', e.stack ?? e.message));
       queues.set(msg.from, next);
