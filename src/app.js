@@ -27,12 +27,6 @@ export function createApp() {
   app.get('/', (req, res) => res.sendFile(`${publicSite}/index.html`));
   app.get('/privacy', (req, res) => res.sendFile(`${publicSite}/privacy.html`));
 
-  // קישור חיוג ישיר מהבוט: פותח את החייגן עם מספר המרכזייה, 2 והשלוחה (פסיק = השהיה עד שהתפריט מקשיב)
-  app.get('/c/:num(\\d{8,15})/:ext(\\d{1,6})', (req, res) => {
-    const href = `tel:+${req.params.num},,2,,${req.params.ext}%23`;
-    res.set('cache-control', 'no-store').type('html').send(`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>חיוג לאולם</title></head><body style="font-family:sans-serif;text-align:center;padding:48px 16px"><p><a href="${href}" style="display:inline-block;background:#128c7e;color:#fff;padding:18px 36px;border-radius:12px;font-size:20px;text-decoration:none">📞 חיוג לאולם (שלוחה ${req.params.ext})</a></p><script>location.href=${JSON.stringify(href)}</script></body></html>`);
-  });
-
   app.use('/api/ivr', express.urlencoded({ extended: true }), ivrRouter); // רק ימות שולחת טפסים
 
   app.use('/api/dialer', express.urlencoded({ extended: true }), dialerRouter); // חייגן יוצא: ימות שולחת טפסים
