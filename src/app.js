@@ -29,7 +29,7 @@ export function createApp() {
 
   // קישור חיוג מהבוט (לאנדרואיד): דף קבוע שפותח את החייגן עם המספר, 2, השלוחה וסולמית. רק ספרות, בלי גישה לנתונים
   app.get('/c/:num(\\d{8,15})/:ext(\\d{1,6})', (req, res) => {
-    const href = `tel:+${req.params.num},2,${req.params.ext}%23`;
+    const href = `tel:${req.params.num.replace(/^972/, '0')},2,${req.params.ext}%23`; // מספר מקומי (033130858), בלי +
     res.set('cache-control', 'no-store').type('html').send(`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>חיוג לאולם</title></head><body style="font-family:sans-serif;text-align:center;padding:48px 16px"><p><a href="${href}" style="display:inline-block;background:#128c7e;color:#fff;padding:18px 36px;border-radius:12px;font-size:20px;text-decoration:none">📞 חיוג לאולם (שלוחה ${req.params.ext})</a></p><script>location.href=${JSON.stringify(href)}</script></body></html>`);
   });
 
