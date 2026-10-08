@@ -8,7 +8,7 @@ import { getSession, createSession, deleteSession, resetSession } from '../ivr/s
 import { prompt, handleAnswer, isSpeechStep, transcribeAnswer, fallbackToList, voicemailPath } from '../ivr/flow.js';
 import { saveVoicemail } from '../services/voicemail.js';
 import { routeToHall } from '../ivr/route-to-hall.js';
-import { callStarted, callEnded, callNotAnswered, routingFinished } from '../services/call-log.js';
+import { callStarted, callEnded, callNotAnswered, dialStatusOf, routingFinished } from '../services/call-log.js';
 
 export const ivrRouter = Router();
 
@@ -94,7 +94,9 @@ ivrRouter.all('/no-answer', async (req, res) => {
     const s = getSession(id);
     if (s?.routed) {
       s.back = true;
-      return res.send(goToFolder('/', 'אֵין מַעֲנֶה בָּאוּלָם'));
+      // תפוס (למשל בעל האולם בשיחה): אומרים את זה, ובכל מקרה חוזרים לאפשרויות
+      const busy = (await dialStatusOf(id)) === 'BUSY';
+      return res.send(goToFolder('/', busy ? 'הַקַּו שֶׁל הָאוּלָם תָּפוּס' : 'אֵין מַעֲנֶה בָּאוּלָם'));
     }
     return res.send(hangup('אֵין מַעֲנֶה בָּאוּלָם נַסֵּה שׁוּב מְאוּחָר יוֹתֵר'));
   } catch (err) {
