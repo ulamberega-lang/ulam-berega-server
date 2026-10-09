@@ -40,7 +40,7 @@ export const T = {
   en: {
     welcome: '*Mazal Tov* 🤍\nI am the *Simcha BeSicha* bot, and I will help you easily find the right hall for your event!',
     menuBody: 'Please choose one of the options 😊', menuButton: 'Choose',
-    searchDesc: 'By guests, city and neighborhood', byNameDesc: 'Hall or synagogue name',
+    searchDesc: 'By guests, city and neighborhood', byNameDesc: 'Hall or Beit Knesset name',
     search: 'General search', byName: 'Search by name', more: 'More options',
     moreBody: 'More options', moreButton: 'Choose',
     owner: 'Add a hall', lang: 'עברית', back: 'Main menu',
@@ -53,7 +53,7 @@ export const T = {
     pickHood: 'Choose neighborhood', allCity: 'Whole city', hoodButton: 'Choose',
     hoodNone: (h) => `No halls found in ${h}`,
     extraHalls: 'More halls in the city',
-    askFree: 'Type the hall name and the city (city in Hebrew), for example:\n*היכל שמחה בירושלים*',
+    askFree: 'Type the hall name and the city (in Hebrew), for example:\n*היכל שמחה בירושלים*',
     askHall: 'Type the hall name or synagogue name',
     hallList: 'Hall list', hallNone: (n) => `No hall found named ${n}`,
     pickHall: 'Which hall?', hallButton: 'Choose hall',
