@@ -175,7 +175,7 @@ test('דף נחיתה ומדיניות פרטיות פומביים (בלי כנ�
   assert.match(await privacy.text(), /מדיניות פרטיות/);
   const call = await realFetch(app.base + '/c/033130858/101');   // קישור חיוג מהבוט (אנדרואיד)
   assert.equal(call.status, 200);
-  assert.match(await call.text(), /tel:033130858,2,101%23/);
+  assert.match(await call.text(), /tel:033130858,2101%23/);
   assert.equal((await realFetch(app.base + '/c/abc/101')).status, 404);
   assert.match(await (await realFetch(app.base + '/m/033130858')).text(), /tel:033130858,5/);   // קישור להודעה קולית
 });
