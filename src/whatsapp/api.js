@@ -34,3 +34,18 @@ export async function sendAll(phoneId, to, messages) {
     }
   }
 }
+
+// תגובת אימוג'י על הודעת המשתמש (🔍 בזמן טיפול, ✔️ בסיום). לא זורק: כשל בתגובה לא פוגע בתשובה
+export async function react(phoneId, to, messageId, emoji) {
+  try {
+    const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${config.waToken}`, 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'reaction', reaction: { message_id: messageId, emoji } }),
+    });
+    if (!res.ok) console.error(`whatsapp: תגובה נכשלה ${res.status} ${(await res.text()).slice(0, 200)}`);
+  } catch (e) {
+    console.error('whatsapp: תגובה נכשלה', e.message);
+  }
+}

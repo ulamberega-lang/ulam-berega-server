@@ -163,21 +163,25 @@ test('webhook: אימות כתובת, חתימה, שליחה וסינון כפי
     assert.equal((await post(first, sign(first, 'other'))).status, 401); // חתימה שגויה
     assert.equal(whatsappSent.length, 0);
 
+    const sent = () => whatsappSent.filter((r) => r.body.type !== 'reaction');
+    const reactions = () => whatsappSent.filter((r) => r.body.type === 'reaction').map((r) => `${r.body.reaction.message_id}:${r.body.reaction.emoji}`);
     assert.equal((await post(first, sign(first))).status, 200);
     await sleep(100);
-    assert.equal(whatsappSent.length, 2);                           // ברכה + תפריט
-    assert.equal(whatsappSent[0].url.includes('/PID/messages'), true);
-    assert.equal(whatsappSent[1].body.interactive.type, 'list');
+    assert.equal(sent().length, 2);                                 // ברכה + תפריט
+    assert.equal(sent()[0].url.includes('/PID/messages'), true);
+    assert.equal(sent()[1].body.interactive.type, 'list');
+    assert.deepEqual(reactions(), ['wamid.1:🔍', 'wamid.1:✔️']);    // 🔍 בזמן הטיפול, ✔️ בסיום
 
     await post(first, sign(first));                                 // אותה הודעה שוב (Meta ניסתה שוב)
     await sleep(100);
-    assert.equal(whatsappSent.length, 2);
+    assert.equal(sent().length, 2);
+    assert.equal(reactions().length, 2);
 
     const click = payload('wamid.2', '972501234567', { type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: 'm:search', title: 'x' } } });
     await post(click, sign(click));
     await sleep(100);
-    assert.equal(whatsappSent.length, 3);
-    assert.match(whatsappSent[2].body.text.body, /מוזמנים/);
+    assert.equal(sent().length, 3);
+    assert.match(sent()[2].body.text.body, /מוזמנים/);
   } finally { close(); }
 });
 
