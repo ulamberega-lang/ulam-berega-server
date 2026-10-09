@@ -15,7 +15,6 @@ import { T } from './texts.js';
 const { NO_HOOD } = halls;
 const PAGE = 8;          // פריטים בכל עמוד ברשימה (בנוסף: "עוד" ו"תפריט"/"כל העיר" - עד 10 שורות)
 const RESULTS_PAGE = 5;  // אולמות בכל הודעת תוצאות
-const BODY_MAX = 1000;   // גוף הודעה אינטראקטיבית מוגבל (1024)
 
 const text = (t) => ({ kind: 'text', text: t });
 const buttons = (body, list) => ({ kind: 'buttons', body, buttons: list });
