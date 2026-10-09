@@ -34,7 +34,7 @@ const reset = (s) => Object.assign(s, { step: 'menu', mode: null, guests: null, 
 
 function menu(s, note, t = T[s.lang]) {
   return [list([note, t.menuBody].filter(Boolean).join('\n'), t.menuButton,
-    [['m:search', t.search, t.searchDesc], ['m:name', t.byName, t.byNameDesc], ['x:ext', t.ext], ['x:owner', t.owner], ['x:lang', t.lang]])];
+    [['m:search', t.search, t.searchDesc], ['m:name', t.byName, t.byNameDesc], ['x:owner', t.owner], ['x:lang', t.lang]])];
 }
 
 // עמוד של רשימה: PAGE פריטים, ואחריהם "עוד" אם יש, ושורות קבועות (extra)
@@ -91,7 +91,6 @@ async function show(s, ctx, note) {
   switch (s.step) {
     case 'menu': return menu(s, note);
     case 'guests': return [text(ask(t.askGuests))];
-    case 'extEntry': return [text(ask(t.askExt))];
     case 'city': {
       s.cities = await halls.getActiveCities();
       const { rows } = pageRows(s, s.cities.map((c) => [cut(c, 24)]), 'c', 'cityPage', t.moreCities, [['m:menu', t.back]]);
@@ -183,16 +182,9 @@ export async function handleMessage(s, input, ctx = {}) {
     case 'menu':
       if (id === 'm:search') { s.mode = 'filters'; return go('guests'); }
       if (id === 'm:name') { s.mode = 'name'; return go('city'); }
-      if (id === 'x:ext') return go('extEntry');
       if (id === 'x:owner') { reset(s); return [text(t.ownerInfo(ctx.dial, voicemailLink(ctx))), ...menu(s)]; }
       if (id) return invalid();
       return show(s, ctx); // טקסט חופשי בתפריט: מציגים אותו שוב
-    case 'extEntry': {
-      const ext = raw.replace(/\D/g, '');
-      const hall = ext && await halls.findActiveByExtension(ext);
-      return hall ? hallCard(s, hall, ctx) : go('extEntry', t.extNone(raw));
-    }
-
     case 'guests': {
       const n = parseNumber(raw);
       if (!(n >= 1 && n <= 5000)) return go('guests', t.badGuests);

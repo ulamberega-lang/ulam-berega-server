@@ -33,7 +33,7 @@ test('שפה: טקסט לטיני בהודעה הראשונה → אנגלית, 
 test('ברכה: ברכה ותפריט בשלושה כפתורים', async () => {
   const msgs = await greet(newSession('שלום'), ctx);
   assert.equal(msgs[0].kind, 'text');
-  assert.deepEqual(rowIds(msgs), ['m:search', 'm:name', 'x:ext', 'x:owner', 'x:lang']);
+  assert.deepEqual(rowIds(msgs), ['m:search', 'm:name', 'x:owner', 'x:lang']);
 });
 
 test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → תוצאות עם מספרי שלוחה והוראת חיוג', async () => {
@@ -106,11 +106,11 @@ test('חיפוש לפי שם: שם אולם ושם בית כנסת, ושם של�
   assert.deepEqual(rowIds(lst).slice(0, 2), ['hl:0', 'hl:1']);
 });
 
-test('מספר שלוחה: קיימת → כרטיס; לא קיימת → שואלים שוב', async () => {
+test('כרטיס אולם: כתובת, הוראת חיוג עם השלוחה וקישור', async () => {
   const s = newSession('שלום');
-  await say(s, { id: 'x:ext' });
-  assert.match(bodyOf(await say(s, '999')), /לא קיימת/);
-  const card = bodyOf(await say(s, '101'));
+  await say(s, { id: 'm:name' }); await say(s, { id: 'h:list' });
+  await say(s, 'ירושלים');
+  const card = bodyOf(await say(s, 'אולם א'));
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
   assert.match(card, /הקישו \*2\*, \*101\*, \*ו-#\*\./);
   assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
@@ -129,7 +129,7 @@ test('"תפריט" חוזר לתפריט בכל שלב, ובחירה לא תקי
   const s = newSession('שלום');
   await say(s, { id: 'm:search' }); await say(s, '200');
   assert.match(bodyOf(await say(s, { id: 'zzz' })), /לא הבנתי/);
-  assert.deepEqual(rowIds(await say(s, 'תפריט')), ['m:search', 'm:name', 'x:ext', 'x:owner', 'x:lang']);
+  assert.deepEqual(rowIds(await say(s, 'תפריט')), ['m:search', 'm:name', 'x:owner', 'x:lang']);
 });
 
 test('toPayload: קיצור כותרות לפי מגבלות וואטסאפ', () => {
