@@ -163,7 +163,7 @@ test('webhook: אימות כתובת, חתימה, שליחה וסינון כפי
     assert.equal((await post(first, sign(first, 'other'))).status, 401); // חתימה שגויה
     assert.equal(whatsappSent.length, 0);
 
-    const sent = () => whatsappSent.filter((r) => r.body.type !== 'reaction');
+    const sent = () => whatsappSent.filter((r) => r.body.type !== 'reaction' && !r.body.typing_indicator);
     const reactions = () => whatsappSent.filter((r) => r.body.type === 'reaction').map((r) => `${r.body.reaction.message_id}:${r.body.reaction.emoji}`);
     assert.equal((await post(first, sign(first))).status, 200);
     await sleep(100);
@@ -171,6 +171,9 @@ test('webhook: אימות כתובת, חתימה, שליחה וסינון כפי
     assert.equal(sent()[0].url.includes('/PID/messages'), true);
     assert.equal(sent()[1].body.interactive.type, 'list');
     assert.deepEqual(reactions(), ['wamid.1:🔍', 'wamid.1:✔️']);    // 🔍 בזמן הטיפול, ✔️ בסיום
+    const typings = () => whatsappSent.filter((r) => r.body.typing_indicator);
+    assert.equal(typings().length, 1);                              // "מקליד..." מיד עם קבלת ההודעה
+    assert.equal(typings()[0].body.message_id, 'wamid.1');
 
     await post(first, sign(first));                                 // אותה הודעה שוב (Meta ניסתה שוב)
     await sleep(100);
