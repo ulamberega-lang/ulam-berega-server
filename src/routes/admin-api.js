@@ -114,6 +114,9 @@ adminApi.post('/whatsapp/subscribe', handle((req) => waSetup.subscribeApp(req.bo
 adminApi.post('/whatsapp/request-code', handle((req) => waSetup.requestCode(req.body?.phoneId, req.body?.method)));
 adminApi.post('/whatsapp/verify-code', handle((req) => waSetup.verifyCode(req.body?.phoneId, req.body?.code)));
 adminApi.post('/whatsapp/register', handle((req) => waSetup.registerPhone(req.body?.phoneId, req.body?.pin)));
+adminApi.post('/whatsapp/profile', handle((req) => waSetup.getProfile(req.body?.phoneId)));
+adminApi.post('/whatsapp/profile/update', handle((req) => waSetup.updateProfile(req.body?.phoneId, req.body)));
+adminApi.post('/whatsapp/profile/picture', handle((req) => waSetup.setProfilePicture(req.body?.phoneId, req.body?.appId, req.body?.image, req.body?.mime)));
 
 // ---------- הודעות קוליות ----------
 

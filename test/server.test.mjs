@@ -204,6 +204,37 @@ test('הגדרת וואטסאפ: דורשת כניסה, בודקת קלט, וק�
   assert.match(whatsappSent.at(-1).url, /\/555666777\/subscribed_apps$/);
 });
 
+test('פרופיל העסק: קריאה, עדכון שדות בלבד, בדיקת קלט והעלאת תמונה', async () => {
+  const post = (path, body) => realFetch(`${app.base}/admin/api/whatsapp/${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  const phoneId = '123456789';
+  assert.equal((await post('profile', { phoneId })).status, 200);
+  assert.match(whatsappSent.at(-1).url, /\/123456789\/whatsapp_business_profile\?fields=about,address,description,email,profile_picture_url,websites,vertical$/);
+
+  assert.equal((await post('profile/update', { phoneId })).status, 400);                              // בלי שדות
+  assert.equal((await post('profile/update', { phoneId, about: '' })).status, 400);                   // אודות ריק
+  assert.equal((await post('profile/update', { phoneId, about: 'x'.repeat(140) })).status, 400);
+  assert.equal((await post('profile/update', { phoneId, email: 'לא מייל' })).status, 400);
+  assert.equal((await post('profile/update', { phoneId, websites: ['a', 'b', 'c'] })).status, 400);
+  assert.equal((await post('profile/update', { phoneId, websites: ['ftp://x'] })).status, 400);
+  assert.equal((await post('profile/update', { phoneId, vertical: 'NOPE' })).status, 400);
+  const ok = await post('profile/update', { phoneId, about: 'חיפוש אולמות', websites: ['https://ulam-berega.onrender.com', ''], vertical: 'EVENT_PLAN' });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(whatsappSent.at(-1).body, { messaging_product: 'whatsapp', about: 'חיפוש אולמות', websites: ['https://ulam-berega.onrender.com'], vertical: 'EVENT_PLAN' });
+
+  const image = Buffer.alloc(300 * 1024, 7).toString('base64');                                      // גדול מ-100KB: עובר בגלל המגבלה המיוחדת
+  const before = whatsappSent.length;
+  assert.equal((await post('profile/picture', { phoneId, appId: '555666777', mime: 'image/gif', image })).status, 400);
+  assert.equal((await post('profile/picture', { phoneId, appId: 'x', mime: 'image/jpeg', image })).status, 400);
+  const pic = await post('profile/picture', { phoneId, appId: '555666777', mime: 'image/jpeg', image });
+  assert.equal(pic.status, 200);
+  const calls = whatsappSent.slice(before);
+  assert.match(calls[0].url, /\/555666777\/uploads\?file_length=307200&file_type=image%2Fjpeg/);
+  assert.equal(calls[1].body.bytes, 307200);                                                          // הבייטים נשלחו כמות שהם
+  assert.deepEqual(calls[2].body, { messaging_product: 'whatsapp', profile_picture_handle: 'HANDLE123' });
+  const noAuth = await realFetch(`${app.base}/admin/api/whatsapp/profile/picture`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image }) });
+  assert.equal(noAuth.status, 401);                                                                   // בלי כניסה - נדחה לפני ניתוח הגוף
+});
+
 test('API אולמות: קלט לא תקין נדחה בהודעה ברורה, ושמירה תקינה מרעננת את הרשימה הטלפונית', async () => {
   const ok = { name: 'אולם ג', city_name: 'ירושלים', max_guests: 100, extension: '103', gabbai_phone: '0503333333' };
   const post = async (change) => { const r = await admin('/admin/api/halls', 'POST', { ...ok, ...change }); return [r.status, await r.json()]; };
