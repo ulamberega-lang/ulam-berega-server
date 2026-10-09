@@ -6,7 +6,7 @@ import { boot, seedHalls, sleep, hallsChanged, realFetch, whatsappSent } from '.
 const { handleMessage, greet, newSession } = await import('../src/whatsapp/flow.js');
 const { toPayload } = await import('../src/whatsapp/api.js');
 const { splitCity } = await import('../src/lib/text-match.js');
-const { prettyPhone, allowMessage } = await import('../src/routes/whatsapp.js');
+const { prettyPhone, allowMessage, footerOf } = await import('../src/routes/whatsapp.js');
 
 const hall = (name, extension, max, city, hood = null, extra = {}) => ({ name, extension, max_guests: max, min_guests: 0, city_name: city, neighborhood_name: hood, ...extra });
 seedHalls([
@@ -123,9 +123,9 @@ test('אנגלית: מעבר שפה מהתפריט, והטקסטים באנגל�
   const s = newSession('שלום');
   const m = await say(s, { id: 'x:lang' });
   assert.equal(s.lang, 'en');
-  assert.match(bodyOf(m), /What would you like/);
+  assert.match(bodyOf(m), /Please choose one of the options/);
   await say(s, { id: 'm:search' });
-  assert.match(bodyOf(await say(s, 'abc')), /Type the guest count/);
+  assert.match(bodyOf(await say(s, 'abc')), /Please type the guest count/);
 });
 
 test('"תפריט" חוזר לתפריט בכל שלב, ובחירה לא תקינה לא שוברת', async () => {
@@ -243,3 +243,16 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
   assert.deepEqual(rowIds(await say(s4, 'חיפה')).slice(0, 2), ['hl:0', 'hl:1']); // רק עיר: רשימת האולמות שלה
 });
 
+
+test('חתימה בסוף כל הודעה: footer אפור בהודעה אינטראקטיבית, ושורה נטויה בטקסט', () => {
+  const footer = footerOf('97233130858');
+  assert.equal(footer, 'שמחה בשיחה https://wa.me/97233130858');
+  assert.equal(footerOf('033130858'), 'שמחה בשיחה https://wa.me/97233130858');
+  const list = toPayload('1', { kind: 'list', body: 'b', button: 'x', rows: [['a', 'y']] }, footer);
+  assert.equal(list.interactive.footer.text, footer);
+  const buttons = toPayload('1', { kind: 'buttons', body: 'b', buttons: [['a', 'w']] }, footer);
+  assert.equal(buttons.interactive.footer.text, footer);
+  const text = toPayload('1', { kind: 'text', text: 'שלום' }, footer);
+  assert.equal(text.text.body, 'שלום\n\n_שמחה בשיחה_ https://wa.me/97233130858');
+  assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');   // בלי חתימה: כמו קודם
+});
