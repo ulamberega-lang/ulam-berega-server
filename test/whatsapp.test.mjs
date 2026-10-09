@@ -34,6 +34,7 @@ test('שפה: טקסט לטיני בהודעה הראשונה → אנגלית, 
 test('ברכה: ברכה ותפריט בשלושה כפתורים', async () => {
   const msgs = await greet(newSession('שלום'), ctx);
   assert.equal(msgs[0].kind, 'text');
+  assert.equal(msgs[0].text, 'היי☺️\nאני בוט *שמחה בשיחה* ואעזור לך למצוא בקלות אולם מתאים לאירוע!');
   assert.deepEqual(rowIds(msgs), ['m:search', 'm:name', 'x:owner', 'x:lang']);
 });
 

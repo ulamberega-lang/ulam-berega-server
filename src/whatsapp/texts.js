@@ -2,7 +2,7 @@
 // כותרות כפתורים - עד 20 תווים; כותרות שורות ברשימה - עד 24.
 export const T = {
   he: {
-    welcome: '👋 ברוכים הבאים ל*שמחה בשיחה* - חיפוש אולם אירועים.',
+    welcome: 'היי☺️\nאני בוט *שמחה בשיחה* ואעזור לך למצוא בקלות אולם מתאים לאירוע!',
     menuBody: 'מה תרצו לעשות?', menuButton: 'לבחירה',
     searchDesc: 'לפי כמות מוזמנים, עיר ושכונה', byNameDesc: 'שם אולם או בית כנסת',
     search: 'חיפוש כללי', byName: 'חיפוש לפי שם', more: 'עוד אפשרויות',
@@ -38,7 +38,7 @@ export const T = {
     menuHint: '(לחזרה לתפריט כתבו "תפריט")',
   },
   en: {
-    welcome: '👋 Welcome to *Simcha BeSicha* - find an event hall.',
+    welcome: 'Hi☺️\nI am the *Simcha BeSicha* bot, and I will help you easily find the right hall for your event!',
     menuBody: 'What would you like to do?', menuButton: 'Choose',
     searchDesc: 'By guests, city and neighborhood', byNameDesc: 'Hall or synagogue name',
     search: 'General search', byName: 'Search by name', more: 'More options',
