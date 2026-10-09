@@ -249,12 +249,12 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
 
 
 test('חתימה: רק בהודעת אולם, אחרי שתי שורות רווח, ובלי שינוי בשאר ההודעות', async () => {
-  assert.equal(signature({ dial: '03-313-0858' }), '_שמחה בשיחה_ 📞 https://wa.me/97233130858');
-  assert.equal(signature({ dial: '97233130858' }), '_שמחה בשיחה_ 📞 https://wa.me/97233130858');
+  assert.equal(signature({ dial: '03-313-0858' }), '> שמחה בשיחה 📞 https://wa.me/97233130858');
+  assert.equal(signature({ dial: '97233130858' }), '> שמחה בשיחה 📞 https://wa.me/97233130858');
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם יחיד בחיפה'));
-  assert.match(card, /\/c\/021234567\/302\n\n\n_שמחה בשיחה_ 📞 https:\/\/wa\.me\/97221234567$/);
+  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567$/);
   assert.doesNotMatch(bodyOf(await greet(newSession('שלום'), ctx)), /wa\.me/);   // בלי חתימה בברכה ובתפריט
   assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');
 });
