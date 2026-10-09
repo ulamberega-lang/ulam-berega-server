@@ -45,3 +45,67 @@ export const verifyCode = (phoneId, code) => graph(`${idOf(phoneId)}/verify_code
 // רישום המספר ל-Cloud API; ה-PIN הוא אימות דו-שלבי (6 ספרות לבחירתך)
 export const registerPhone = (phoneId, pin) =>
   graph(`${idOf(phoneId)}/register`, { body: { messaging_product: 'whatsapp', pin: sixDigits(pin, 'ה-PIN') } });
+
+// ---------- פרופיל העסק (תמונה, אודות, תיאור, כתובת, מייל, אתרים, קטגוריה) ----------
+
+const PROFILE_FIELDS = 'about,address,description,email,profile_picture_url,websites,vertical';
+// הקטגוריות שמקבלת Meta
+export const VERTICALS = ['UNDEFINED', 'OTHER', 'AUTO', 'BEAUTY', 'APPAREL', 'EDU', 'ENTERTAIN', 'EVENT_PLAN', 'FINANCE', 'GROCERY', 'GOVT', 'HOTEL', 'HEALTH', 'NONPROFIT', 'PROF_SERVICES', 'RETAIL', 'TRAVEL', 'RESTAURANT', 'NOT_A_BIZ'];
+const PICTURE_MAX_BYTES = 5 * 1024 * 1024;
+
+export async function getProfile(phoneId) {
+  const res = await graph(`${idOf(phoneId)}/whatsapp_business_profile?fields=${PROFILE_FIELDS}`, { method: 'GET' });
+  return res.data?.[0] ?? {};
+}
+
+const textField = (v, what, max, min = 0) => {
+  const t = String(v ?? '').trim();
+  if (t.length < min || t.length > max) throw new InputError(`${what}: ${min ? `בין ${min} ל-${max}` : `עד ${max}`} תווים`);
+  return t;
+};
+
+// מעדכן רק שדות שנשלחו (שדה שלא נשלח לא נמחק)
+export function updateProfile(phoneId, f = {}) {
+  const body = { messaging_product: 'whatsapp' };
+  if (f.about !== undefined) body.about = textField(f.about, 'אודות', 139, 1);
+  if (f.description !== undefined) body.description = textField(f.description, 'תיאור', 512);
+  if (f.address !== undefined) body.address = textField(f.address, 'כתובת', 256);
+  if (f.email !== undefined) {
+    body.email = textField(f.email, 'מייל', 128);
+    if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) throw new InputError('כתובת המייל לא תקינה');
+  }
+  if (f.websites !== undefined) {
+    const list = [].concat(f.websites).map((w) => String(w ?? '').trim()).filter(Boolean);
+    if (list.length > 2) throw new InputError('אפשר עד שני אתרים');
+    if (list.some((w) => !/^https?:\/\/\S+$/.test(w) || w.length > 256)) throw new InputError('כתובת אתר צריכה להתחיל ב-https://');
+    body.websites = list;
+  }
+  if (f.vertical !== undefined) {
+    if (!VERTICALS.includes(f.vertical)) throw new InputError('קטגוריה לא תקינה');
+    body.vertical = f.vertical;
+  }
+  if (Object.keys(body).length === 1) throw new InputError('לא נשלח שום שדה לעדכון');
+  return graph(`${idOf(phoneId)}/whatsapp_business_profile`, { body });
+}
+
+// תמונת פרופיל: העלאה ל-Meta (Resumable Upload) ואז שיוך לפרופיל. התמונה מגיעה מהדף כ-base64
+export async function setProfilePicture(phoneId, appId, base64, mime) {
+  idOf(phoneId);
+  if (!/^\d{6,20}$/.test(String(appId ?? ''))) throw new InputError('מזהה האפליקציה לא תקין (ספרות בלבד)');
+  if (!['image/jpeg', 'image/png'].includes(mime)) throw new InputError('התמונה חייבת להיות JPEG או PNG');
+  const bytes = Buffer.from(String(base64 ?? ''), 'base64');
+  if (!bytes.length) throw new InputError('לא התקבלה תמונה');
+  if (bytes.length > PICTURE_MAX_BYTES) throw new InputError('התמונה גדולה מדי (עד 5MB)');
+
+  const session = await graph(`${appId}/uploads?file_length=${bytes.length}&file_type=${encodeURIComponent(mime)}&file_name=profile`);
+  if (!session.id) throw new InputError('Meta לא החזירה מזהה העלאה');
+  const up = await fetch(`${GRAPH}/${session.id}`, {
+    method: 'POST',
+    headers: { authorization: `OAuth ${config.waToken}`, file_offset: '0' },
+    signal: AbortSignal.timeout(30000),
+    body: bytes,
+  });
+  const uploaded = await up.json().catch(() => ({}));
+  if (!up.ok || !uploaded.h) throw new InputError(`Meta: העלאת התמונה נכשלה (${uploaded.error?.message ?? up.status})`, 400);
+  return graph(`${idOf(phoneId)}/whatsapp_business_profile`, { body: { messaging_product: 'whatsapp', profile_picture_handle: uploaded.h } });
+}

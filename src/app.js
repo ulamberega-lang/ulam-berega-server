@@ -20,7 +20,9 @@ export function createApp() {
     next();
   });
   app.use('/api/whatsapp', whatsappRouter); // לפני express.json: החתימה מחושבת על הגוף הגולמי
-  app.use(express.json());
+  // תמונת פרופיל מגיעה כ-base64 (גדולה מהמגבלה הרגילה): מנותחת רק אחרי בדיקת כניסה, בהמשך
+  const PICTURE_PATH = '/admin/api/whatsapp/profile/picture';
+  app.use((req, res, next) => (req.path === PICTURE_PATH ? next() : express.json()(req, res, next)));
 
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
   // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)
@@ -49,6 +51,7 @@ export function createApp() {
   app.post('/admin/login', requireJson, auth.login);
   app.post('/admin/logout', requireJson, auth.logout);
   app.use('/admin', auth.guard);
+  app.use(PICTURE_PATH, express.json({ limit: '8mb' }));
   app.use('/admin/api', requireJson, adminApi);
   app.use('/admin', express.static(adminSite));
 

@@ -15,6 +15,9 @@
   button.alt { background: #5a6a8a; }
   pre { background: #eef2fa; padding: 10px; border-radius: 8px; white-space: pre-wrap; direction: ltr; text-align: left; min-height: 2em; }
   .hint { color: #5a6a8a; font-size: .9rem; }
+  textarea, select { font: inherit; padding: 8px 10px; border: 1px solid #b9c3d8; border-radius: 8px; width: 100%; box-sizing: border-box; margin: 4px 0 8px; }
+  label { display: block; font-weight: 600; font-size: .9rem; margin-top: 6px; }
+  #pic { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background: #eef2fa; display: block; margin: 4px 0 8px; }
 </style>
 </head>
 <body>
@@ -25,6 +28,33 @@
   <section>
     <h2>מזהה מספר הטלפון</h2>
     <input id="phoneId" inputmode="numeric" placeholder="למשל 1348253178379424" value="1348253178379424">
+  </section>
+
+  <section>
+    <h2>פרופיל העסק</h2>
+    <p class="hint">כך העסק נראה ללקוחות בוואטסאפ. "טען פרופיל" מביא את מה שמוגדר היום, ו"שמור" מעדכן רק מה שמופיע בשדות.</p>
+    <button id="loadProfile" class="alt">טען פרופיל</button>
+    <img id="pic" alt="תמונת פרופיל" hidden>
+    <label for="picFile">תמונת פרופיל (JPEG או PNG, תוקטן ל-640×640)</label>
+    <input id="picFile" type="file" accept="image/jpeg,image/png">
+    <label for="appId">מזהה האפליקציה (להעלאת תמונה)</label>
+    <input id="appId" inputmode="numeric" value="1476611497861244">
+    <button id="savePic">העלאת תמונה</button>
+    <label for="about">אודות (עד 139 תווים)</label>
+    <input id="about" maxlength="139">
+    <label for="description">תיאור העסק (עד 512 תווים)</label>
+    <textarea id="description" rows="4" maxlength="512"></textarea>
+    <label for="address">כתובת</label>
+    <input id="address" maxlength="256">
+    <label for="email">מייל</label>
+    <input id="email" type="email" maxlength="128" style="direction:ltr">
+    <label for="site1">אתר (עד שניים, מתחילים ב-https://)</label>
+    <input id="site1" style="direction:ltr" placeholder="https://">
+    <input id="site2" style="direction:ltr" placeholder="https://">
+    <label for="vertical">קטגוריה</label>
+    <select id="vertical"></select>
+    <button id="saveProfile">שמור פרופיל</button>
+    <p class="hint">סטטוס (Status) ושליחת הודעות יזומות לא נתמכים ב-Cloud API, ולכן אינם כאן.</p>
   </section>
 
   <section>
@@ -83,6 +113,46 @@ $('voice').onclick = () => call('request-code', { method: 'VOICE' });
 $('sms').onclick = () => call('request-code', { method: 'SMS' });
 $('verify').onclick = () => call('verify-code', { code: $('code').value.trim() });
 $('register').onclick = () => call('register', { pin: $('pin').value.trim() });
+
+// ---------- פרופיל העסק ----------
+const VERTICALS = { EVENT_PLAN: 'אירועים', RESTAURANT: 'מסעדות', HOTEL: 'מלונות', ENTERTAIN: 'בידור', PROF_SERVICES: 'שירותים מקצועיים', RETAIL: 'קמעונאות', EDU: 'חינוך', NONPROFIT: 'עמותה', OTHER: 'אחר', UNDEFINED: 'לא מוגדר' };
+$('vertical').innerHTML = Object.entries(VERTICALS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+async function post(path, extra = {}) {
+  $('out').textContent = '...';
+  const res = await fetch('/admin/api/whatsapp/' + path, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ phoneId: $('phoneId').value.trim(), ...extra }),
+  });
+  if (res.status === 401) { location.href = '/admin/login'; return null; }
+  const data = await res.json().catch(() => ({}));
+  $('out').textContent = JSON.stringify(data, null, 2);
+  return res.ok ? data : null;
+}
+$('loadProfile').onclick = async () => {
+  const p = await post('profile');
+  if (!p) return;
+  $('about').value = p.about ?? ''; $('description').value = p.description ?? ''; $('address').value = p.address ?? ''; $('email').value = p.email ?? '';
+  $('site1').value = p.websites?.[0] ?? ''; $('site2').value = p.websites?.[1] ?? '';
+  if (p.vertical && !VERTICALS[p.vertical]) $('vertical').add(new Option(p.vertical, p.vertical));
+  $('vertical').value = p.vertical ?? 'UNDEFINED';
+  if (p.profile_picture_url) { $('pic').src = p.profile_picture_url; $('pic').hidden = false; }
+};
+$('saveProfile').onclick = () => post('profile/update', {
+  about: $('about').value, description: $('description').value, address: $('address').value, email: $('email').value,
+  websites: [$('site1').value, $('site2').value], vertical: $('vertical').value,
+});
+// התמונה מוקטנת בדפדפן לריבוע 640×640 (חיתוך מהמרכז) ונשלחת כ-JPEG
+$('savePic').onclick = async () => {
+  const file = $('picFile').files[0];
+  if (!file) { $('out').textContent = 'בחר קודם קובץ תמונה'; return; }
+  const img = await createImageBitmap(file);
+  const side = Math.min(img.width, img.height), size = 640;
+  const canvas = Object.assign(document.createElement('canvas'), { width: size, height: size });
+  canvas.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+  $('pic').src = dataUrl; $('pic').hidden = false;
+  await post('profile/picture', { appId: $('appId').value.trim(), mime: 'image/jpeg', image: dataUrl.split(',')[1] });
+};
 </script>
 </body>
 </html>
