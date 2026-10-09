@@ -18,7 +18,7 @@ ivrRouter.use((req, res, next) => {
   const started = Date.now();
   res.on('finish', () => {
     const ms = Date.now() - started;
-    const call = String(req.body?.ApiYFCallId ?? req.body?.ApiCallId ?? '').slice(-6) || '-';
+    const call = String(lastValue(req.query?.ApiYFCallId ?? req.body?.ApiYFCallId ?? req.query?.ApiCallId ?? req.body?.ApiCallId)).slice(-6) || '-'; // ימות שולחת ב-query
     console.log(`req: ${req.path} call=${call} step=${res.locals.step ?? '-'} ${ms}ms`);
     if (ms > 1000) console.log(`slow: ${req.path} step=${res.locals.step ?? '-'} ${ms}ms`);
   });
