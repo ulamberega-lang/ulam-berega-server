@@ -46,7 +46,7 @@ export const T = {
     owner: 'Add a hall', lang: 'עברית', back: 'Main menu',
     askGuests: 'What is the estimated number of guests?\n(please type a number 🔢)',
     badGuests: "I didn't get the number.\nPlease type the guest count, e.g. 250",
-    askCity: 'Which city?\nType the city name or choose from the list ☺️',
+    askCity: 'Which city?\nType the city name בעברית or choose from the list ☺️',
     cityButton: 'Choose city', cityNone: (c) => `No halls found in ${c}`,
     moreCities: 'More cities ←', moreHoods: 'More neighborhoods ←', moreHalls: 'More halls ←',
     askHood: 'Which neighborhood?\nType a name, or choose:',
