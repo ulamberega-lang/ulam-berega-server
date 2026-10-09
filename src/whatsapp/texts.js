@@ -34,7 +34,7 @@ export const T = {
     dialPage: '📲 או לחצו על הקישור',
     ownerInfo: (num, link) => ['להוספת אולם למערכת, נשמח אם תשלחו מייל לכתובת:', 'simchabesicha@gmail.com', 'רשמו את שם האולם,', 'מספר פלאפון להזמנה,', 'כמות אורחים מקסימלית,', 'שכונה וכתובת מדויקת.', '',
       `אם ברצונכם להשאיר הודעה קולית התקשרו למספר ${num || 'הזה'} והקישו 5${link ? `, או לחצו על הקישור: ${link}` : '.'}`].join('\n'),
-    unknown: 'לא הבנתי. אפשר לבחור מהכפתורים, או לכתוב "תפריט".',
+    unknown: 'לא הבנתי 😔\nאפשר לבחור מהכפתורים, או לכתוב "תפריט" ☺️',
     menuHint: '(לחזרה לתפריט כתבו "תפריט")',
   },
   en: {
@@ -70,7 +70,7 @@ export const T = {
     dialPage: '📲 Or tap the link',
     ownerInfo: (num, link) => ['To add your hall to the system, please send an email to:', 'simchabesicha@gmail.com', 'and include the hall name,', 'a phone number for bookings,', 'the maximum number of guests,', 'the neighborhood and the exact address.', '',
       `To leave a voice message, call ${num || 'this number'} and press 5${link ? `, or tap the link: ${link}` : '.'}`].join('\n'),
-    unknown: 'I did not understand. Choose a button, or type "menu".',
+    unknown: 'I did not understand 😔\nPlease choose a button, or type "menu" ☺️',
     menuHint: '(to return to the menu type "menu")',
   },
 };
