@@ -177,6 +177,7 @@ test('דף נחיתה ומדיניות פרטיות פומביים (בלי כנ�
   assert.equal(call.status, 200);
   assert.match(await call.text(), /tel:033130858,2,101%23/);
   assert.equal((await realFetch(app.base + '/c/abc/101')).status, 404);
+  assert.match(await (await realFetch(app.base + '/m/033130858')).text(), /tel:033130858,5/);   // קישור להודעה קולית
 });
 
 test('הגדרת וואטסאפ: דורשת כניסה, בודקת קלט, וקוראת ל-Meta בלי לחשוף את הטוקן', async () => {
