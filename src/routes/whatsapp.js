@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { Router, raw } from 'express';
 import { config } from '../config.js';
 import { handleMessage, greet, newSession } from '../whatsapp/flow.js';
-import { sendAll, react } from '../whatsapp/api.js';
+import { sendAll, react, typing } from '../whatsapp/api.js';
 import { localDigits } from '../lib/owner-phones.js';
 
 export const whatsappRouter = Router();
@@ -71,6 +71,7 @@ async function process(phoneId, dial, msg) {
   if (isNew) { s = newSession(input.text); sessions.set(from, s); }
   const ctx = { dial: prettyPhone(dial), link: config.publicUrl };
   const searching = react(phoneId, from, msg.id, '🔍'); // מיד, במקביל לטיפול
+  typing(phoneId, msg.id);                              // "מקליד..." עד שהתשובה נשלחת
   try {
     const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
     await sendAll(phoneId, from, out);

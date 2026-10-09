@@ -49,3 +49,18 @@ export async function react(phoneId, to, messageId, emoji) {
     console.error('whatsapp: תגובה נכשלה', e.message);
   }
 }
+
+// "מקליד..." מיד עם קבלת ההודעה (וגם סימון נקרא): נעלם כשהתשובה נשלחת, או אחרי 25 שניות. לא זורק
+export async function typing(phoneId, messageId) {
+  try {
+    const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${config.waToken}`, 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({ messaging_product: 'whatsapp', status: 'read', message_id: messageId, typing_indicator: { type: 'text' } }),
+    });
+    if (!res.ok) console.error(`whatsapp: מקליד נכשל ${res.status} ${(await res.text()).slice(0, 200)}`);
+  } catch (e) {
+    console.error('whatsapp: מקליד נכשל', e.message);
+  }
+}
