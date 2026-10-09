@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { boot, seedHalls, sleep, hallsChanged, realFetch, whatsappSent } from '../dev/sim/harness.mjs'; // ראשון: מחליף את Supabase
 const { handleMessage, greet, newSession } = await import('../src/whatsapp/flow.js');
 const { toPayload } = await import('../src/whatsapp/api.js');
+const { splitCity } = await import('../src/lib/text-match.js');
 const { prettyPhone, allowMessage } = await import('../src/routes/whatsapp.js');
 
 const hall = (name, extension, max, city, hood = null, extra = {}) => ({ name, extension, max_guests: max, min_guests: 0, city_name: city, neighborhood_name: hood, ...extra });
@@ -33,7 +34,8 @@ test('שפה: טקסט לטיני בהודעה הראשונה → אנגלית, 
 test('ברכה: ברכה ותפריט בשלושה כפתורים', async () => {
   const msgs = await greet(newSession('שלום'), ctx);
   assert.equal(msgs[0].kind, 'text');
-  assert.deepEqual(rowIds(msgs), ['m:search', 'm:name', 'x:ext', 'x:owner', 'x:lang']);
+  assert.equal(msgs[0].text, '*מזל טוב* 🤍\nאני בוט *שמחה בשיחה* ואעזור לך למצוא בקלות אולם מתאים לאירוע!');
+  assert.deepEqual(rowIds(msgs), ['m:search', 'm:name', 'x:owner', 'x:lang']);
 });
 
 test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → תוצאות עם מספרי שלוחה והוראת חיוג', async () => {
@@ -91,26 +93,27 @@ test('אין אולם בטווח: noFit עם קטנים יותר, ושינוי �
   assert.equal(s.city, 'ירושלים');
 });
 
-test('חיפוש לפי שם: שם אולם ושם בית כנסת, ושם שלא קיים', async () => {
+test('חיפוש לפי שם בכתיבה חופשית: שם ועיר, שם בית כנסת, ושם שלא קיים', async () => {
   const s = newSession('שלום');
-  await say(s, { id: 'm:name' });
-  await say(s, 'בני ברק');
-  const card = await say(s, 'אוהל ברוך');
+  const ask = await say(s, { id: 'm:name' });
+  assert.match(bodyOf(ask), /היכל שמחה בירושלים/);               // דוגמה לכתיבה
+  const card = await say(s, 'אוהל ברוך בבני ברק');
   assert.match(bodyOf(card), /היכל משה/);
-  assert.match(bodyOf(card), /שלוחה|\*201\*/);
+  assert.match(bodyOf(card), /\*201\*/);
   const s2 = newSession('שלום');
-  await say(s2, { id: 'm:name' }); await say(s2, 'בני ברק');
-  const none = await say(s2, 'פלוני אלמוני');
+  await say(s2, { id: 'm:name' });
+  const none = await say(s2, 'פלוני אלמוני בבני ברק');
   assert.deepEqual(rowIds(none), ['h:retry', 'h:list', 'm:menu']);
+  await say(s2, { id: 'h:list' });                              // בחירת עיר ואז רשימת האולמות שלה
+  await say(s2, 'בני ברק');
   const lst = await say(s2, { id: 'h:list' });
   assert.deepEqual(rowIds(lst).slice(0, 2), ['hl:0', 'hl:1']);
 });
 
-test('מספר שלוחה: קיימת → כרטיס; לא קיימת → שואלים שוב', async () => {
+test('כרטיס אולם: כתובת, הוראת חיוג עם השלוחה וקישור', async () => {
   const s = newSession('שלום');
-  await say(s, { id: 'x:ext' });
-  assert.match(bodyOf(await say(s, '999')), /לא קיימת/);
-  const card = bodyOf(await say(s, '101'));
+  await say(s, { id: 'm:name' });
+  const card = bodyOf(await say(s, 'אולם א בירושלים'));
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
   assert.match(card, /הקישו \*2\*, \*101\*, \*ו-#\*\./);
   assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
@@ -129,7 +132,7 @@ test('"תפריט" חוזר לתפריט בכל שלב, ובחירה לא תקי
   const s = newSession('שלום');
   await say(s, { id: 'm:search' }); await say(s, '200');
   assert.match(bodyOf(await say(s, { id: 'zzz' })), /לא הבנתי/);
-  assert.deepEqual(rowIds(await say(s, 'תפריט')), ['m:search', 'm:name', 'x:ext', 'x:owner', 'x:lang']);
+  assert.deepEqual(rowIds(await say(s, 'תפריט')), ['m:search', 'm:name', 'x:owner', 'x:lang']);
 });
 
 test('toPayload: קיצור כותרות לפי מגבלות וואטסאפ', () => {
@@ -183,8 +186,8 @@ test('אולם עם כמה שמות (/): חיפוש לפי כל שם', async () 
   hallsChanged(); await sleep(100);
   for (const name of ['אולם רחל', 'היכל דוד']) {
     const s = newSession('שלום');
-    await say(s, { id: 'm:name' }); await say(s, 'חיפה');
-    const card = bodyOf(await say(s, name));
+    await say(s, { id: 'm:name' });
+    const card = bodyOf(await say(s, `${name} בחיפה`));
     assert.match(card, /היכל דוד \/ אולם רחל/, name);
   }
 });
@@ -208,3 +211,35 @@ test('להוספת אולם: נוסח המייל, והודעה קולית עם �
   assert.match(out, /simchabesicha@gmail\.com\nרשמו את שם האולם,\nמספר פלאפון להזמנה,/);
   assert.match(out, /התקשרו למספר 02-1234567 והקישו 5, או לחצו על הקישור: https:\/\/x\.test\/m\/021234567/);
 });
+
+test('splitCity: עיר מתוך טקסט חופשי, עם אות שימוש ובלעדיה', () => {
+  const cities = ['ירושלים', 'בני ברק', 'בית שמש'];
+  assert.deepEqual(splitCity('היכל שמחה בירושלים', cities), { city: 'ירושלים', rest: 'היכל שמחה' });
+  assert.deepEqual(splitCity('היכל משה בבני ברק', cities), { city: 'בני ברק', rest: 'היכל משה' });
+  assert.deepEqual(splitCity('אולם ב ירושלים', cities), { city: 'ירושלים', rest: 'אולם' });
+  assert.deepEqual(splitCity('ירושלים', cities), { city: 'ירושלים', rest: '' });
+  assert.deepEqual(splitCity('היכל שמחה', cities), { city: null, rest: 'היכל שמחה' });
+  assert.equal(splitCity('אולם בית שמש', cities).city, 'בית שמש');
+});
+
+test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם שקיים בכמה ערים', async () => {
+  seedHalls([
+    hall('היכל שמחה', '301', 200, 'חיפה'), hall('היכל שמחה', '401', 200, 'אשדוד'), hall('אולם יחיד', '302', 200, 'חיפה'),
+  ]);
+  hallsChanged(); await sleep(100);
+  const s = newSession('שלום');
+  await say(s, { id: 'm:name' });
+  assert.match(bodyOf(await say(s, 'אולם יחיד')), /\*302\*/);           // בלי עיר: נמצא אחד
+  const s2 = newSession('שלום');
+  await say(s2, { id: 'm:name' });
+  const two = await say(s2, 'היכל שמחה');                       // בשתי ערים: רשימה עם העיר
+  assert.deepEqual(rowIds(two).slice(0, 2), ['hl:0', 'hl:1']);
+  assert.match(JSON.stringify(two), /חיפה/);
+  const s3 = newSession('שלום');
+  await say(s3, { id: 'm:name' });
+  assert.match(bodyOf(await say(s3, 'היכל שמחה באשדוד')), /\*401\*/);   // עם עיר: אחד
+  const s4 = newSession('שלום');
+  await say(s4, { id: 'm:name' });
+  assert.deepEqual(rowIds(await say(s4, 'חיפה')).slice(0, 2), ['hl:0', 'hl:1']); // רק עיר: רשימת האולמות שלה
+});
+
