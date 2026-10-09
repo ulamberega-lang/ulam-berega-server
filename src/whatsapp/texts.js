@@ -49,7 +49,7 @@ export const T = {
     askCity: 'Which city?\nType the city name (in Hebrew) or choose from the list ☺️',
     cityButton: 'Choose city', cityNone: (c) => `No halls found in ${c}`,
     moreCities: 'More cities ←', moreHoods: 'More neighborhoods ←', moreHalls: 'More halls ←',
-    askHood: 'Which neighborhood?\nType a name, or choose:',
+    askHood: 'Which neighborhood?\nType a name (in Hebrew), or choose:',
     pickHood: 'Choose neighborhood', allCity: 'Whole city', hoodButton: 'Choose',
     hoodNone: (h) => `No halls found in ${h}`,
     extraHalls: 'More halls in the city',
