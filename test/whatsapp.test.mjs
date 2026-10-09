@@ -48,7 +48,7 @@ test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → �
   const text = bodyOf(res);
   assert.match(text, /אולם א/); assert.match(text, /אולם ב/); assert.match(text, /בלי שכונה/);
   assert.doesNotMatch(text, /ענק/);                          // 900 לא מתאים ל-200
-  assert.match(text, /הקישו \*2\*, \*101\*, \*ו-#\*\./);
+  assert.match(text, /הקישו \*2\*, \*101#\*\./);
   assert.match(text, /או לחצו על הקישור: https:\/\/x\.test\/c\/021234567\/101/);
   assert.match(text, /רחוב א 1, שכונת גאולה, ירושלים/);               // כתובת ועיר בכל אולם
   assert.match(text, /02-1234567/);                          // המספר שאליו כתבו
@@ -99,7 +99,7 @@ test('חיפוש לפי שם בכתיבה חופשית: שם ועיר, שם בי
   assert.match(bodyOf(ask), /היכל שמחה בירושלים/);               // דוגמה לכתיבה
   const card = await say(s, 'אוהל ברוך בבני ברק');
   assert.match(bodyOf(card), /היכל משה/);
-  assert.match(bodyOf(card), /\*201\*/);
+  assert.match(bodyOf(card), /\*201#\*/);
   const s2 = newSession('שלום');
   await say(s2, { id: 'm:name' });
   const none = await say(s2, 'פלוני אלמוני בבני ברק');
@@ -114,8 +114,8 @@ test('כרטיס אולם: כתובת, הוראת חיוג עם השלוחה ו�
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם א בירושלים'));
-  assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/); assert.match(card, /\*101\*/);
-  assert.match(card, /הקישו \*2\*, \*101\*, \*ו-#\*\./);
+  assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/);
+  assert.match(card, /הקישו \*2\*, \*101#\*\./);
   assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
 });
 
@@ -233,7 +233,7 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
   hallsChanged(); await sleep(100);
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
-  assert.match(bodyOf(await say(s, 'אולם יחיד')), /\*302\*/);           // בלי עיר: נמצא אחד
+  assert.match(bodyOf(await say(s, 'אולם יחיד')), /\*302#\*/);           // בלי עיר: נמצא אחד
   const s2 = newSession('שלום');
   await say(s2, { id: 'm:name' });
   const two = await say(s2, 'היכל שמחה');                       // בשתי ערים: רשימה עם העיר
@@ -241,7 +241,7 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
   assert.match(JSON.stringify(two), /חיפה/);
   const s3 = newSession('שלום');
   await say(s3, { id: 'm:name' });
-  assert.match(bodyOf(await say(s3, 'היכל שמחה באשדוד')), /\*401\*/);   // עם עיר: אחד
+  assert.match(bodyOf(await say(s3, 'היכל שמחה באשדוד')), /\*401#\*/);   // עם עיר: אחד
   const s4 = newSession('שלום');
   await say(s4, { id: 'm:name' });
   assert.deepEqual(rowIds(await say(s4, 'חיפה')).slice(0, 2), ['hl:0', 'hl:1']); // רק עיר: רשימת האולמות שלה
