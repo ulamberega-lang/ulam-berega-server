@@ -52,6 +52,12 @@ const dialPage = (ctx, ext, t) => {
   return ctx.link && num ? `${t.dialPage}: ${ctx.link}/c/${num}/${ext}` : undefined;
 };
 
+// קישור חיוג להודעה קולית (תפריט 5 בטלפון)
+const voicemailLink = (ctx) => {
+  const num = String(ctx.dial ?? '').replace(/\D/g, '');
+  return ctx.link && num ? `${ctx.link}/m/${num}` : '';
+};
+
 // הודעת אולם אחת (בכרטיס ובכל אולם ברשימת התוצאות): שם, כתובת, אורחים, הוראת חיוג וקישור
 const hallBlock = (h, t, ctx = {}, hood) => {
   const hoods = splitHoods(h.neighborhood_name);
@@ -178,7 +184,7 @@ export async function handleMessage(s, input, ctx = {}) {
       if (id === 'm:search') { s.mode = 'filters'; return go('guests'); }
       if (id === 'm:name') { s.mode = 'name'; return go('city'); }
       if (id === 'x:ext') return go('extEntry');
-      if (id === 'x:owner') { reset(s); return [text(t.ownerInfo), ...menu(s)]; }
+      if (id === 'x:owner') { reset(s); return [text(t.ownerInfo(ctx.dial, voicemailLink(ctx))), ...menu(s)]; }
       if (id) return invalid();
       return show(s, ctx); // טקסט חופשי בתפריט: מציגים אותו שוב
     case 'extEntry': {

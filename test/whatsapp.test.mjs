@@ -201,3 +201,10 @@ test('הגבלת קצב: 20 הודעות בדקה למשתמש, אחר כך מת
   assert.equal(allowMessage('other-user', t0 + 100), true);   // משתמש אחר לא מושפע
   assert.equal(allowMessage('rate-user', t0 + 61_000), true);
 });
+
+test('להוספת אולם: נוסח המייל, והודעה קולית עם מספר וקישור', async () => {
+  const s = newSession('שלום');
+  const out = bodyOf(await say(s, { id: 'x:owner' }));
+  assert.match(out, /simchabesicha@gmail\.com\nרשמו את שם האולם,\nמספר פלאפון להזמנה,/);
+  assert.match(out, /התקשרו למספר 02-1234567 והקישו 5, או לחצו על הקישור: https:\/\/x\.test\/m\/021234567/);
+});
