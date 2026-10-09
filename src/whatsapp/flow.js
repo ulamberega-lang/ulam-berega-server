@@ -58,6 +58,12 @@ const voicemailLink = (ctx) => {
   return ctx.link && num ? `${ctx.link}/m/${num}` : '';
 };
 
+// חתימה בסוף הודעת אולם: שם נטוי, וקישור וואטסאפ למספר (מחוץ לנטייה כדי שיישאר לחיץ). מספר מקומי → 972
+export const signature = (ctx) => {
+  const d = String(ctx.dial ?? '').replace(/\D/g, '').replace(/^0/, '972');
+  return d ? `_שמחה בשיחה_ https://wa.me/${d}` : '_שמחה בשיחה_';
+};
+
 // הודעת אולם אחת (בכרטיס ובכל אולם ברשימת התוצאות): שם, כתובת, אורחים, הוראת חיוג וקישור
 const hallBlock = (h, t, ctx = {}, hood) => {
   const hoods = splitHoods(h.neighborhood_name);
@@ -65,7 +71,7 @@ const hallBlock = (h, t, ctx = {}, hood) => {
   const link = dialPage(ctx, h.extension, t);
   return [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
     [h.address, shown.length && `${t.hoodWord} ${shown.join(' / ')}`, h.city_name].filter(Boolean).join(', '),
-    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), ...(link ? ['', link] : [])].join('\n');
+    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), ...(link ? ['', link] : []), '', '', signature(ctx)].join('\n');
 };
 
 function hallCard(s, h, ctx) {
