@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { Router, raw } from 'express';
 import { config } from '../config.js';
 import { handleMessage, greet, newSession } from '../whatsapp/flow.js';
-import { sendAll } from '../whatsapp/api.js';
+import { sendAll, react } from '../whatsapp/api.js';
 import { localDigits } from '../lib/owner-phones.js';
 
 export const whatsappRouter = Router();
@@ -70,8 +70,14 @@ async function process(phoneId, dial, msg) {
   const isNew = !s;
   if (isNew) { s = newSession(input.text); sessions.set(from, s); }
   const ctx = { dial: prettyPhone(dial), link: config.publicUrl };
-  const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
-  await sendAll(phoneId, from, out);
+  const searching = react(phoneId, from, msg.id, '🔍'); // מיד, במקביל לטיפול
+  try {
+    const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
+    await sendAll(phoneId, from, out);
+  } finally {
+    await searching;                                    // כדי ש-✔️ תגיע אחרי 🔍
+    await react(phoneId, from, msg.id, '✔️');
+  }
 }
 
 whatsappRouter.post('/', raw({ type: '*/*', limit: '1mb' }), (req, res) => {
