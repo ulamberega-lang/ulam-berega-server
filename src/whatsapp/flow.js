@@ -8,7 +8,7 @@
 // הודעה: { kind: 'text', text } | { kind: 'buttons', body, buttons: [[id, title]] } | { kind: 'list', body, button, rows: [[id, title, description?]] }
 import * as halls from '../services/hall-directory.js';
 import { splitHoods, splitNames } from '../lib/hoods.js';
-import { bestMatch, parseNumber } from '../lib/text-match.js';
+import { bestMatch, dropGeneric, normalize, parseNumber, splitCity } from '../lib/text-match.js';
 import { CITY_WORDS, HALL_WORDS, HOOD_WORDS } from '../ivr/flow.js';
 import { T } from './texts.js';
 
@@ -28,7 +28,7 @@ export function newSession(firstText = '') {
   return { lang: firstText && !HEBREW.test(firstText) && /[a-z]/i.test(firstText) ? 'en' : 'he', step: 'menu', t: Date.now() };
 }
 
-const reset = (s) => Object.assign(s, { step: 'menu', mode: null, guests: null, city: null, hood: null, sizeMode: null, redoGuests: false, page: 0 });
+const reset = (s) => Object.assign(s, { step: 'menu', mode: null, free: false, guests: null, city: null, hood: null, sizeMode: null, redoGuests: false, page: 0 });
 
 // ---------- הצגה ----------
 
@@ -112,6 +112,7 @@ async function show(s, ctx, note) {
       rows.push(['k:all', t.allCity]);
       return [list(ask(t.askHood), t.hoodButton, rows)];
     }
+    case 'freeName': return [text(ask(t.askFree))];
     case 'hallName':
       s.cityHalls = await halls.getActiveHallsInCity(s.city);
       return [buttons(ask(t.askHall), [['h:list', t.hallList], ['m:menu', t.back]])];
@@ -181,7 +182,7 @@ export async function handleMessage(s, input, ctx = {}) {
   switch (s.step) {
     case 'menu':
       if (id === 'm:search') { s.mode = 'filters'; return go('guests'); }
-      if (id === 'm:name') { s.mode = 'name'; return go('city'); }
+      if (id === 'm:name') { s.mode = 'name'; return go('freeName'); }
       if (id === 'x:owner') { reset(s); return [text(t.ownerInfo(ctx.dial, voicemailLink(ctx))), ...menu(s)]; }
       if (id) return invalid();
       return show(s, ctx); // טקסט חופשי בתפריט: מציגים אותו שוב
@@ -247,6 +248,29 @@ export async function handleMessage(s, input, ctx = {}) {
       if (id === 'r:guests') { s.redoGuests = true; return go('guests'); }
       return invalid();
 
+    // חיפוש לפי שם בכתיבה חופשית: "היכל שמחה בירושלים" (העיר אופציונלית)
+    case 'freeName': {
+      if (!raw) return invalid();
+      const all = await halls.getActiveHalls();
+      const { city, rest } = splitCity(raw, await halls.getActiveCities());
+      // strict: חיפוש בכל האולמות - שם קצר מאוד ("אולם א") מתאים רק אם נכתב במלואו, כדי שלא יימצא בתוך כל טקסט
+      const find = (list, q, strict) => {
+        const all = [...new Set(list.flatMap((h) => [...splitNames(h.name), h.synagogue_name]).filter(Boolean))];
+        const names = strict ? all.filter((n) => normalize(n) === normalize(q) || normalize(dropGeneric(n, HALL_WORDS)).length >= 3) : all;
+        const name = bestMatch(q, names, { generic: HALL_WORDS });
+        return name ? list.filter((h) => splitNames(h.name).includes(name) || h.synagogue_name === name) : [];
+      };
+      let matches = [];
+      if (city) {
+        const inCity = all.filter((h) => h.city_name === city);
+        matches = rest ? find(inCity, rest) : inCity; // נכתבה רק עיר: רשימת האולמות שלה
+      }
+      if (!matches.length) matches = find(all, raw, true);
+      if (matches.length === 1) return hallCard(s, matches[0], ctx);
+      if (matches.length) { s.hallChoices = matches; s.listPage = 0; return go('hallMenu'); }
+      s.free = true; s.lastName = raw;
+      return go('noHall', t.hallNone(raw));
+    }
     // חיפוש לפי שם: שם אולם או בית כנסת בעיר שנבחרה
     case 'hallName': {
       if (id === 'h:list') { s.hallChoices = s.cityHalls; s.listPage = 0; return go('hallMenu'); }
@@ -260,7 +284,8 @@ export async function handleMessage(s, input, ctx = {}) {
       return go('noHall', t.hallNone(raw));
     }
     case 'noHall':
-      if (id === 'h:retry') return go('hallName');
+      if (id === 'h:retry') return go(s.free ? 'freeName' : 'hallName');
+      if (id === 'h:list' && s.free) { s.free = false; return go('city'); } // בחירת עיר ואז רשימת האולמות שלה
       if (id === 'h:list') { s.hallChoices = s.cityHalls; s.listPage = 0; return go('hallMenu'); }
       return invalid();
     case 'hallMenu': {
