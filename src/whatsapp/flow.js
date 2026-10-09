@@ -34,7 +34,7 @@ const reset = (s) => Object.assign(s, { step: 'menu', mode: null, guests: null, 
 
 function menu(s, note, t = T[s.lang]) {
   return [list([note, t.menuBody].filter(Boolean).join('\n'), t.menuButton,
-    [['m:search', t.search, t.searchDesc], ['m:name', t.byName, t.byNameDesc], ['x:ext', t.ext, t.extDesc], ['x:owner', t.owner], ['x:lang', t.lang]])];
+    [['m:search', t.search, t.searchDesc], ['m:name', t.byName, t.byNameDesc], ['x:ext', t.ext], ['x:owner', t.owner], ['x:lang', t.lang]])];
 }
 
 // עמוד של רשימה: PAGE פריטים, ואחריהם "עוד" אם יש, ושורות קבועות (extra)
