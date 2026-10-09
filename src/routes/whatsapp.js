@@ -63,12 +63,6 @@ export function prettyPhone(phone) {
   return String(phone ?? '');
 }
 
-// חתימה בסוף כל הודעה: שם הבוט וקישור וואטסאפ למספר
-export function footerOf(phone) {
-  const d = String(phone ?? '').replace(/\D/g, '').replace(/^0/, '972');
-  return d ? `שמחה בשיחה https://wa.me/${d}` : 'שמחה בשיחה';
-}
-
 async function process(phoneId, dial, msg) {
   const from = msg.from;
   const input = inputOf(msg);
@@ -77,7 +71,7 @@ async function process(phoneId, dial, msg) {
   if (isNew) { s = newSession(input.text); sessions.set(from, s); }
   const ctx = { dial: prettyPhone(dial), link: config.publicUrl };
   const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
-  await sendAll(phoneId, from, out, footerOf(dial));
+  await sendAll(phoneId, from, out);
 }
 
 whatsappRouter.post('/', raw({ type: '*/*', limit: '1mb' }), (req, res) => {
