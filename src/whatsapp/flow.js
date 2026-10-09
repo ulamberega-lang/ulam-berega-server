@@ -15,7 +15,6 @@ import { T } from './texts.js';
 const { NO_HOOD } = halls;
 const PAGE = 8;          // פריטים בכל עמוד ברשימה (בנוסף: "עוד" ו"תפריט"/"כל העיר" - עד 10 שורות)
 const RESULTS_PAGE = 5;  // אולמות בכל הודעת תוצאות
-const BODY_MAX = 1000;   // גוף הודעה אינטראקטיבית מוגבל (1024)
 
 const text = (t) => ({ kind: 'text', text: t });
 const buttons = (body, list) => ({ kind: 'buttons', body, buttons: list });
@@ -36,12 +35,6 @@ const reset = (s) => Object.assign(s, { step: 'menu', mode: null, guests: null, 
 function menu(s, note, t = T[s.lang]) {
   return [list([note, t.menuBody].filter(Boolean).join('\n'), t.menuButton,
     [['m:search', t.search, t.searchDesc], ['m:name', t.byName, t.byNameDesc], ['x:ext', t.ext, t.extDesc], ['x:owner', t.owner], ['x:lang', t.lang]])];
-}
-
-// הודעה עם רשימת פעולות: אם הטקסט ארוך מדי לגוף ההודעה - נשלח קודם כהודעת טקסט
-function withActions(s, body, button, rows) {
-  const t = T[s.lang];
-  return body.length <= BODY_MAX ? [list(body, button, rows)] : [text(body), list(t.next, button, rows)];
 }
 
 // עמוד של רשימה: PAGE פריטים, ואחריהם "עוד" אם יש, ושורות קבועות (extra)
@@ -150,15 +143,16 @@ async function results(s, ctx, note) {
   const from = s.page * RESULTS_PAGE;
   const onPage = found.slice(from, from + RESULTS_PAGE);
   s.more = found.length > from + RESULTS_PAGE;
-  const body = [note, s.page === 0 && (found.length === 1 ? t.found1 : t.foundN(found.length)), '',
-    ...onPage.flatMap((h) => [hallBlock(h, t, ctx, s.hood), ''])].filter((x) => x !== false && x !== null && x !== undefined).join('\n');
+  // כותרת, הודעה נפרדת לכל אולם (כל אחת עם הוראת חיוג וקישור משלה), ואחריהן רשימת הפעולות
+  const head = [note, s.page === 0 && (found.length === 1 ? t.found1 : t.foundN(found.length))].filter(Boolean).join('\n');
+  const cards = onPage.map((h) => text(hallBlock(h, t, ctx, s.hood)));
   const rows = [];
   if (s.more) rows.push(['r:more', t.rMore]);
   if (!s.sizeMode && (await halls.searchHalls({ ...where, size: 'near' })).length) rows.push(['r:near', t.rNear]);
   if (s.hood && s.hood !== NO_HOOD && !s.sizeMode && await halls.hasNoHoodHalls(s.city, s.guests)) rows.push(['r:extra', cut(t.extraHalls, 24)]);
   if (s.hood) rows.push(['r:hood', t.rHood]);
   rows.push(['r:guests', t.rGuests], ['m:menu', t.back]);
-  return withActions(s, body, t.nextButton, rows);
+  return [...(head ? [text(head)] : []), ...cards, list(t.next, t.nextButton, rows)];
 }
 
 // ---------- טיפול בהודעה ----------

@@ -50,6 +50,7 @@ test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → �
   assert.match(text, /או לחצו על הקישור: https:\/\/x\.test\/c\/021234567\/101/);
   assert.match(text, /רחוב א 1, שכונת גאולה, ירושלים/);               // כתובת ועיר בכל אולם
   assert.match(text, /02-1234567/);                          // המספר שאליו כתבו
+  assert.equal(res.filter((m) => m.kind === 'text' && /לחיוג לאולם/.test(m.text)).length, 3); // הודעה נפרדת לכל אולם
   assert.ok(rowIds(res).includes('r:near'));                 // אולמות בגודל קרוב (ענק)
 });
 
