@@ -189,7 +189,7 @@ export async function handleMessage(s, input, ctx = {}) {
     case 'menu':
       if (id === 'm:search') { s.mode = 'filters'; return go('guests'); }
       if (id === 'm:name') { s.mode = 'name'; return go('freeName'); }
-      if (id === 'x:owner') { reset(s); return [text(t.ownerInfo(ctx.dial, voicemailLink(ctx))), ...menu(s)]; }
+      if (id === 'x:owner') { reset(s); return [text(`${t.ownerInfo(ctx.dial, voicemailLink(ctx))}\n\n\n${signature(ctx)}`), ...menu(s)]; }
       if (id) return invalid();
       return show(s, ctx); // טקסט חופשי בתפריט: מציגים אותו שוב
     case 'guests': {

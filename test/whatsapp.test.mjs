@@ -213,6 +213,8 @@ test('להוספת אולם: נוסח המייל, והודעה קולית עם �
   const s = newSession('שלום');
   const out = bodyOf(await say(s, { id: 'x:owner' }));
   assert.match(out, /simchabesicha@gmail\.com\nרשמו את שם האולם,\nמספר פלאפון להזמנה,/);
+  assert.match(out, /וכתובת מדויקת\.\n\nאם ברצונכם/);                    // שורה ריקה לפני ההודעה הקולית
+  assert.match(out, /\/m\/021234567\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567/); // חתימה אחרי שתי שורות ריקות
   assert.match(out, /התקשרו למספר 02-1234567 והקישו 5, או לחצו על הקישור: https:\/\/x\.test\/m\/021234567/);
 });
 
