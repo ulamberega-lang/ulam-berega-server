@@ -69,3 +69,28 @@ export function parseNumber(raw) {
   const m = String(raw ?? '').replace(/(\d)[,.](?=\d{3}\b)/g, '$1').match(/\d+/);
   return m ? Number(m[0]) : NaN;
 }
+
+// מפריד שם עיר מתוך טקסט חופשי ("היכל שמחה בירושלים" → עיר ירושלים, שאר "היכל שמחה").
+// מזהה גם אות שימוש לפני העיר (ב/ל/מ/ה/ו), וגם כשהיא מופרדת ברווח. הארוכה ביותר מנצחת.
+const CITY_PREFIXES = ['', 'ב', 'ל', 'מ', 'ה', 'ו'];
+export function splitCity(text, cities) {
+  const ws = words(text);
+  let best = null;
+  for (const city of cities) {
+    const target = normalize(city);
+    if (!target) continue;
+    for (let i = 0; i < ws.length; i++) {
+      let joined = '';
+      for (let j = i; j < ws.length; j++) {
+        joined += normalize(ws[j]);
+        if (joined.length > target.length + 1) break;
+        if (CITY_PREFIXES.some((p) => joined === p + target)) {
+          const better = !best || target.length > best.len || (target.length === best.len && j - i > best.to - best.from);
+          if (better) best = { city, from: i, to: j, len: target.length };
+        }
+      }
+    }
+  }
+  if (!best) return { city: null, rest: String(text ?? '').trim() };
+  return { city: best.city, rest: ws.filter((_, i) => i < best.from || i > best.to).join(' ') };
+}
