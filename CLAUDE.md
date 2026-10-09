@@ -22,6 +22,7 @@
 - **ימות המשיח** (מרכזייה): שרת פרטי `private.call2all.co.il`. הקוד פונה אליה רק דרך `src/lib/yemot.js` ו-`src/services/transcriber.js`.
 - **Render** (אזור Frankfurt, קרוב ל-Supabase ולימות; הכתובת `https://ulam-berega.onrender.com`): פריסה אוטומטית מ-main. `npm start` → `node server.js`. `RENDER_EXTERNAL_URL` משמש לפינג עצמי נגד שינה. השירות הישן (`ulam-berega-server`, Oregon) אמור להיות מושעה. ההעברה מ-Oregon קיצרה את הורדת ההקלטה מימות מ-1.1 שניות לכ-0.3.
 - **Supabase**: טבלאות `halls`, `leads_log`, `pronunciations`, ופונקציות הסטטיסטיקה ב-`sql/call_stats.sql`. שינויי סכמה - קובץ חדש ב-`sql/` שבעל הפרויקט מריץ ב-SQL Editor.
+- **הגנת המסד:** `sql/enable_rls.sql` (חייבת להריץ ב-Supabase) מפעילה RLS על כל הטבלאות וסוגרת את פונקציות הסטטיסטיקה ל-anon/authenticated. השרת משתמש ב-service role שעוקף RLS. טבלה חדשה - להפעיל עליה RLS בקובץ ה-SQL שלה.
 - **OpenAI** (`gpt-transcribe`): תמלול הקלטות. **Brevo**: מיילים לאולמות (חינם עד 300 ביום).
 
 משתני סביבה: `OWNER_PHONES` (מספרים שרשאים להשתמש בחייגן היוצא, מופרדים בפסיקים, למשל `0525645458`), `DIALER_CALLER_ID` (אופציונלי, ברירת מחדל `did`), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `YEMOT_TOKEN` (`מספר_מערכת:API_KEY` - מפתח מ"חומת האש" של ימות עם הרשאות DownloadFile ו-FileAction), `BREVO_API_KEY`, `MAIL_FROM`, `ADMIN_PASSWORD`.
