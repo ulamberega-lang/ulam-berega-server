@@ -86,7 +86,6 @@ whatsappRouter.post('/', raw({ type: '*/*', limit: '1mb' }), (req, res) => {
     console.error('whatsapp: בקשה נדחתה (חתימה לא תקינה או WA_APP_SECRET לא תואם)');
     return res.sendStatus(401);
   }
-  console.log('whatsapp: התקבל webhook');
   res.sendStatus(200); // עונים מיד; הטיפול ברקע
   let body;
   try { body = JSON.parse(req.body.toString('utf8')); } catch { return; }
