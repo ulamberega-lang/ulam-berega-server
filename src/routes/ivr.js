@@ -12,11 +12,14 @@ import { callStarted, callEnded, callNotAnswered, dialStatusOf, routingFinished 
 
 export const ivrRouter = Router();
 
-// מדידה: כל תשובה שלקחה לשרת יותר משנייה נרשמת בלוג, עם השלב בשיחה
+// מדידה: כל בקשה מימות נרשמת (`req:`) עם זמן התשובה ו-6 ספרות אחרונות של מזהה השיחה, ותשובה שלקחה יותר משנייה גם `slow:`.
+// כשיש שיחה קטועה אפשר לראות לפי השעה אם השרת ענה מהר (בדרך כלל עשרות מילישניות)
 ivrRouter.use((req, res, next) => {
   const started = Date.now();
   res.on('finish', () => {
     const ms = Date.now() - started;
+    const call = String(req.body?.ApiYFCallId ?? req.body?.ApiCallId ?? '').slice(-6) || '-';
+    console.log(`req: ${req.path} call=${call} step=${res.locals.step ?? '-'} ${ms}ms`);
     if (ms > 1000) console.log(`slow: ${req.path} step=${res.locals.step ?? '-'} ${ms}ms`);
   });
   next();
