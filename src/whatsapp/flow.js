@@ -28,7 +28,7 @@ export function newSession(firstText = '') {
   return { lang: firstText && !HEBREW.test(firstText) && /[a-z]/i.test(firstText) ? 'en' : 'he', step: 'menu', t: Date.now() };
 }
 
-const reset = (s) => Object.assign(s, { step: 'menu', mode: null, free: false, guests: null, city: null, hood: null, sizeMode: null, redoGuests: false, page: 0 });
+const reset = (s) => Object.assign(s, { step: 'menu', mode: null, free: false, guests: null, city: null, hood: null, sizeMode: null, redoGuests: false, page: 0, cityPage: 0, hoodPage: 0, listPage: 0 });
 
 // ---------- הצגה ----------
 

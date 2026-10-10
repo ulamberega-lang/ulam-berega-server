@@ -281,3 +281,10 @@ test('דפדוף ברשימה: "עוד" ו"חזרה", ועד 10 שורות בכ�
   assert.ok(ids(1).includes('c:more') && ids(1).includes('c:prev') && ids(1).length <= 10);
   assert.ok(!ids(2).includes('c:more') && ids(2).includes('c:prev') && ids(2).includes('m:menu'));
 });
+
+test('חזרה לתפריט מאפסת את עמוד הערים, השכונות והאולמות', async () => {
+  const s = newSession('שלום');
+  s.cityPage = 1; s.hoodPage = 2; s.listPage = 3;
+  await say(s, { id: 'm:menu' });
+  assert.deepEqual([s.cityPage, s.hoodPage, s.listPage], [0, 0, 0]);
+});
