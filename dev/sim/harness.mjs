@@ -11,6 +11,7 @@ process.env.OWNER_PHONES = '0525645458, 0501111111';
 process.env.WA_ACCESS_TOKEN = 'wa-token';
 process.env.WA_APP_SECRET = 'wa-secret';
 process.env.WA_VERIFY_TOKEN = 'wa-verify';
+process.env.WA_RETRY_MS = '1';  // בלי המתנה אמיתית בניסיון חוזר
 process.env.SUPABASE_URL = 'http://fake';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake';
 register('./loader.mjs', import.meta.url);
