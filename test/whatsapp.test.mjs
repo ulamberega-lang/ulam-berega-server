@@ -258,7 +258,7 @@ test('חתימה: רק בהודעת אולם, אחרי שתי שורות רוו�
   assert.equal(signature({ dial: '97233130858' }), '> שמחה בשיחה 📞 https://wa.me/97233130858');
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
-  const card = bodyOf(await say(s, 'אולם יחיד בחיפה'));
+  const card = (await say(s, 'אולם יחיד בחיפה'))[0].text;   // הכרטיס הוא הודעת טקסט, ואחריה כפתור תפריט
   assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567$/);
   assert.doesNotMatch(bodyOf(await greet(newSession('שלום'), ctx)), /wa\.me/);   // בלי חתימה בברכה ובתפריט
   assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');
