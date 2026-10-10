@@ -18,7 +18,7 @@ beforeEach(() => { resetDb(); seedHalls(HALLS); emails.length = 0; yemotCalls.le
 // שיחה שמועברת לאולם לפי מספר שלוחה (תפריט 2), ותוצאת חיוג מימות
 async function callHall(id, ext, dialStatus = 'ANSWER') {
   const b = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
-  await ivr(app.base, b); await ivr(app.base, { ...b, v1: '2' }); await ivr(app.base, { ...b, v1: '2', v2: ext });
+  await ivr(app.base, b); await ivr(app.base, { ...b, v1: '3' }); await ivr(app.base, { ...b, v1: '3', v2: ext });
   await sleep(100);
   await ivr(app.base, { ApiCallId: id, ApiYFCallId: id, DialStatus: dialStatus, AnswerTime: '12', Phone: '0521234567' }, '/api/ivr/routing-status');
   await sleep(250);
@@ -111,7 +111,7 @@ test('מתקשר שהתקשר כמה פעמים ולא נענה: נשלח מיי
 test('מתקשרים שונים, או אולמות שונים: כל אחד מקבל מייל', async () => {
   await callHall('DF-1', '101', 'NOANSWER');
   const other = { ApiCallId: 'DF-2', ApiYFCallId: 'DF-2', ApiPhone: '0529999999' };      // מתקשר אחר, אותו אולם
-  await ivr(app.base, other); await ivr(app.base, { ...other, v1: '2' }); await ivr(app.base, { ...other, v1: '2', v2: '101' });
+  await ivr(app.base, other); await ivr(app.base, { ...other, v1: '3' }); await ivr(app.base, { ...other, v1: '3', v2: '101' });
   await sleep(100);
   await ivr(app.base, { ApiCallId: 'DF-2', ApiYFCallId: 'DF-2', DialStatus: 'NOANSWER', Phone: '0529999999' }, '/api/ivr/routing-status');
   await sleep(250);
@@ -121,14 +121,14 @@ test('מתקשרים שונים, או אולמות שונים: כל אחד מק�
 test('שיחה שניסתה כמה אולמות: שורה לכל ניסיון ביומן, והניסיון הקודם נסגר', async () => {
   const b = { ApiCallId: 'AT-1', ApiYFCallId: 'AT-1', ApiPhone: '0521234567' };
   const status = (DialStatus) => ivr(app.base, { ApiCallId: 'AT-1', ApiYFCallId: 'AT-1', DialStatus, AnswerTime: '12', Phone: '0521234567' }, '/api/ivr/routing-status');
-  await ivr(app.base, b); await ivr(app.base, { ...b, v1: '2' }); await ivr(app.base, { ...b, v1: '2', v2: '101' }); // ניסיון 1: אולם א
+  await ivr(app.base, b); await ivr(app.base, { ...b, v1: '3' }); await ivr(app.base, { ...b, v1: '3', v2: '101' }); // ניסיון 1: אולם א
   await sleep(100);
   await status('BUSY');
   await ivr(app.base, { ApiCallId: 'AT-1', ApiYFCallId: 'AT-1' }, '/api/ivr/no-answer');                 // שלוחה 9: חזרה לתפריט
   await sleep(100);
-  await ivr(app.base, { ...b, v1: '2', v2: '101' });                                                     // חזרה לתפריט הראשי (v3)
-  await ivr(app.base, { ...b, v1: '2', v2: '101', v3: '2' });
-  await ivr(app.base, { ...b, v1: '2', v2: '101', v3: '2', v4: '102' });                                  // ניסיון 2: אולם ב
+  await ivr(app.base, { ...b, v1: '3', v2: '101' });                                                     // חזרה לתפריט הראשי (v3)
+  await ivr(app.base, { ...b, v1: '3', v2: '101', v3: '3' });
+  await ivr(app.base, { ...b, v1: '3', v2: '101', v3: '3', v4: '102' });                                  // ניסיון 2: אולם ב
   await sleep(100);
   await status('ANSWER');
   await sleep(250);
@@ -147,7 +147,7 @@ test('שיחה שניסתה כמה אולמות: שורה לכל ניסיון ב
 test('אולם לא ענה: "הקו תפוס" כשהתוצאה BUSY (גם אם הגיעה אחרי שלוחה 9), אחרת "אין מענה"', async () => {
   const route = async (id) => {
     const b = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
-    await ivr(app.base, b); await ivr(app.base, { ...b, v1: '2' }); await ivr(app.base, { ...b, v1: '2', v2: '101' });
+    await ivr(app.base, b); await ivr(app.base, { ...b, v1: '3' }); await ivr(app.base, { ...b, v1: '3', v2: '101' });
     await sleep(100);
   };
   const status = (id, DialStatus) => ivr(app.base, { ApiCallId: id, ApiYFCallId: id, DialStatus, Phone: '0521234567' }, '/api/ivr/routing-status');
@@ -175,7 +175,7 @@ test('דף נחיתה ומדיניות פרטיות פומביים (בלי כנ�
   assert.match(await privacy.text(), /מדיניות פרטיות/);
   const call = await realFetch(app.base + '/c/033130858/101');   // קישור חיוג מהבוט (אנדרואיד)
   assert.equal(call.status, 200);
-  assert.match(await call.text(), /tel:033130858,2101%23/);
+  assert.match(await call.text(), /tel:033130858,3101%23/);
   assert.equal((await realFetch(app.base + '/c/abc/101')).status, 404);
   assert.match(await (await realFetch(app.base + '/m/033130858')).text(), /tel:033130858,5/);   // קישור להודעה קולית
 });
@@ -341,7 +341,7 @@ test('אולם עם כמה שמות (/): חיפוש לפי כל שם, ומוקר
     transcripts.push('ירושלים', said);
     let params = { ApiCallId: id, ApiYFCallId: id, ApiPhone: '0521234567' };
     const texts = [];
-    for (const [i, answer] of [null, '3', '/8/c.wav', '1', '/8/h.wav', '1'].entries()) {
+    for (const [i, answer] of [null, '2', '/8/c.wav', '1', '/8/h.wav', '1'].entries()) {
       if (answer !== null) params = { ...params, [`v${i}`]: answer };
       texts.push(strip((await ivr(app.base, params)).text));
     }
@@ -438,4 +438,17 @@ test('הצעת ניקוד מ-OpenAI: כמה אפשרויות, לא נשמרת, �
   assert.equal(failure[0], 502);
   assert.match(failure[1].error, /נכשלה/);
   assert.equal((await realFetch(`${app.base}/admin/api/pronunciations/suggest`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 401);
+});
+
+test('תפריט ראשי: 2 חיפוש לפי שם, 3 מספר שלוחה (הוחלפו)', async () => {
+  const b = { ApiCallId: 'SW-1', ApiYFCallId: 'SW-1', ApiPhone: '0521234567' };
+  const menu = strip((await ivr(app.base, b)).text);
+  assert.match(menu, /לחיפוש לפי שם האולם הקש 2/);
+  assert.match(menu, /מספר השלוחה של האולם הקש 3/);
+  assert.match(strip((await ivr(app.base, { ...b, v1: '3' })).text), /הקש את מספר השלוחה/);                 // 3: שלוחה
+  const c = { ApiCallId: 'SW-2', ApiYFCallId: 'SW-2', ApiPhone: '0521234567' };
+  await ivr(app.base, c);
+  const byName = strip((await ivr(app.base, { ...c, v1: '2' })).text);                                        // 2: שם (שואל עיר)
+  assert.doesNotMatch(byName, /הקש את מספר השלוחה/);
+  assert.match(byName, /עיר/);
 });

@@ -2,8 +2,8 @@
 //
 // שלבים:
 //   1 חיפוש לפי כמות ומיקום:  guests → guestsOk → city → cityOk → hood → (hoodSay → hoodOk | hoodMenu) → results
-//   2 מספר שלוחה:             extEntry
-//   3 חיפוש לפי שם:            city → cityOk → hallSay → hallOk | hallMenu
+//   2 חיפוש לפי שם:            city → cityOk → hallSay → hallOk | hallMenu
+//   3 מספר שלוחה:             extEntry
 //   cityMenu / hoodMenu / hallMenu - בחירה מרשימה (גם כשהתמלול נכשל)
 //   noFit - אין אולם בגודל מתאים אבל יש גדולים ו/או קטנים יותר: לשמוע אותם או לשנות כמות
 //   noMatch - נאמר שם שלא נמצא: לנסות שוב (1) או לבחור מרשימה (2)
@@ -149,8 +149,8 @@ export async function prompt(s) {
   switch (s.step) {
     case 'menu':
       return ask(s, ['בְּרוּכִים הַבָּאִים לְשִׂמְחָה בְּשִׂיחָה', 'לְחִיפּוּשׂ אוּלָם הַקֵּשׁ 1',
-        'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 2',
-        'לְחִיפּוּשׂ לְפִי שֵׁם הָאוּלָם הַקֵּשׁ 3',
+        'לְחִיפּוּשׂ לְפִי שֵׁם הָאוּלָם הַקֵּשׁ 2',
+        'אִם יָדוּעַ לְךָ מִסְפַּר הַשְּׁלוּחָה שֶׁל הָאוּלָם הַקֵּשׁ 3',
         'לְהוֹסָפַת אוּלָם לַמַּעֲרֶכֶת הַקֵּשׁ 4', 'לְהַשְׁאָרַת הוֹדָעָה הַקֵּשׁ 5'], tapOptions(1));
 
 
@@ -319,8 +319,8 @@ export async function handleAnswer(s, q, val, raw) {
   switch (s.step) {
     case 'menu':
       if (val === '1') { s.mode = 'filters'; return go('guests'); }
-      if (val === '2') return go('extEntry');
-      if (val === '3') { s.mode = 'name'; return go('city'); }
+      if (val === '2') { s.mode = 'name'; return go('city'); }
+      if (val === '3') return go('extEntry');
       if (val === '4') return go('ownerInfo');
       if (val === '5') return go('voicemail');
       // כניסה סמויה לחייגן היוצא (שלוחה 7): רק מספרי בעל הפרויקט; לכל השאר 7 היא בחירה לא תקינה
