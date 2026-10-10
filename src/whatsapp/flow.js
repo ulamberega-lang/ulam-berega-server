@@ -80,8 +80,7 @@ function hallCard(s, h, ctx) {
   const t = T[s.lang];
   const body = hallBlock(h, t, ctx);
   s.step = 'menu';
-  // הכרטיס כהודעת טקסט רגילה: בגוף הודעה אינטראקטיבית וואטסאפ מתעלמת מתווי כיוון הטקסט (3 84# מתהפך)
-  return [text(body), buttons(t.next, [['m:menu', t.back]])];
+  return [buttons(body, [['m:menu', t.back]])];
 }
 
 const noFitChoices = async (s) => {
@@ -160,7 +159,7 @@ async function results(s, ctx, note) {
   s.more = found.length > from + RESULTS_PAGE;
   // כותרת, הודעה נפרדת לכל אולם (כל אחת עם הוראת חיוג וקישור משלה), ואחריהן רשימת הפעולות
   const head = [note, s.page === 0 && (found.length === 1 ? t.found1 : t.foundN(found.length))].filter(Boolean).join('\n');
-  const cards = onPage.map((h) => text(hallBlock(h, t, ctx, s.hood)));
+  const cards = onPage.map((h) => buttons(hallBlock(h, t, ctx, s.hood), [['m:menu', t.back]]));
   const rows = [];
   if (s.more) rows.push(['r:more', t.rMore]);
   if (!s.sizeMode && (await halls.searchHalls({ ...where, size: 'near' })).length) rows.push(['r:near', t.rNear]);
