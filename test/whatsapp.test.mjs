@@ -288,3 +288,16 @@ test('חזרה לתפריט מאפסת את עמוד הערים, השכונות 
   await say(s, { id: 'm:menu' });
   assert.deepEqual([s.cityPage, s.hoodPage, s.listPage], [0, 0, 0]);
 });
+
+test('שליחה: הגבלת קצב 131056 מנסה שוב ובסוף נשלח', async () => {
+  const { sendAll } = await import('../src/whatsapp/api.js');
+  const orig = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => (++calls < 3
+    ? { ok: false, status: 400, text: async () => '{"error":{"code":131056}}' }
+    : { ok: true, status: 200, text: async () => '{}' });
+  try {
+    await sendAll('1', '972500000000', [{ kind: 'text', text: 'שלום' }]);
+    assert.equal(calls, 3);
+  } finally { globalThis.fetch = orig; }
+});
