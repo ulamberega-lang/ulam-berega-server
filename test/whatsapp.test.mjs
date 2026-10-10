@@ -272,3 +272,12 @@ test('שיחה פגה אחרי 15 דקות בלי הודעה, ומתחילה מ�
   assert.equal(activeSession('ttl-user', 1_000_000 + SESSION_TTL_MS + 1), undefined); // אחרי הגבול: נמחקה
   assert.equal(sessions.has('ttl-user'), false);
 });
+
+test('דפדוף ברשימה: "עוד" ו"חזרה", ועד 10 שורות בכל עמוד', async () => {
+  const { pageRows } = await import('../src/whatsapp/flow.js');
+  const items = Array.from({ length: 20 }, (_, i) => [`עיר ${i + 1}`]);
+  const ids = (page) => pageRows({ lang: 'he', cityPage: page }, items, 'c', 'cityPage', 'עוד', [['m:menu', 'תפריט']]).rows.map((r) => r[0]);
+  assert.ok(ids(0).includes('c:more') && !ids(0).includes('c:prev'));
+  assert.ok(ids(1).includes('c:more') && ids(1).includes('c:prev') && ids(1).length <= 10);
+  assert.ok(!ids(2).includes('c:more') && ids(2).includes('c:prev') && ids(2).includes('m:menu'));
+});
