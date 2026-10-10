@@ -6,7 +6,7 @@ import { boot, seedHalls, sleep, hallsChanged, realFetch, whatsappSent } from '.
 const { handleMessage, greet, newSession, signature } = await import('../src/whatsapp/flow.js');
 const { toPayload } = await import('../src/whatsapp/api.js');
 const { splitCity } = await import('../src/lib/text-match.js');
-const { prettyPhone, allowMessage } = await import('../src/routes/whatsapp.js');
+const { prettyPhone, allowMessage, activeSession, sessions, SESSION_TTL_MS } = await import('../src/routes/whatsapp.js');
 
 const hall = (name, extension, max, city, hood = null, extra = {}) => ({ name, extension, max_guests: max, min_guests: 0, city_name: city, neighborhood_name: hood, ...extra });
 seedHalls([
@@ -262,4 +262,13 @@ test('חתימה: רק בהודעת אולם, אחרי שתי שורות רוו�
   assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567$/);
   assert.doesNotMatch(bodyOf(await greet(newSession('שלום'), ctx)), /wa\.me/);   // בלי חתימה בברכה ובתפריט
   assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');
+});
+
+test('שיחה פגה אחרי 15 דקות בלי הודעה, ומתחילה מחדש', () => {
+  assert.equal(SESSION_TTL_MS, 15 * 60 * 1000);
+  const s = { ...newSession('שלום'), t: 1_000_000 };
+  sessions.set('ttl-user', s);
+  assert.equal(activeSession('ttl-user', 1_000_000 + SESSION_TTL_MS), s);          // בדיוק בגבול: עדיין פעילה
+  assert.equal(activeSession('ttl-user', 1_000_000 + SESSION_TTL_MS + 1), undefined); // אחרי הגבול: נמחקה
+  assert.equal(sessions.has('ttl-user'), false);
 });

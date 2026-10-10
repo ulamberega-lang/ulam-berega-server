@@ -8,8 +8,15 @@ import { localDigits } from '../lib/owner-phones.js';
 
 export const whatsappRouter = Router();
 
-const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
-const sessions = new Map(); // מספר משתמש → מצב
+export const SESSION_TTL_MS = 15 * 60 * 1000; // בלי הודעה 15 דקות: השיחה מתחילה מחדש (ברכה ותפריט)
+export const sessions = new Map(); // מספר משתמש → מצב
+
+// השיחה הפעילה של משתמש; פגה - נמחקת, וההודעה הבאה מתחילה שיחה חדשה (לא מחכים לניקוי התקופתי)
+export function activeSession(from, now = Date.now()) {
+  const s = sessions.get(from);
+  if (s && now - s.t > SESSION_TTL_MS) { sessions.delete(from); return undefined; }
+  return s;
+}
 const seen = new Map();     // מזהי הודעות שכבר טופלו (Meta שולחת שוב אם לא ענינו בזמן)
 const queues = new Map();   // מספר משתמש → תור: הודעות של אותו משתמש מטופלות בזה אחר זה
 
@@ -66,7 +73,7 @@ export function prettyPhone(phone) {
 async function process(phoneId, dial, msg) {
   const from = msg.from;
   const input = inputOf(msg);
-  let s = sessions.get(from);
+  let s = activeSession(from);
   const isNew = !s;
   if (isNew) { s = newSession(input.text); sessions.set(from, s); }
   const ctx = { dial: prettyPhone(dial), link: config.publicUrl };
