@@ -80,8 +80,7 @@ function hallCard(s, h, ctx) {
   const t = T[s.lang];
   const body = hallBlock(h, t, ctx);
   s.step = 'menu';
-  // הכרטיס כהודעת טקסט רגילה: בגוף הודעה אינטראקטיבית וואטסאפ מתעלמת מתווי כיוון הטקסט (3 84# מתהפך)
-  return [text(body), buttons(t.next, [['m:menu', t.back]])];
+  return [buttons(body, [['m:menu', t.back]])];
 }
 
 const noFitChoices = async (s) => {
