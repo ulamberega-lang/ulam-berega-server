@@ -124,7 +124,9 @@ function fmt(text) {
   return text.split('\n').map((line) => {
     const quote = line.startsWith('> ');
     let h = esc(quote ? line.slice(2) : line);
-    h = h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    // קישורים עם https:// וגם בלי (הבוט מציג כתובות בלי https://): חייבים נקודה בדומיין ונתיב אחרי /
+    h = h.replace(/(^|[\s\u200F(])((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s<]*)/gi, (m, pre, url) =>
+      `${pre}<a href="${/^https?:/i.test(url) ? url : 'https://' + url}" target="_blank" rel="noopener">${url}</a>`);
     h = h.replace(/(^|[\s(,:])(0\d{1,2}-\d{3}-\d{4})(?=[\s,.)]|$)/g, (m, p, n) => `${p}<a href="tel:${n.replace(/-/g, '')}">${n}</a>`);
     h = h.replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
     h = h.replace(/\u2066[^\u2069]*\u2069/g, '<span class="nb">$&</span>'); // מספר החיוג לא נשבר לשתי שורות
