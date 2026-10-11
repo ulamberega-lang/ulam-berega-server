@@ -7,6 +7,7 @@ import { adminApi } from './routes/admin-api.js';
 import { adminAuth } from './middleware/admin-auth.js';
 import { dialerRouter } from './routes/dialer.js';
 import { whatsappRouter } from './routes/whatsapp.js';
+import { webchatRouter } from './routes/webchat.js';
 import { requireJson } from './middleware/admin-guard.js';
 import { publicPages } from './public-pages.js';
 
@@ -24,6 +25,7 @@ export function createApp() {
   const PICTURE_PATH = '/admin/api/whatsapp/profile/picture';
   app.use((req, res, next) => (req.path === PICTURE_PATH ? next() : express.json()(req, res, next)));
 
+  app.use('/api/webchat', webchatRouter); // הצ'אט באתר (JSON)
   app.use(publicPages); // /health, דף נחיתה, מדיניות פרטיות וקישורי החיוג
 
   app.use('/api/ivr', express.urlencoded({ extended: true }), ivrRouter); // רק ימות שולחת טפסים

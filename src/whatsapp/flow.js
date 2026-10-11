@@ -28,7 +28,7 @@ export function newSession(firstText = '') {
   return { lang: firstText && !HEBREW.test(firstText) && /[a-z]/i.test(firstText) ? 'en' : 'he', step: 'menu', t: Date.now() };
 }
 
-const reset = (s) => Object.assign(s, { step: 'menu', mode: null, free: false, guests: null, city: null, hood: null, sizeMode: null, redoGuests: false, page: 0 });
+const reset = (s) => Object.assign(s, { step: 'menu', mode: null, free: false, guests: null, city: null, hood: null, sizeMode: null, redoGuests: false, page: 0, cityPage: 0, hoodPage: 0, listPage: 0 });
 
 // ---------- הצגה ----------
 
@@ -38,12 +38,14 @@ function menu(s, note, t = T[s.lang]) {
 }
 
 // עמוד של רשימה: PAGE פריטים, ואחריהם "עוד" אם יש, ושורות קבועות (extra)
-function pageRows(s, items, label, pageKey, moreLabel, extra) {
+export function pageRows(s, items, label, pageKey, moreLabel, extra) {
   const from = (s[pageKey] ?? 0) * PAGE;
   const more = items.length > from + PAGE;
   const rows = items.slice(from, from + PAGE).map((it, i) => [`${label}:${from + i}`, ...it]);
   if (more) rows.push([`${label}:more`, moreLabel]);
-  return { rows: [...rows, ...extra], more, from };
+  if (from > 0) rows.push([`${label}:prev`, s.lang === 'en' ? '→ Previous' : 'חזרה ←']);
+  // מגבלת וואטסאפ: 10 שורות. בעמוד אמצעי (עוד + חזרה) שורת התפריט נשמטת
+  return { rows: rows.length + extra.length > 10 ? rows : [...rows, ...extra], more, from };
 }
 
 // קישור https לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
@@ -61,7 +63,8 @@ const voicemailLink = (ctx) => {
 // חתימה בסוף הודעת אולם: בלוק ציטוט של וואטסאפ ("> " בתחילת שורה: פס בצד ועיצוב מעומעם), עם קישור לחיץ. מספר מקומי → 972
 export const signature = (ctx) => {
   const d = String(ctx.dial ?? '').replace(/\D/g, '').replace(/^0/, '972');
-  return d ? `> שמחה בשיחה 📞 https://wa.me/${d}` : '> שמחה בשיחה';
+  const web = ctx.link && !ctx.web ? `\n> או בצ'אט באתר: ${ctx.link}/chat` : '';
+  return (d ? `> שמחה בשיחה 📞 https://wa.me/${d}` : '> שמחה בשיחה') + web;
 };
 
 // הודעת אולם אחת (בכרטיס ובכל אולם ברשימת התוצאות): שם, כתובת, אורחים, הוראת חיוג וקישור
@@ -157,7 +160,7 @@ async function results(s, ctx, note) {
   s.more = found.length > from + RESULTS_PAGE;
   // כותרת, הודעה נפרדת לכל אולם (כל אחת עם הוראת חיוג וקישור משלה), ואחריהן רשימת הפעולות
   const head = [note, s.page === 0 && (found.length === 1 ? t.found1 : t.foundN(found.length))].filter(Boolean).join('\n');
-  const cards = onPage.map((h) => text(hallBlock(h, t, ctx, s.hood)));
+  const cards = onPage.map((h) => buttons(hallBlock(h, t, ctx, s.hood), [['m:menu', t.back]]));
   const rows = [];
   if (s.more) rows.push(['r:more', t.rMore]);
   if (!s.sizeMode && (await halls.searchHalls({ ...where, size: 'near' })).length) rows.push(['r:near', t.rNear]);
@@ -201,6 +204,7 @@ export async function handleMessage(s, input, ctx = {}) {
     }
 
     case 'city': {
+      if (id === 'c:prev') { s.cityPage = Math.max(0, (s.cityPage ?? 0) - 1); return go('city'); }
       if (id === 'c:more') { s.cityPage = (s.cityPage ?? 0) + 1; return go('city'); }
       let city = pick(s.cities, 'c');
       if (!city && raw) {
@@ -226,6 +230,7 @@ export async function handleMessage(s, input, ctx = {}) {
     }
     case 'hoodMenu': {
       s.page = 0;
+      if (id === 'k:prev') { s.hoodPage = Math.max(0, (s.hoodPage ?? 0) - 1); return go('hoodMenu'); }
       if (id === 'k:more') { s.hoodPage++; return go('hoodMenu'); }
       if (id === 'k:all') { s.hood = null; return go('results'); }
       if (id === 'k:extra' && s.hoodExtra) { s.hood = NO_HOOD; return go('results'); }
@@ -295,6 +300,7 @@ export async function handleMessage(s, input, ctx = {}) {
       if (id === 'h:list') { s.hallChoices = s.cityHalls; s.listPage = 0; return go('hallMenu'); }
       return invalid();
     case 'hallMenu': {
+      if (id === 'hl:prev') { s.listPage = Math.max(0, (s.listPage ?? 0) - 1); return go('hallMenu'); }
       if (id === 'hl:more') { s.listPage++; return go('hallMenu'); }
       const hall = pick(s.hallChoices, 'hl');
       return hall ? hallCard(s, hall, ctx) : invalid();

@@ -48,11 +48,11 @@ test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → �
   const text = bodyOf(res);
   assert.match(text, /אולם א/); assert.match(text, /אולם ב/); assert.match(text, /בלי שכונה/);
   assert.doesNotMatch(text, /ענק/);                          // 900 לא מתאים ל-200
-  assert.match(text, /והקישו \*\u20663 101#\u2069\*\./);
+  assert.match(text, /והקישו \*\u20663101#\u2069\*(?!\.)/);
   assert.match(text, /או לחצו על הקישור: https:\/\/x\.test\/c\/021234567\/101/);
   assert.match(text, /רחוב א 1, שכונת גאולה, ירושלים/);               // כתובת ועיר בכל אולם
   assert.match(text, /02-1234567/);                          // המספר שאליו כתבו
-  assert.equal(res.filter((m) => m.kind === 'text' && /לפרטים נוספים/.test(m.text)).length, 3); // הודעה נפרדת לכל אולם
+  assert.equal(res.filter((m) => m.kind === 'buttons' && /לפרטים נוספים/.test(m.body)).length, 3); // הודעה נפרדת לכל אולם
   assert.ok(rowIds(res).includes('r:near'));                 // אולמות בגודל קרוב (ענק)
 });
 
@@ -99,7 +99,7 @@ test('חיפוש לפי שם בכתיבה חופשית: שם ועיר, שם בי
   assert.match(bodyOf(ask), /היכל שמחה בירושלים/);               // דוגמה לכתיבה
   const card = await say(s, 'אוהל ברוך בבני ברק');
   assert.match(bodyOf(card), /היכל משה/);
-  assert.match(bodyOf(card), /\u20663 201#\u2069/);
+  assert.match(bodyOf(card), /\u20663201#\u2069/);
   const s2 = newSession('שלום');
   await say(s2, { id: 'm:name' });
   const none = await say(s2, 'פלוני אלמוני בבני ברק');
@@ -115,7 +115,7 @@ test('כרטיס אולם: כתובת, הוראת חיוג עם השלוחה ו�
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם א בירושלים'));
   assert.match(card, /אולם א/); assert.match(card, /רחוב א 1/);
-  assert.match(card, /והקישו \*\u20663 101#\u2069\*\./);
+  assert.match(card, /והקישו \*\u20663101#\u2069\*(?!\.)/);
   assert.match(card, /https:\/\/x\.test\/c\/021234567\/101/);
 });
 
@@ -238,7 +238,7 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
   hallsChanged(); await sleep(100);
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
-  assert.match(bodyOf(await say(s, 'אולם יחיד')), /\u20663 302#\u2069/);           // בלי עיר: נמצא אחד
+  assert.match(bodyOf(await say(s, 'אולם יחיד')), /\u20663302#\u2069/);           // בלי עיר: נמצא אחד
   const s2 = newSession('שלום');
   await say(s2, { id: 'm:name' });
   const two = await say(s2, 'היכל שמחה');                       // בשתי ערים: רשימה עם העיר
@@ -246,7 +246,7 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
   assert.match(JSON.stringify(two), /חיפה/);
   const s3 = newSession('שלום');
   await say(s3, { id: 'm:name' });
-  assert.match(bodyOf(await say(s3, 'היכל שמחה באשדוד')), /\u20663 401#\u2069/);   // עם עיר: אחד
+  assert.match(bodyOf(await say(s3, 'היכל שמחה באשדוד')), /\u20663401#\u2069/);   // עם עיר: אחד
   const s4 = newSession('שלום');
   await say(s4, { id: 'm:name' });
   assert.deepEqual(rowIds(await say(s4, 'חיפה')).slice(0, 2), ['hl:0', 'hl:1']); // רק עיר: רשימת האולמות שלה
@@ -259,7 +259,7 @@ test('חתימה: רק בהודעת אולם, אחרי שתי שורות רוו�
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם יחיד בחיפה'));
-  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567$/);
+  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567\n> או בצ'אט באתר: https:\/\/x\.test\/chat$/);
   assert.doesNotMatch(bodyOf(await greet(newSession('שלום'), ctx)), /wa\.me/);   // בלי חתימה בברכה ובתפריט
   assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');
 });
@@ -271,4 +271,85 @@ test('שיחה פגה אחרי 15 דקות בלי הודעה, ומתחילה מ�
   assert.equal(activeSession('ttl-user', 1_000_000 + SESSION_TTL_MS), s);          // בדיוק בגבול: עדיין פעילה
   assert.equal(activeSession('ttl-user', 1_000_000 + SESSION_TTL_MS + 1), undefined); // אחרי הגבול: נמחקה
   assert.equal(sessions.has('ttl-user'), false);
+});
+
+test('דפדוף ברשימה: "עוד" ו"חזרה", ועד 10 שורות בכל עמוד', async () => {
+  const { pageRows } = await import('../src/whatsapp/flow.js');
+  const items = Array.from({ length: 20 }, (_, i) => [`עיר ${i + 1}`]);
+  const ids = (page) => pageRows({ lang: 'he', cityPage: page }, items, 'c', 'cityPage', 'עוד', [['m:menu', 'תפריט']]).rows.map((r) => r[0]);
+  assert.ok(ids(0).includes('c:more') && !ids(0).includes('c:prev'));
+  assert.ok(ids(1).includes('c:more') && ids(1).includes('c:prev') && ids(1).length <= 10);
+  assert.ok(!ids(2).includes('c:more') && ids(2).includes('c:prev') && ids(2).includes('m:menu'));
+});
+
+test('חזרה לתפריט מאפסת את עמוד הערים, השכונות והאולמות', async () => {
+  const s = newSession('שלום');
+  s.cityPage = 1; s.hoodPage = 2; s.listPage = 3;
+  await say(s, { id: 'm:menu' });
+  assert.deepEqual([s.cityPage, s.hoodPage, s.listPage], [0, 0, 0]);
+});
+
+test('שליחה: הגבלת קצב 131056 מנסה שוב ובסוף נשלח', async () => {
+  const { sendAll } = await import('../src/whatsapp/api.js');
+  const orig = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => (++calls < 3
+    ? { ok: false, status: 400, text: async () => '{"error":{"code":131056}}' }
+    : { ok: true, status: 200, text: async () => '{}' });
+  try {
+    await sendAll('1', '972500000000', [{ kind: 'text', text: 'שלום' }]);
+    assert.equal(calls, 3);
+  } finally { globalThis.fetch = orig; }
+});
+
+test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מזהה לא תקין ודף הצאט', async () => {
+  seedHalls([hall('אולם ווב', '101', 200, 'ירושלים', 'גאולה', { address: 'רחוב א 1' })]); hallsChanged(); await sleep(50);
+  const { config } = await import('../src/config.js');
+  const oldUrl = config.publicLinkBase; config.publicLinkBase = 'https://x.test';
+  const { base, close } = await boot();
+  try {
+    const post = (body) => realFetch(`${base}/api/webchat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const sid = 'web-test-session-0001';
+    assert.equal((await post({ sid: 'x' })).status, 400);                    // מזהה לא תקין
+    const open = await (await post({ sid })).json();
+    assert.match(bodyOf(open.messages), /מזל טוב/);                          // ברכה ותפריט
+    assert.ok(rowIds(open.messages).includes('m:search'));
+    const guests = await (await post({ sid, id: 'm:search' })).json();
+    assert.match(bodyOf(guests.messages), /כמות המוזמנים/);
+    const city = await (await post({ sid, text: '200' })).json();
+    assert.match(bodyOf(city.messages), /עיר/);
+    const dialLink = (m) => /\/c\/\d+\/\d+/.test(bodyOf(m));
+    await post({ sid, id: 'm:menu' }); await post({ sid, id: 'm:name' });
+    const phone = await (await post({ sid, text: 'אולם ווב בירושלים' })).json();     // טלפון: יש קישור חיוג, בלי שורת הצ'אט
+    assert.ok(dialLink(phone.messages)); assert.doesNotMatch(bodyOf(phone.messages), /בצ'אט באתר/);
+    const sid2 = 'web-test-session-0002';
+    await post({ sid: sid2, desktop: true }); await post({ sid: sid2, desktop: true, id: 'm:name' });
+    const desk = await (await post({ sid: sid2, desktop: true, text: 'אולם ווב בירושלים' })).json();
+    assert.match(bodyOf(desk.messages), /אולם ווב/); assert.ok(!dialLink(desk.messages));  // מחשב: בלי קישור חיוג
+    const page = await realFetch(`${base}/chat`);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /api\/webchat/);
+    assert.equal((await realFetch(`${base}/logo.png`)).status, 200);
+  } finally { config.publicLinkBase = oldUrl; await close(); }
+});
+
+test('הצהרת נגישות: הדף זמין ומקושר מהצ\'אט ומדף הבית', async () => {
+  const { base, close } = await boot();
+  try {
+    const page = await realFetch(`${base}/accessibility`);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /הצהרת נגישות/);
+    assert.match(await (await realFetch(`${base}/chat`)).text(), /href="\/accessibility"/);
+    assert.match(await (await realFetch(`${base}/`)).text(), /href="\/accessibility"/);
+  } finally { await close(); }
+});
+
+test('דף הבית: קישורים לצ\'אט, לוואטסאפ ולטלפון', async () => {
+  const { base, close } = await boot();
+  try {
+    const html = await (await realFetch(`${base}/`)).text();
+    assert.match(html, /href="\/chat"/);
+    assert.match(html, /href="https:\/\/wa\.me\/97233130858"/);
+    assert.match(html, /href="tel:033130858"/);
+  } finally { await close(); }
 });

@@ -17,20 +17,29 @@ export function toPayload(to, m) {
       { id, title: cut(title, 24), ...(description ? { description: cut(description, 72) } : {}) })) }] } } };
 }
 
-// שולח לפי הסדר. כשל לא זורק: נרשם בלוג, והשאר לא נשלח
+const RETRY_MS = Number(process.env.WA_RETRY_MS ?? 4000); // המתנה בין ניסיונות כשנחסמת מהגבלת קצב
+
+// שולח לפי הסדר. כשל לא זורק: נרשם בלוג, והשאר לא נשלח.
+// 131056 = Meta הגבילה הודעות רצופות לאותו משתמש (גם תגובות אימוג'י נספרות): ממתינים וחוזרים עד 3 ניסיונות
 export async function sendAll(phoneId, to, messages) {
   for (const m of messages) {
-    try {
-      const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${config.waToken}`, 'content-type': 'application/json' },
-        signal: AbortSignal.timeout(10000),
-        body: JSON.stringify(toPayload(to, m)),
-      });
-      if (!res.ok) { console.error(`whatsapp: שליחה נכשלה ${res.status} ${(await res.text()).slice(0, 300)}`); return; }
-    } catch (e) {
-      console.error('whatsapp: שליחה נכשלה', e.message);
-      return;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${config.waToken}`, 'content-type': 'application/json' },
+          signal: AbortSignal.timeout(10000),
+          body: JSON.stringify(toPayload(to, m)),
+        });
+        if (res.ok) break;
+        const err = (await res.text()).slice(0, 300);
+        if (err.includes('131056') && attempt < 3) { await new Promise((r) => setTimeout(r, RETRY_MS * attempt)); continue; }
+        console.error(`whatsapp: שליחה נכשלה ${res.status} ${err}`);
+        return;
+      } catch (e) {
+        console.error('whatsapp: שליחה נכשלה', e.message);
+        return;
+      }
     }
   }
 }
