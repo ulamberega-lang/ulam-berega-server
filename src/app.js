@@ -31,6 +31,7 @@ export function createApp() {
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
   // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)
   app.get('/', (req, res) => res.sendFile(`${publicSite}/index.html`));
+  app.get('/accessibility', (req, res) => res.sendFile(`${publicSite}/accessibility.html`));
   app.get('/privacy', (req, res) => res.sendFile(`${publicSite}/privacy.html`));
 
   // קישורי חיוג מהבוט (לאנדרואיד): דף קבוע שפותח את החייגן עם המספר והספרות. רק ספרות בכתובת, בלי גישה לנתונים

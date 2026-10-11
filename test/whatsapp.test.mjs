@@ -332,3 +332,14 @@ test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מ
     assert.equal((await realFetch(`${base}/logo.png`)).status, 200);
   } finally { config.publicUrl = oldUrl; await close(); }
 });
+
+test('הצהרת נגישות: הדף זמין ומקושר מהצ\'אט ומדף הבית', async () => {
+  const { base, close } = await boot();
+  try {
+    const page = await realFetch(`${base}/accessibility`);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /הצהרת נגישות/);
+    assert.match(await (await realFetch(`${base}/chat`)).text(), /href="\/accessibility"/);
+    assert.match(await (await realFetch(`${base}/`)).text(), /href="\/accessibility"/);
+  } finally { await close(); }
+});
