@@ -26,6 +26,7 @@ export function createApp() {
   app.use((req, res, next) => (req.path === PICTURE_PATH ? next() : express.json()(req, res, next)));
 
   app.use('/api/webchat', webchatRouter); // הצ'אט באתר (JSON)
+  app.get('/logo.png', (req, res) => res.sendFile(`${publicSite}/logo.png`));
   app.get('/chat', (req, res) => res.sendFile(`${publicSite}/chat.html`));
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
   // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)

@@ -12,7 +12,7 @@
   body { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; background: #d1d7db; color: var(--text); display: flex; justify-content: center; }
   .app { width: 100%; max-width: 560px; height: 100dvh; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 0 20px rgba(0,0,0,.15); }
   header { background: var(--green); color: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
-  .avatar { width: 40px; height: 40px; border-radius: 50%; background: #fff; color: var(--green); display: grid; place-items: center; font-size: 22px; flex: none; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; }
   .title { flex: 1; min-width: 0; }
   .title b { display: block; font-size: 1.05rem; }
   .title span { font-size: .8rem; opacity: .85; }
@@ -48,7 +48,7 @@
 <body>
 <div class="app">
   <header>
-    <div class="avatar">🏛️</div>
+    <img class="avatar" src="/logo.png" alt="שמחה בשיחה">
     <div class="title"><b>שמחה בשיחה</b><span>כל האולמות במספר אחד</span></div>
     <button id="menuBtn" type="button">תפריט</button>
   </header>
