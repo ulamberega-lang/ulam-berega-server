@@ -3,27 +3,20 @@ import { Router } from 'express';
 import { handleMessage, greet, newSession } from '../whatsapp/flow.js';
 import { prettyPhone } from './whatsapp.js';
 import { config } from '../config.js';
+import { makeLimiter } from '../lib/rate-limit.js';
 
 export const webchatRouter = Router();
 
 const TTL_MS = 15 * 60 * 1000;           // כמו בוואטסאפ: בלי פעילות 15 דקות - מתחילים מחדש
 const SID = /^[A-Za-z0-9_-]{16,64}$/;    // מזהה שהדפדפן מייצר
 const MAX_SESSIONS = 5000;               // מגבלת זיכרון
-const RATE_MAX = 30, RATE_WINDOW_MS = 60 * 1000;
+// לפי כתובת: גבוה יותר, כי בשרת הציבורי הנפרד כל הבקשות מגיעות דרך כתובת אחת (ההגבלה לפי כתובת שם); לפי מזהה שיחה: 30 בדקה
+const allowIp = makeLimiter(300, 60 * 1000);
+const allowSid = makeLimiter(30, 60 * 1000);
 const sessions = new Map();              // מזהה → { s, queue }
-const hits = new Map();                  // כתובת → זמני בקשות אחרונים
-
-export function allowRequest(key, now = Date.now()) {
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  if (recent.length >= RATE_MAX) { hits.set(key, recent); return false; }
-  recent.push(now);
-  hits.set(key, recent);
-  return true;
-}
 
 setInterval(() => {
   const now = Date.now();
-  for (const [k, list] of hits) if (!list.some((t) => now - t < RATE_WINDOW_MS)) hits.delete(k);
   for (const [k, v] of sessions) if (now - v.s.t > TTL_MS) sessions.delete(k);
 }, 5 * 60 * 1000).unref();
 
@@ -31,10 +24,10 @@ setInterval(() => {
 webchatRouter.post('/', async (req, res) => {
   const { sid, id, text, desktop } = req.body ?? {};
   if (typeof sid !== 'string' || !SID.test(sid)) return res.status(400).json({ error: 'bad sid' });
-  if (!allowRequest(`ip:${req.ip}`) || !allowRequest(`sid:${sid}`)) return res.status(429).json({ error: 'too many requests' });
+  if (!allowIp(req.ip) || !allowSid(sid)) return res.status(429).json({ error: 'too many requests' });
   const input = { id: typeof id === 'string' ? id.slice(0, 40) : undefined, text: typeof text === 'string' ? text.slice(0, 300) : '' };
   // קישור חיוג (tel:) עובד רק בטלפון: במחשב לא מציגים אותו. web: בלי שורת "או בצ'אט באתר" בחתימה (כבר בצ'אט)
-  const ctx = { dial: prettyPhone(config.systemPhone), link: desktop === true ? undefined : config.publicUrl, web: true };
+  const ctx = { dial: prettyPhone(config.systemPhone), link: desktop === true ? undefined : config.publicLinkBase || undefined, web: true };
   try {
     let entry = sessions.get(sid);
     if (entry && Date.now() - entry.s.t > TTL_MS) { sessions.delete(sid); entry = undefined; }

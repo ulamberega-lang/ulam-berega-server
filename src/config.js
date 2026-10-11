@@ -18,6 +18,7 @@ export const config = {
   dialerCallerId: process.env.DIALER_CALLER_ID || 'did', // הזיהוי שיוצג לנמען (routing_your_id); did = מספר המערכת הראשי (real_did / special.<מספר מאושר> אפשריים)
   systemPhone: process.env.SYSTEM_PHONE || '033130858',   // המספר שמוצג בצ'אט באתר (בוואטסאפ הוא מגיע מהבקשה)
   publicUrl: process.env.RENDER_EXTERNAL_URL,           // Render מגדיר אוטומטית
+  publicLinkBase: (process.env.PUBLIC_LINK_BASE || process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, ''), // הכתובת שבקישורי החיוג של הבוט (הדומיין הציבורי; ברירת מחדל - הכתובת של השרת)
 };
 
 export const IVR = {

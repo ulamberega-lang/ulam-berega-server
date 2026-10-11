@@ -305,7 +305,7 @@ test('שליחה: הגבלת קצב 131056 מנסה שוב ובסוף נשלח',
 test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מזהה לא תקין ודף הצאט', async () => {
   seedHalls([hall('אולם ווב', '101', 200, 'ירושלים', 'גאולה', { address: 'רחוב א 1' })]); hallsChanged(); await sleep(50);
   const { config } = await import('../src/config.js');
-  const oldUrl = config.publicUrl; config.publicUrl = 'https://x.test';
+  const oldUrl = config.publicLinkBase; config.publicLinkBase = 'https://x.test';
   const { base, close } = await boot();
   try {
     const post = (body) => realFetch(`${base}/api/webchat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -330,7 +330,7 @@ test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מ
     assert.equal(page.status, 200);
     assert.match(await page.text(), /api\/webchat/);
     assert.equal((await realFetch(`${base}/logo.png`)).status, 200);
-  } finally { config.publicUrl = oldUrl; await close(); }
+  } finally { config.publicLinkBase = oldUrl; await close(); }
 });
 
 test('הצהרת נגישות: הדף זמין ומקושר מהצ\'אט ומדף הבית', async () => {

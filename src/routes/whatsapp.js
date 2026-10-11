@@ -76,7 +76,7 @@ async function process(phoneId, dial, msg) {
   let s = activeSession(from);
   const isNew = !s;
   if (isNew) { s = newSession(input.text); sessions.set(from, s); }
-  const ctx = { dial: prettyPhone(dial), link: config.publicUrl };
+  const ctx = { dial: prettyPhone(dial), link: config.publicLinkBase };
   const searching = react(phoneId, from, msg.id, '🔍'); // מיד, במקביל לטיפול
   typing(phoneId, msg.id);                              // "מקליד..." עד שהתשובה נשלחת
   try {
