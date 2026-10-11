@@ -217,7 +217,7 @@ test('להוספת אולם: נוסח המייל, והודעה קולית עם �
   const out = bodyOf(await say(s, { id: 'x:owner' }));
   assert.match(out, /simchabesicha@gmail\.com\nרשמו את שם האולם,\nמספר פלאפון להזמנה,/);
   assert.match(out, /וכתובת מדויקת\.\n\nאם ברצונכם/);                    // שורה ריקה לפני ההודעה הקולית
-  assert.match(out, /\/m\/021234567\n\n\n> שמחה בשיחה ב\u05BEWhatsApp\n> \u200Fwa\.me\/97221234567/); // חתימה אחרי שתי שורות ריקות
+  assert.match(out, /\/m\/021234567\n\n\n> שמחה בשיחה ב\u05BEWhatsApp\u200F wa\.me\/97221234567/); // חתימה אחרי שתי שורות ריקות
   assert.match(out, /התקשרו למספר 02-1234567 והקישו 5, או לחצו על הקישור: x\.test\/m\/021234567/);
 });
 
@@ -254,12 +254,12 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
 
 
 test('חתימה: רק בהודעת אולם, אחרי שתי שורות רווח, ובלי שינוי בשאר ההודעות', async () => {
-  assert.equal(signature({ dial: '03-313-0858' }), '> שמחה בשיחה ב\u05BEWhatsApp\n> \u200Fwa.me/97233130858');
-  assert.equal(signature({ dial: '97233130858' }), '> שמחה בשיחה ב\u05BEWhatsApp\n> \u200Fwa.me/97233130858');
+  assert.equal(signature({ dial: '03-313-0858' }), '> שמחה בשיחה ב\u05BEWhatsApp\u200F wa.me/97233130858');
+  assert.equal(signature({ dial: '97233130858' }), '> שמחה בשיחה ב\u05BEWhatsApp\u200F wa.me/97233130858');
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם יחיד בחיפה'));
-  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה ב\u05BEWhatsApp\n> \u200Fwa\.me\/97221234567 או באתר x\.test\/chat$/);
+  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה ב\u05BEWhatsApp\u200F wa\.me\/97221234567 או באתר x\.test\/chat$/);
   assert.doesNotMatch(bodyOf(await greet(newSession('שלום'), ctx)), /wa\.me/);   // בלי חתימה בברכה ובתפריט
   assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');
 });
