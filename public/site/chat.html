@@ -10,10 +10,11 @@
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; background: #d1d7db; color: var(--text); display: flex; justify-content: center; }
-  .app { width: 100%; max-width: 560px; height: 100dvh; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 0 20px rgba(0,0,0,.15); }
+  .app { width: 100%; max-width: 760px; height: 100dvh; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 0 20px rgba(0,0,0,.15); }
   header { background: var(--green); color: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
   .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; }
-  .title { flex: 1; min-width: 0; }
+  .who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; padding: 0; }
+  .title { flex: 1; min-width: 0; display: block; }
   .title b { display: block; font-size: 1.05rem; }
   .title span { font-size: .8rem; opacity: .85; }
   header button { background: rgba(255,255,255,.18); color: #fff; border: 0; border-radius: 18px; padding: 8px 14px; font: inherit; font-size: .9rem; cursor: pointer; }
@@ -23,6 +24,7 @@
   .row.out { align-self: flex-end; }
   .bubble { background: var(--in); border-radius: 10px; padding: 7px 10px 6px; box-shadow: 0 1px 1px rgba(0,0,0,.12); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.45; font-size: .98rem; }
   .row.out .bubble { background: var(--out); }
+  .nb { white-space: nowrap; }
   .bubble a { color: var(--link); }
   .bubble .quote { display: block; border-inline-start: 3px solid #c3c9cd; padding-inline-start: 8px; color: var(--muted); font-size: .9rem; }
   .time { font-size: .7rem; color: var(--muted); text-align: end; margin-top: 2px; display: block; }
@@ -34,6 +36,21 @@
   form { display: flex; gap: 8px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: #f0f2f5; }
   input { flex: 1; min-width: 0; border: 0; border-radius: 22px; padding: 11px 16px; font: inherit; font-size: 1rem; background: #fff; outline: none; }
   form button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--green); color: #fff; font-size: 1.2rem; cursor: pointer; flex: none; }
+  .info { position: absolute; inset: 0; background: #f0f2f5; display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
+  .info.open { display: flex; }
+  .info header { position: sticky; top: 0; }
+  .info header button { background: none; font-size: 1.5rem; padding: 0 6px; }
+  .card { background: #fff; margin-bottom: 10px; padding: 14px 18px; }
+  .card.top { text-align: center; padding: 24px 18px; }
+  .card.top img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; }
+  .card.top h2 { margin: 12px 0 2px; font-size: 1.4rem; }
+  .card.top p { margin: 0; color: var(--muted); }
+  .card h4 { margin: 0 0 6px; font-size: .85rem; color: var(--muted); font-weight: 500; }
+  .card p { margin: 0; line-height: 1.5; }
+  .links a { display: flex; align-items: center; gap: 12px; padding: 12px 0; color: var(--text); text-decoration: none; border-top: 1px solid #f0f2f5; }
+  .links a:first-child { border-top: 0; }
+  .links a span { font-size: 1.3rem; width: 28px; text-align: center; }
+  .links a small { display: block; color: var(--muted); }
   .sheet-bg { position: absolute; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: flex-end; }
   .sheet-bg.open { display: flex; }
   .sheet { background: #fff; width: 100%; max-height: 75%; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; }
@@ -48,8 +65,10 @@
 <body>
 <div class="app">
   <header>
-    <img class="avatar" src="/logo.png" alt="שמחה בשיחה">
-    <div class="title"><b>שמחה בשיחה</b><span>כל האולמות במספר אחד</span></div>
+    <button class="who" id="who" type="button" aria-label="פרטי העסק">
+      <img class="avatar" src="/logo.png" alt="">
+      <span class="title"><b>שמחה בשיחה</b><span>כל האולמות במספר אחד · לחצו לפרטים</span></span>
+    </button>
     <button id="menuBtn" type="button">תפריט</button>
   </header>
   <div id="log" aria-live="polite"></div>
@@ -57,6 +76,18 @@
     <input id="text" placeholder="כתבו הודעה" enterkeyhint="send" aria-label="הודעה">
     <button type="submit" aria-label="שליחה">➤</button>
   </form>
+  <div class="info" id="info" role="dialog" aria-label="פרטי העסק">
+    <header><button id="infoClose" type="button" aria-label="חזרה">→</button><div class="title"><b>פרטי העסק</b></div></header>
+    <div class="card top"><img src="/logo.png" alt="שמחה בשיחה"><h2>שמחה בשיחה</h2><p>כל האולמות במספר אחד</p></div>
+    <div class="card"><h4>אודות</h4><p>מוצאים אולם לאירוע לפי כמות מוזמנים, עיר ושכונה, או לפי שם, ומחברים ישירות לטלפון של האולם.</p></div>
+    <div class="card links">
+      <a href="tel:033130858"><span>📞</span><div>03-313-0858<small>טלפון (מקישים 3 ושלוחה)</small></div></a>
+      <a href="https://wa.me/97233130858" target="_blank" rel="noopener"><span>💬</span><div>וואטסאפ<small>אותו בוט בוואטסאפ</small></div></a>
+      <a href="mailto:Simchabesicha@gmail.com"><span>✉️</span><div>Simchabesicha@gmail.com<small>בעלי אולמות: להוספת אולם</small></div></a>
+      <a href="/" target="_blank" rel="noopener"><span>🌐</span><div>דף הבית</div></a>
+      <a href="/privacy" target="_blank" rel="noopener"><span>🔒</span><div>מדיניות פרטיות</div></a>
+    </div>
+  </div>
   <div class="sheet-bg" id="sheetBg"><div class="sheet"><h3><span id="sheetTitle"></span><button id="sheetClose" type="button" aria-label="סגירה">×</button></h3><ul id="sheetRows"></ul></div></div>
 </div>
 <script>
@@ -73,6 +104,8 @@ function makeSid() {
   return s;
 }
 const sid = makeSid();
+// קישורי חיוג (tel:) עובדים רק בטלפון: השרת לא יציג אותם במחשב
+const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // עיצוב וואטסאפ: *מודגש*, קישורים, מספר טלפון לחיץ, ושורה שמתחילה ב-"> " כציטוט
@@ -83,6 +116,7 @@ function fmt(text) {
     h = h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
     h = h.replace(/(^|[\s(,:])(0\d{1,2}-\d{3}-\d{4})(?=[\s,.)]|$)/g, (m, p, n) => `${p}<a href="tel:${n.replace(/-/g, '')}">${n}</a>`);
     h = h.replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
+    h = h.replace(/\u2066[^\u2069]*\u2069/g, '<span class="nb">$&</span>'); // מספר החיוג לא נשבר לשתי שורות
     return quote ? `<span class="quote">${h}</span>` : h;
   }).join('\n').replace(/<\/span>\n(?=<span class="quote">)/g, '</span>');
 }
@@ -144,7 +178,7 @@ async function send(payload) {
   const wait = bubble('in typing', '•••');
   wait.classList.add('typing');
   try {
-    const res = await fetch('/api/webchat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, ...payload }) });
+    const res = await fetch('/api/webchat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, desktop: !mobile, ...payload }) });
     if (!res.ok) throw new Error(res.status);
     const { messages } = await res.json();
     wait.remove();
@@ -163,6 +197,10 @@ document.getElementById('form').onsubmit = (e) => {
   input.value = '';
   lockOld(); bubble('out', esc(t)); send({ text: t });
 };
+const info = document.getElementById('info');
+document.getElementById('who').onclick = () => info.classList.add('open');
+document.getElementById('infoClose').onclick = () => info.classList.remove('open');
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { info.classList.remove('open'); sheetBg.classList.remove('open'); } });
 document.getElementById('menuBtn').onclick = () => choose('m:menu', 'תפריט ראשי');
 
 send({}); // פתיחת שיחה: ברכה ותפריט

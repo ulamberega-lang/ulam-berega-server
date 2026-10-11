@@ -29,11 +29,12 @@ setInterval(() => {
 
 // POST { sid, id? , text? }: בלי id וטקסט - פתיחת שיחה (ברכה ותפריט)
 webchatRouter.post('/', async (req, res) => {
-  const { sid, id, text } = req.body ?? {};
+  const { sid, id, text, desktop } = req.body ?? {};
   if (typeof sid !== 'string' || !SID.test(sid)) return res.status(400).json({ error: 'bad sid' });
   if (!allowRequest(`ip:${req.ip}`) || !allowRequest(`sid:${sid}`)) return res.status(429).json({ error: 'too many requests' });
   const input = { id: typeof id === 'string' ? id.slice(0, 40) : undefined, text: typeof text === 'string' ? text.slice(0, 300) : '' };
-  const ctx = { dial: prettyPhone(config.systemPhone), link: config.publicUrl };
+  // קישור חיוג (tel:) עובד רק בטלפון: במחשב לא מציגים אותו. web: בלי שורת "או בצ'אט באתר" בחתימה (כבר בצ'אט)
+  const ctx = { dial: prettyPhone(config.systemPhone), link: desktop === true ? undefined : config.publicUrl, web: true };
   try {
     let entry = sessions.get(sid);
     if (entry && Date.now() - entry.s.t > TTL_MS) { sessions.delete(sid); entry = undefined; }
