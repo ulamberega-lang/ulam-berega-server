@@ -18,32 +18,33 @@
   :focus-visible { outline: 3px solid #6b4a12; outline-offset: 2px; }
   header :focus-visible { outline-color: #f6e7c1; }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
-  .app { width: 100%; max-width: 640px; height: calc(100dvh - 52px); overflow: hidden; border-radius: 10px; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 10px 40px rgba(90,64,20,.28); border: 1px solid #b08d4a; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
-  header { background: linear-gradient(180deg, #43361f, #33291c); color: var(--hdr-text); padding: 10px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid #b08d4a; }
+  .app { width: 100%; max-width: 640px; height: calc(100dvh - 52px); overflow: hidden; border-radius: 24px; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 24px 70px rgba(70,48,12,.30); border: 1px solid rgba(255,255,255,.7); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  header { background: #2c2217; color: var(--hdr-text); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
   .avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex: none; border: 1.5px solid #b08d4a; }
   .who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; padding: 0; }
   .title { flex: 1; min-width: 0; display: block; }
   .title b { display: block; font-family: var(--serif); font-size: 1.15rem; }
+  .title .hint { font-style: normal; }
   .title span { display: block; font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   header button:not(.who) { background: transparent; color: var(--hdr-text); border: 1px solid #b08d4a !important; border: 0; border-radius: 18px; padding: 8px 14px; font: inherit; font-size: .9rem; cursor: pointer; }
   #log { flex: 1; overflow-y: auto; padding: 12px 10px 8px; display: flex; flex-direction: column; gap: 6px; background-image: radial-gradient(rgba(0,0,0,.035) 1px, transparent 1px); background-size: 18px 18px; }
   .row { display: flex; flex-direction: column; max-width: 86%; }
   .row.in { align-self: flex-start; }
   .row.out { align-self: flex-end; }
-  .bubble { background: var(--in); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px 6px; box-shadow: 0 1px 2px rgba(90,64,20,.12); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.45; font-size: .98rem; }
+  .bubble { background: var(--in); border-radius: 18px; padding: 10px 14px 8px; box-shadow: 0 1px 3px rgba(90,64,20,.14); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.45; font-size: .98rem; }
   .row.out .bubble { background: var(--out); }
   .nb { white-space: nowrap; }
   .bubble a { color: var(--link); }
   .bubble .quote { display: block; border-inline-start: 3px solid #d9c08a; padding-inline-start: 8px; color: var(--muted); font-size: .9rem; }
   .time { font-size: .7rem; color: var(--muted); text-align: end; margin-top: 2px; display: block; }
   .btns { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-  .btns button { background: var(--in); color: var(--link); border: 1px solid #b08d4a; border-radius: 10px; padding: 10px; font: inherit; font-weight: 500; cursor: pointer; box-shadow: 0 1px 2px rgba(90,64,20,.12); }
+  .btns button { background: var(--in); color: var(--link); border: 1px solid rgba(176,141,74,.7); border-radius: 999px; padding: 11px 14px; font: inherit; font-weight: 500; cursor: pointer; box-shadow: 0 1px 2px rgba(90,64,20,.12); }
   .btns button:hover { background: #f6ecd2; }
   .btns button:disabled { color: var(--muted); cursor: default; }
   .typing .bubble { color: var(--muted); letter-spacing: 3px; }
-  form { display: flex; gap: 8px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(246,236,210,.92); border-top: 1px solid var(--line); }
-  input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 22px; padding: 11px 16px; font: inherit; font-size: 1rem; background: var(--in); color: var(--text); outline: none; }
-  form button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: linear-gradient(180deg, #c8a460, #b08d4a); color: #33291c; font-size: 1.2rem; cursor: pointer; flex: none; }
+  form { display: flex; gap: 8px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(250,245,234,.9); border-top: 1px solid rgba(176,141,74,.25); }
+  input { flex: 1; min-width: 0; border: 1px solid rgba(176,141,74,.45); border-radius: 999px; padding: 12px 18px; font: inherit; font-size: 1rem; background: var(--in); color: var(--text); outline: none; }
+  form button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: #b08d4a; color: #2c2217; font-size: 1.2rem; cursor: pointer; flex: none; }
   .info { position: absolute; inset: 0; background: #faf5ea; display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
   .info.open { display: flex; }
   .info header { position: sticky; top: 0; }
@@ -69,7 +70,7 @@
   .sheet li button { width: 100%; text-align: start; background: none; border: 0; padding: 14px 16px; font: inherit; color: var(--text); cursor: pointer; }
   .sheet li button:hover { background: #f6ecd2; }
   .sheet li small { display: block; color: var(--muted); }
-  @media (max-width: 600px) { body { padding: 10px 8px; } .app { height: calc(100dvh - 20px); border-radius: 8px; } }
+  @media (max-width: 600px) { .title .hint { display: none; } body { padding: 10px 8px; } .app { height: calc(100dvh - 20px); border-radius: 20px; } }
 </style>
 </head>
 <body>
@@ -77,7 +78,7 @@
   <header>
     <button class="who" id="who" type="button" aria-label="פרטי העסק">
       <img class="avatar" src="/logo.png" alt="">
-      <span class="title"><b>שמחה בשיחה</b><span>כל האולמות במספר אחד · לחצו לפרטים</span></span>
+      <span class="title"><b>שמחה בשיחה</b><span>כל האולמות במספר אחד<em class="hint"> · לחצו לפרטים</em></span></span>
     </button>
     <button id="menuBtn" type="button">תפריט</button>
   </header>
