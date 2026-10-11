@@ -48,16 +48,19 @@ export function pageRows(s, items, label, pageKey, moreLabel, extra) {
   return { rows: rows.length + extra.length > 10 ? rows : [...rows, ...extra], more, from };
 }
 
-// קישור https לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
+// כתובת להצגה בלי https:// (וואטסאפ מזהה אותה כקישור בכל זאת)
+const bare = (url) => String(url).replace(/^https?:\/\//, '');
+
+// קישור לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
 const dialPage = (ctx, ext, t) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
-  return ctx.link && num ? `${t.dialPage}: ${ctx.link}/c/${num}/${ext}` : undefined;
+  return ctx.link && num ? `${t.dialPage}:\n${bare(ctx.link)}/c/${num}/${ext}` : undefined;
 };
 
 // קישור חיוג להודעה קולית (תפריט 5 בטלפון)
 const voicemailLink = (ctx) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
-  return ctx.link && num ? `${ctx.link}/m/${num}` : '';
+  return ctx.link && num ? `${bare(ctx.link)}/m/${num}` : '';
 };
 
 // חתימה בסוף הודעת אולם: בלוק ציטוט של וואטסאפ ("> " בתחילת שורה: פס בצד ועיצוב מעומעם), בלי אימוג'י.
@@ -65,8 +68,8 @@ const voicemailLink = (ctx) => {
 // וואטסאפ (מספר מקומי → 972), ואחריו האתר (בצ'אט עצמו לא מוצג)
 export const signature = (ctx) => {
   const d = String(ctx.dial ?? '').replace(/\D/g, '').replace(/^0/, '972');
-  let line = d ? `> שמחה בשיחה ב-WhatsApp wa.me/${d}` : '> שמחה בשיחה';
-  if (ctx.link && !ctx.web) line += ` או באתר ${ctx.link.replace(/^https?:\/\//, '')}/chat`;
+  let line = d ? `> שמחה בשיחה ב\u05BEWhatsApp wa.me/${d}` : '> שמחה בשיחה';
+  if (ctx.link && !ctx.web) line += ` או באתר ${bare(ctx.link)}/chat`;
   return line;
 };
 
