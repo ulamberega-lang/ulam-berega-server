@@ -353,3 +353,10 @@ test('דף הבית: קישורים לצ\'אט, לוואטסאפ ולטלפון'
     assert.match(html, /href="tel:033130858"/);
   } finally { await close(); }
 });
+
+test('הודעת אולם: אימוגי לכתובת ולכמות אורחים', async () => {
+  const s = newSession('שלום');
+  await say(s, { id: 'm:name' });
+  const card = bodyOf(await say(s, 'אולם יחיד בחיפה'));
+  assert.match(card, /\n📍 .*חיפה\n🔢 עד \d+ אורחים\n/);
+});

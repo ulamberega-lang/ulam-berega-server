@@ -76,14 +76,14 @@ export const signature = (ctx) => {
   return lines.join('\n');
 };
 
-// הודעת אולם אחת (בכרטיס ובכל אולם ברשימת התוצאות): שם, כתובת, אורחים, הוראת חיוג וקישור
+// הודעת אולם אחת (בכרטיס ובכל אולם ברשימת התוצאות): שם, כתובת (📍), אורחים (🔢), הוראת חיוג וקישור
 const hallBlock = (h, t, ctx = {}, hood) => {
   const hoods = splitHoods(h.neighborhood_name);
   const shown = hood && hoods.includes(hood) ? [hood] : hoods;
   const link = dialPage(ctx, h.extension, t);
   return [`*${h.name}*${h.synagogue_name ? ` (${t.synagogue} ${h.synagogue_name})` : ''}`,
-    [h.address, shown.length && `${t.hoodWord} ${shown.join(' / ')}`, h.city_name].filter(Boolean).join(', '),
-    t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), ...(link ? ['', link] : []), '', '', signature(ctx)].join('\n');
+    '📍 ' + [h.address, shown.length && `${t.hoodWord} ${shown.join(' / ')}`, h.city_name].filter(Boolean).join(', '),
+    '🔢 ' + t.upTo(h.max_guests), '', t.howToCall(ctx.dial, h.extension), ...(link ? ['', link] : []), '', '', signature(ctx)].join('\n');
 };
 
 function hallCard(s, h, ctx) {
