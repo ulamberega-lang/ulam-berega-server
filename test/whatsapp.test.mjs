@@ -353,3 +353,11 @@ test('דף הבית: קישורים לצ\'אט, לוואטסאפ ולטלפון'
     assert.match(html, /href="tel:033130858"/);
   } finally { await close(); }
 });
+
+test('הודעת אולם: אימוגי לכתובת ולכמות אורחים', async () => {
+  seedHalls([hall('אולם אימוגי', '501', 150, 'חיפה', null, { address: 'רחוב ב 2' })]); hallsChanged(); await sleep(50);
+  const s = newSession('שלום');
+  await say(s, { id: 'm:name' });
+  const card = bodyOf(await say(s, 'אולם אימוגי בחיפה'));
+  assert.match(card, /\n📍 רחוב ב 2, חיפה\n🔢 עד 150 אורחים\n/);
+});
