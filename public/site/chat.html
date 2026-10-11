@@ -42,9 +42,10 @@
   .btns button:hover { background: #f6ecd2; }
   .btns button:disabled { color: var(--muted); cursor: default; }
   .typing .bubble { color: var(--muted); letter-spacing: 3px; }
-  form { display: flex; gap: 8px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(250,245,234,.9); border-top: 1px solid rgba(176,141,74,.25); }
+  form { display: flex; flex-direction: row-reverse; gap: 8px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(250,245,234,.9); border-top: 1px solid rgba(176,141,74,.25); }
   input { flex: 1; min-width: 0; border: 1px solid rgba(176,141,74,.45); border-radius: 999px; padding: 12px 18px; font: inherit; font-size: 1rem; background: var(--in); color: var(--text); outline: none; }
   form button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: #b08d4a; color: #2c2217; font-size: 1.2rem; cursor: pointer; flex: none; }
+  .send-ico { display: inline-block; transform: scaleX(-1); } /* החץ מצביע שמאלה, לכיוון השיחה */
   .info { position: absolute; inset: 0; background: #faf5ea; display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
   .info.open { display: flex; }
   .info header { position: sticky; top: 0; }
@@ -85,7 +86,7 @@
   <div id="log" role="log" aria-live="polite" aria-label="שיחה" tabindex="0"></div>
   <form id="form" autocomplete="off">
     <input id="text" placeholder="כתבו הודעה" enterkeyhint="send" aria-label="הודעה">
-    <button type="submit" aria-label="שליחה">➤</button>
+    <button type="submit" aria-label="שליחה"><span class="send-ico" aria-hidden="true">➤</span></button>
   </form>
   <div class="info" id="info" role="dialog" aria-modal="true" aria-label="פרטי העסק">
     <header><button id="infoClose" type="button" aria-label="חזרה">→</button><div class="title"><b>פרטי העסק</b></div></header>
