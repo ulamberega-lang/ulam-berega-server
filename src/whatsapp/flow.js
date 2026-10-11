@@ -54,7 +54,7 @@ const bare = (url) => String(url).replace(/^https?:\/\//, '');
 // קישור לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
 const dialPage = (ctx, ext, t) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
-  return ctx.link && num ? `${t.dialPage}:\n${bare(ctx.link)}/c/${num}/${ext}` : undefined;
+  return ctx.link && num ? `${t.dialPage}:\n\u200F${bare(ctx.link)}/c/${num}/${ext}` : undefined;
 };
 
 // קישור חיוג להודעה קולית (תפריט 5 בטלפון)
@@ -65,12 +65,12 @@ const voicemailLink = (ctx) => {
 
 // חתימה בסוף הודעת אולם: בלוק ציטוט של וואטסאפ ("> " בתחילת שורה: פס בצד ועיצוב מעומעם), בלי אימוג'י ובלי נקודתיים.
 // כל קישור בשורה משלו (בלי https://, וואטסאפ מזהה אותו בכל זאת): קישור ארוך שמתחלק באמצע משפט עברי מתבלבל בסדר השורות.
-// מקף עברי (U+05BE) אחרי ה"ב" נשאר צמוד ל-WhatsApp. וואטסאפ (מספר מקומי → 972), ואחריו האתר (בצ'אט עצמו לא מוצג)
+// מקף עברי (U+05BE) אחרי ה"ב" נשאר צמוד ל-WhatsApp. סימן RLM (U+200F) בתחילת שורת קישור הופך אותה לשורה ימנית (שורה שמתחילה באותיות לטיניות מיושרת שמאלה). וואטסאפ (מספר מקומי → 972), ואחריו האתר (בצ'אט עצמו לא מוצג)
 export const signature = (ctx) => {
   const d = String(ctx.dial ?? '').replace(/\D/g, '').replace(/^0/, '972');
   if (!d) return '> שמחה בשיחה';
-  const lines = ['> שמחה בשיחה ב\u05BEWhatsApp', `> wa.me/${d}`];
-  if (ctx.link && !ctx.web) lines.push('> או באתר', `> ${bare(ctx.link)}/chat`);
+  const lines = ['> שמחה בשיחה ב\u05BEWhatsApp', `> \u200Fwa.me/${d}`];
+  if (ctx.link && !ctx.web) lines.push('> או באתר', `> \u200F${bare(ctx.link)}/chat`);
   return lines.join('\n');
 };
 
