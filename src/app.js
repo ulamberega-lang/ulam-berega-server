@@ -7,6 +7,7 @@ import { adminApi } from './routes/admin-api.js';
 import { adminAuth } from './middleware/admin-auth.js';
 import { dialerRouter } from './routes/dialer.js';
 import { whatsappRouter } from './routes/whatsapp.js';
+import { webchatRouter } from './routes/webchat.js';
 import { requireJson } from './middleware/admin-guard.js';
 
 const adminSite = fileURLToPath(new URL('../public/admin', import.meta.url));
@@ -24,6 +25,8 @@ export function createApp() {
   const PICTURE_PATH = '/admin/api/whatsapp/profile/picture';
   app.use((req, res, next) => (req.path === PICTURE_PATH ? next() : express.json()(req, res, next)));
 
+  app.use('/api/webchat', webchatRouter); // הצ'אט באתר (JSON)
+  app.get('/chat', (req, res) => res.sendFile(`${publicSite}/chat.html`));
   app.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
   // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)
   app.get('/', (req, res) => res.sendFile(`${publicSite}/index.html`));
