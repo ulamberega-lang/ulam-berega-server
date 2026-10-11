@@ -13,6 +13,12 @@
   section { background: #fff; border-radius: 12px; padding: 18px 20px; margin: 0 0 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
   h2 { margin: 0 0 6px; font-size: 1.15rem; }
   a { color: #1b5fd1; }
+  a:focus-visible { outline: 3px solid #0b57d0; outline-offset: 2px; }
+  .ways { display: grid; gap: 10px; margin-top: 12px; }
+  .ways a { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: #1b5fd1; color: #fff; text-decoration: none; font-weight: 600; }
+  .ways a.wa { background: #128c7e; }
+  .ways a.ph { background: #1d2a44; }
+  .ways small { display: block; font-weight: 400; opacity: .95; }
   footer { color: #5a6a8a; font-size: .9rem; text-align: center; margin-top: 24px; }
 </style>
 </head>
@@ -28,7 +34,12 @@
 
   <section>
     <h2>איך משתמשים?</h2>
-    <p>מתקשרים למספר <a href="tel:033130858">03-3130858</a> ובוחרים בתפריט, או שולחים הודעה בוואטסאפ לאותו מספר.</p>
+    <p>בוחרים את הדרך הנוחה לכם, ומקבלים את אותו שירות:</p>
+    <div class="ways">
+      <a href="/chat"><span aria-hidden="true">💬</span><span>צ'אט באתר<small>מחפשים אולם ישר מהדפדפן</small></span></a>
+      <a class="wa" href="https://wa.me/97233130858" target="_blank" rel="noopener"><span aria-hidden="true">🟢</span><span>בוט WhatsApp<small>שולחים הודעה למספר 03-313-0858</small></span></a>
+      <a class="ph" href="tel:033130858"><span aria-hidden="true">📞</span><span>שיחת טלפון<small>03-313-0858, ובוחרים בתפריט</small></span></a>
+    </div>
   </section>
 
   <section>
