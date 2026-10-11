@@ -217,7 +217,7 @@ test('להוספת אולם: נוסח המייל, והודעה קולית עם �
   const out = bodyOf(await say(s, { id: 'x:owner' }));
   assert.match(out, /simchabesicha@gmail\.com\nרשמו את שם האולם,\nמספר פלאפון להזמנה,/);
   assert.match(out, /וכתובת מדויקת\.\n\nאם ברצונכם/);                    // שורה ריקה לפני ההודעה הקולית
-  assert.match(out, /\/m\/021234567\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567/); // חתימה אחרי שתי שורות ריקות
+  assert.match(out, /\/m\/021234567\n\n\n> שמחה בשיחה ב-WhatsApp: https:\/\/wa\.me\/97221234567/); // חתימה אחרי שתי שורות ריקות
   assert.match(out, /התקשרו למספר 02-1234567 והקישו 5, או לחצו על הקישור: https:\/\/x\.test\/m\/021234567/);
 });
 
@@ -254,12 +254,12 @@ test('כתיבה חופשית: שם בלי עיר, עיר בלי שם, ושם ש
 
 
 test('חתימה: רק בהודעת אולם, אחרי שתי שורות רווח, ובלי שינוי בשאר ההודעות', async () => {
-  assert.equal(signature({ dial: '03-313-0858' }), '> שמחה בשיחה 📞 https://wa.me/97233130858');
-  assert.equal(signature({ dial: '97233130858' }), '> שמחה בשיחה 📞 https://wa.me/97233130858');
+  assert.equal(signature({ dial: '03-313-0858' }), '> שמחה בשיחה ב-WhatsApp: https://wa.me/97233130858');
+  assert.equal(signature({ dial: '97233130858' }), '> שמחה בשיחה ב-WhatsApp: https://wa.me/97233130858');
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם יחיד בחיפה'));
-  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה 📞 https:\/\/wa\.me\/97221234567\n> או בצ'אט באתר: https:\/\/x\.test\/chat$/);
+  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה ב-WhatsApp: https:\/\/wa\.me\/97221234567\n> או באתר: https:\/\/x\.test\/chat$/);
   assert.doesNotMatch(bodyOf(await greet(newSession('שלום'), ctx)), /wa\.me/);   // בלי חתימה בברכה ובתפריט
   assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');
 });
@@ -321,7 +321,7 @@ test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מ
     const dialLink = (m) => /\/c\/\d+\/\d+/.test(bodyOf(m));
     await post({ sid, id: 'm:menu' }); await post({ sid, id: 'm:name' });
     const phone = await (await post({ sid, text: 'אולם ווב בירושלים' })).json();     // טלפון: יש קישור חיוג, בלי שורת הצ'אט
-    assert.ok(dialLink(phone.messages)); assert.doesNotMatch(bodyOf(phone.messages), /בצ'אט באתר/);
+    assert.ok(dialLink(phone.messages)); assert.doesNotMatch(bodyOf(phone.messages), /או באתר/);
     const sid2 = 'web-test-session-0002';
     await post({ sid: sid2, desktop: true }); await post({ sid: sid2, desktop: true, id: 'm:name' });
     const desk = await (await post({ sid: sid2, desktop: true, text: 'אולם ווב בירושלים' })).json();
