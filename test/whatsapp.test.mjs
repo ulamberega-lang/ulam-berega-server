@@ -259,7 +259,7 @@ test('חתימה: רק בהודעת אולם, אחרי שתי שורות רוו�
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם יחיד בחיפה'));
-  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה ב\u05BEWhatsApp\n> \u200Fwa\.me\/97221234567\n> או באתר\n> \u200Fx\.test\/chat$/);
+  assert.match(card, /\/c\/021234567\/302\n\n\n> שמחה בשיחה ב\u05BEWhatsApp\n> \u200Fwa\.me\/97221234567 או באתר x\.test\/chat$/);
   assert.doesNotMatch(bodyOf(await greet(newSession('שלום'), ctx)), /wa\.me/);   // בלי חתימה בברכה ובתפריט
   assert.equal(toPayload('1', { kind: 'text', text: 'שלום' }).text.body, 'שלום');
 });
