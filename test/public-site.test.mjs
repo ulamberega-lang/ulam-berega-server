@@ -11,7 +11,7 @@ test('שרת ציבורי נפרד: דפים ציבוריים כן, ניהול �
     assert.equal((await fetch(`${base}/health`)).status, 200);
     assert.match(await (await fetch(`${base}/`)).text(), /שמחה בשיחה/);
     assert.match(await (await fetch(`${base}/privacy`)).text(), /מדיניות פרטיות/);
-    for (const path of ['/chat', '/accessibility', '/logo.png']) assert.equal((await fetch(`${base}${path}`)).status, 200, path);
+    for (const path of ['/chat', '/accessibility', '/logo.png', '/assets/site.css', '/assets/bg.js']) assert.equal((await fetch(`${base}${path}`)).status, 200, path);
     assert.match(await (await fetch(`${base}/c/033130858/77`)).text(), /tel:033130858,377%23/);
     assert.match(await (await fetch(`${base}/m/033130858`)).text(), /tel:033130858,5/);
     for (const path of ['/admin/', '/admin/login', '/admin/api/halls', '/api/ivr', '/api/whatsapp', '/api/dialer', '/c/abc/1']) {
