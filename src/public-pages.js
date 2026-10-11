@@ -1,12 +1,14 @@
 // הדפים הציבוריים: דף נחיתה, מדיניות פרטיות, הצהרת נגישות, דף הצ'אט וקישורי חיוג מהבוט. בלי גישה לנתונים, בלי סודות.
 // משמש גם את השרת הראשי (app.js) וגם את השרת הציבורי הנפרד (public-server.js).
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { fileURLToPath } from 'node:url';
 
 const publicSite = fileURLToPath(new URL('../public/site', import.meta.url));
 
 export const publicPages = Router();
 
+// עיצוב ורקע משותפים (site.css, bg.js)
+publicPages.use('/assets', express.static(`${publicSite}/assets`, { maxAge: '1h' }));
 publicPages.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
 // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)
 publicPages.get('/', (req, res) => res.sendFile(`${publicSite}/index.html`));
