@@ -62,7 +62,7 @@
   .links a small { display: block; color: var(--muted); }
   .sheet-bg { position: absolute; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: flex-end; }
   .sheet-bg.open { display: flex; }
-  .sheet { background: #fffdf8; width: 100%; max-height: 75%; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; }
+  .sheet { background: #fffdf8; width: 100%; max-height: 75%; padding-bottom: calc(16px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; display: flex; flex-direction: column; }
   .sheet h3 { margin: 0; padding: 16px; font-size: 1rem; border-bottom: 1px solid rgba(176,141,74,.4); font-family: var(--serif); display: flex; justify-content: space-between; align-items: center; }
   .sheet h3 button { background: none; border: 0; font-size: 1.4rem; cursor: pointer; color: var(--muted); }
   .sheet ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
