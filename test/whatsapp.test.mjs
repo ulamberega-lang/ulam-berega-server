@@ -303,6 +303,9 @@ test('שליחה: הגבלת קצב 131056 מנסה שוב ובסוף נשלח',
 });
 
 test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מזהה לא תקין ודף הצאט', async () => {
+  seedHalls([hall('אולם ווב', '101', 200, 'ירושלים', 'גאולה', { address: 'רחוב א 1' })]); hallsChanged(); await sleep(50);
+  const { config } = await import('../src/config.js');
+  const oldUrl = config.publicUrl; config.publicUrl = 'https://x.test';
   const { base, close } = await boot();
   try {
     const post = (body) => realFetch(`${base}/api/webchat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -315,9 +318,17 @@ test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מ
     assert.match(bodyOf(guests.messages), /כמות המוזמנים/);
     const city = await (await post({ sid, text: '200' })).json();
     assert.match(bodyOf(city.messages), /עיר/);
+    const dialLink = (m) => /\/c\/\d+\/\d+/.test(bodyOf(m));
+    await post({ sid, id: 'm:menu' }); await post({ sid, id: 'm:name' });
+    const phone = await (await post({ sid, text: 'אולם ווב בירושלים' })).json();     // טלפון: יש קישור חיוג, בלי שורת הצ'אט
+    assert.ok(dialLink(phone.messages)); assert.doesNotMatch(bodyOf(phone.messages), /בצ'אט באתר/);
+    const sid2 = 'web-test-session-0002';
+    await post({ sid: sid2, desktop: true }); await post({ sid: sid2, desktop: true, id: 'm:name' });
+    const desk = await (await post({ sid: sid2, desktop: true, text: 'אולם ווב בירושלים' })).json();
+    assert.match(bodyOf(desk.messages), /אולם ווב/); assert.ok(!dialLink(desk.messages));  // מחשב: בלי קישור חיוג
     const page = await realFetch(`${base}/chat`);
     assert.equal(page.status, 200);
     assert.match(await page.text(), /api\/webchat/);
     assert.equal((await realFetch(`${base}/logo.png`)).status, 200);
-  } finally { await close(); }
+  } finally { config.publicUrl = oldUrl; await close(); }
 });

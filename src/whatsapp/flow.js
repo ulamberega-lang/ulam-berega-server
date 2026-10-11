@@ -63,7 +63,7 @@ const voicemailLink = (ctx) => {
 // חתימה בסוף הודעת אולם: בלוק ציטוט של וואטסאפ ("> " בתחילת שורה: פס בצד ועיצוב מעומעם), עם קישור לחיץ. מספר מקומי → 972
 export const signature = (ctx) => {
   const d = String(ctx.dial ?? '').replace(/\D/g, '').replace(/^0/, '972');
-  const web = ctx.link ? `\n> או בצ'אט באתר: ${ctx.link}/chat` : '';
+  const web = ctx.link && !ctx.web ? `\n> או בצ'אט באתר: ${ctx.link}/chat` : '';
   return (d ? `> שמחה בשיחה 📞 https://wa.me/${d}` : '> שמחה בשיחה') + web;
 };
 
