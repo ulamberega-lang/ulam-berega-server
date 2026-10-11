@@ -343,3 +343,13 @@ test('הצהרת נגישות: הדף זמין ומקושר מהצ\'אט ומד�
     assert.match(await (await realFetch(`${base}/`)).text(), /href="\/accessibility"/);
   } finally { await close(); }
 });
+
+test('דף הבית: קישורים לצ\'אט, לוואטסאפ ולטלפון', async () => {
+  const { base, close } = await boot();
+  try {
+    const html = await (await realFetch(`${base}/`)).text();
+    assert.match(html, /href="\/chat"/);
+    assert.match(html, /href="https:\/\/wa\.me\/97233130858"/);
+    assert.match(html, /href="tel:033130858"/);
+  } finally { await close(); }
+});
