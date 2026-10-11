@@ -42,9 +42,9 @@
   .btns button:hover { background: #f6ecd2; }
   .btns button:disabled { color: var(--muted); cursor: default; }
   .typing .bubble { color: var(--muted); letter-spacing: 3px; }
-  form { display: flex; flex-direction: row-reverse; gap: 8px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(250,245,234,.9); border-top: 1px solid rgba(176,141,74,.25); }
-  input { flex: 1; min-width: 0; border: 1px solid rgba(176,141,74,.45); border-radius: 999px; padding: 12px 18px; font: inherit; font-size: 1rem; background: var(--in); color: var(--text); outline: none; }
-  form button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: #b08d4a; color: #2c2217; font-size: 1.2rem; cursor: pointer; flex: none; }
+  form { display: flex; flex-direction: row-reverse; align-items: center; gap: 8px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: rgba(250,245,234,.9); border-top: 1px solid rgba(176,141,74,.25); }
+  input { flex: 1; min-width: 0; border: 1px solid rgba(176,141,74,.45); border-radius: 999px; height: 48px; padding: 0 18px; font: inherit; font-size: 1rem; background: var(--in); color: var(--text); outline: none; }
+  form button { width: 48px; height: 48px; border: 0; border-radius: 50%; background: #b08d4a; color: #2c2217; font-size: 1.2rem; cursor: pointer; flex: none; }
   .info { position: absolute; inset: 0; background: #faf5ea; display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
   .info.open { display: flex; }
   .info header { position: sticky; top: 0; }
