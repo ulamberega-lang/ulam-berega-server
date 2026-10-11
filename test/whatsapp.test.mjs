@@ -49,7 +49,7 @@ test('חיפוש לפי מוזמנים: כמות → עיר → שכונה → �
   assert.match(text, /אולם א/); assert.match(text, /אולם ב/); assert.match(text, /בלי שכונה/);
   assert.doesNotMatch(text, /ענק/);                          // 900 לא מתאים ל-200
   assert.match(text, /והקישו \*\u20663101#\u2069\*(?!\.)/);
-  assert.match(text, /או לחצו על הקישור: x\.test\/c\/021234567\/101/);
+  assert.match(text, /או לחצו על הקישור:\nx\.test\/c\/021234567\/101/);
   assert.match(text, /רחוב א 1, שכונת גאולה, ירושלים/);               // כתובת ועיר בכל אולם
   assert.match(text, /02-1234567/);                          // המספר שאליו כתבו
   assert.equal(res.filter((m) => m.kind === 'buttons' && /לפרטים נוספים/.test(m.body)).length, 3); // הודעה נפרדת לכל אולם

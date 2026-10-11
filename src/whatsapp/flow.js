@@ -54,7 +54,7 @@ const bare = (url) => String(url).replace(/^https?:\/\//, '');
 // קישור לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
 const dialPage = (ctx, ext, t) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
-  return ctx.link && num ? `${t.dialPage}: ${bare(ctx.link)}/c/${num}/${ext}` : undefined;
+  return ctx.link && num ? `${t.dialPage}:\n${bare(ctx.link)}/c/${num}/${ext}` : undefined;
 };
 
 // קישור חיוג להודעה קולית (תפריט 5 בטלפון)
