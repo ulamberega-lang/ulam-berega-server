@@ -301,3 +301,22 @@ test('שליחה: הגבלת קצב 131056 מנסה שוב ובסוף נשלח',
     assert.equal(calls, 3);
   } finally { globalThis.fetch = orig; }
 });
+
+test('צאט באתר: פתיחה, בחירה לפי id, טקסט חופשי, מזהה לא תקין ודף הצאט', async () => {
+  const { base, close } = await boot();
+  try {
+    const post = (body) => realFetch(`${base}/api/webchat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const sid = 'web-test-session-0001';
+    assert.equal((await post({ sid: 'x' })).status, 400);                    // מזהה לא תקין
+    const open = await (await post({ sid })).json();
+    assert.match(bodyOf(open.messages), /מזל טוב/);                          // ברכה ותפריט
+    assert.ok(rowIds(open.messages).includes('m:search'));
+    const guests = await (await post({ sid, id: 'm:search' })).json();
+    assert.match(bodyOf(guests.messages), /כמות המוזמנים/);
+    const city = await (await post({ sid, text: '200' })).json();
+    assert.match(bodyOf(city.messages), /עיר/);
+    const page = await realFetch(`${base}/chat`);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /api\/webchat/);
+  } finally { await close(); }
+});
