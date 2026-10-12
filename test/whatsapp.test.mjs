@@ -205,7 +205,7 @@ test('מספר המרכזייה מוצג בפורמט מקומי (ליחיד ל�
 });
 
 test('הגבלת קצב: 20 הודעות בדקה למשתמש, אחר כך מתעלמים, ובדקה הבאה חוזר לעבוד', () => {
-  const t0 = 1_000_000;
+  const t0 = 10_000_000_000_000;
   for (let i = 0; i < 20; i++) assert.equal(allowMessage('rate-user', t0 + i), true);
   assert.equal(allowMessage('rate-user', t0 + 100), false);
   assert.equal(allowMessage('other-user', t0 + 100), true);   // משתמש אחר לא מושפע
@@ -266,10 +266,10 @@ test('חתימה: רק בהודעת אולם, אחרי שתי שורות רוו�
 
 test('שיחה פגה אחרי 15 דקות בלי הודעה, ומתחילה מחדש', () => {
   assert.equal(SESSION_TTL_MS, 15 * 60 * 1000);
-  const s = { ...newSession('שלום'), t: 1_000_000 };
+  const s = { ...newSession('שלום'), t: 10_000_000_000_000 };
   sessions.set('ttl-user', s);
-  assert.equal(activeSession('ttl-user', 1_000_000 + SESSION_TTL_MS), s);          // בדיוק בגבול: עדיין פעילה
-  assert.equal(activeSession('ttl-user', 1_000_000 + SESSION_TTL_MS + 1), undefined); // אחרי הגבול: נמחקה
+  assert.equal(activeSession('ttl-user', 10_000_000_000_000 + SESSION_TTL_MS), s);          // בדיוק בגבול: עדיין פעילה
+  assert.equal(activeSession('ttl-user', 10_000_000_000_000 + SESSION_TTL_MS + 1), undefined); // אחרי הגבול: נמחקה
   assert.equal(sessions.has('ttl-user'), false);
 });
 
@@ -360,4 +360,32 @@ test('הודעת אולם: אימוגי לכתובת ולכמות אורחים',
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם אימוגי בחיפה'));
   assert.match(card, /\n📍 רחוב ב 2, חיפה\n🔢 עד 150 אורחים\n/);
+});
+
+test('בדיקת תקינות Meta: מייל התראה אחרי שתי תקלות, פעם אחת, והודעת חזרה לפעולה', async () => {
+  const { runCheck, resetHealth } = await import('../src/services/wa-health.js');
+  const { config } = await import('../src/config.js');
+  const old = { t: config.waToken, k: config.brevoKey, f: config.mailFrom };
+  Object.assign(config, { waToken: 't', brevoKey: 'k', mailFrom: 'owner@x.test' });
+  const orig = globalThis.fetch;
+  let graphOk = false; const mails = [];
+  globalThis.fetch = async (url, opts) => {
+    if (String(url).includes('brevo')) { mails.push(JSON.parse(opts.body)); return { ok: true, status: 201, text: async () => '{}' }; }
+    return graphOk ? { ok: true, status: 200, text: async () => '{}' } : { ok: false, status: 400, text: async () => '{"error":{"code":200,"message":"API access blocked."}}' };
+  };
+  try {
+    resetHealth();
+    await runCheck(10_000_000_000_000);                        // תקלה ראשונה: בלי מייל
+    assert.equal(mails.length, 0);
+    await runCheck(10_000_000_000_000 + 60_000);               // שנייה: מייל
+    assert.equal(mails.length, 1);
+    assert.match(mails[0].subject, /לא פעיל/);
+    assert.match(mails[0].htmlContent, /אישור חשבון/);
+    await runCheck(10_000_000_000_000 + 120_000);              // ממשיך להיכשל: בלי מייל נוסף (תזכורת רק אחרי 6 שעות)
+    assert.equal(mails.length, 1);
+    graphOk = true;
+    await runCheck(10_000_000_000_000 + 180_000);              // חזר: מייל "חזר לפעול"
+    assert.equal(mails.length, 2);
+    assert.match(mails[1].subject, /חזר לפעול/);
+  } finally { globalThis.fetch = orig; Object.assign(config, { waToken: old.t, brevoKey: old.k, mailFrom: old.f }); resetHealth(); }
 });
