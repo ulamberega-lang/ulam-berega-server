@@ -7,6 +7,25 @@ const publicSite = fileURLToPath(new URL('../public/site', import.meta.url));
 
 export const publicPages = Router();
 
+// כתובת האתר הראשית לקידום (canonical, מפת אתר)
+const SITE_URL = process.env.SITE_URL || 'https://simcha-besicha.co.il';
+const SITE_HOST = new URL(SITE_URL).hostname;
+
+// כתובת כפולה (למשל onrender.com או www) לא תאונדקס, כדי שגוגל תציג רק את הדומיין הראשי. בפיתוח מקומי לא חל
+publicPages.use((req, res, next) => {
+  const host = req.hostname;
+  if (host !== SITE_HOST && host !== 'localhost' && host !== '127.0.0.1') res.set('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
+
+publicPages.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /c/\nDisallow: /m/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+});
+publicPages.get('/sitemap.xml', (req, res) => {
+  const urls = ['/', '/chat', '/privacy', '/accessibility'].map((p) => `<url><loc>${SITE_URL}${p}</loc></url>`).join('');
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>\n`);
+});
+
 // עיצוב ורקע משותפים (site.css, bg.js)
 publicPages.use('/assets', express.static(`${publicSite}/assets`, { maxAge: '1h' }));
 publicPages.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
