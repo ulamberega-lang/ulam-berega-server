@@ -6,6 +6,12 @@ import { readFileSync } from 'node:fs';
 import http from 'node:http';
 const { publicPages } = await import('../src/public-pages.js');
 
+const { setCitiesProvider, groupCities } = await import('../src/city-pages.js');
+setCitiesProvider(async () => groupCities([
+  { city_name: 'בני ברק', neighborhood_name: 'פרדס כץ / זכרון מאיר' },
+  { city_name: 'ירושלים', neighborhood_name: 'גאולה' },
+]));
+
 const app = express().use(publicPages);
 const srv = app.listen(0);
 const base = `http://127.0.0.1:${srv.address().port}`;
@@ -31,4 +37,18 @@ test('canonical ו-JSON-LD תקינים', () => {
   assert.match(h, /rel="canonical" href="https:\/\/simcha-besicha\.co\.il\/"/);
   const m = h.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
   assert.ok(JSON.parse(m[1])['@graph'].length >= 3);
+});
+
+test('דף עיר: תוכן, canonical, מפת אתר ו-404', async () => {
+  const r = await fetch(`${base}/${encodeURI('אולם-קטן-ב')}/${encodeURIComponent('בני-ברק')}`);
+  assert.equal(r.status, 200);
+  const h = await r.text();
+  assert.match(h, /<h1>אולם קטן בבני ברק<\/h1>/);
+  assert.match(h, /זכרון מאיר · פרדס כץ/);
+  assert.match(h, /rel="canonical" href="https:\/\/simcha-besicha\.co\.il\/%D7/);
+  const ld = h.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  assert.ok(JSON.parse(ld[1])['@graph'].length === 2);
+  const s = await (await fetch(`${base}/sitemap.xml`)).text();
+  assert.match(s, /%D7%99%D7%A8%D7%95%D7%A9%D7%9C%D7%99%D7%9D/);
+  assert.equal((await fetch(`${base}/${encodeURI('אולם-קטן-ב')}/${encodeURIComponent('אין')}`)).status, 404);
 });
