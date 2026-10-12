@@ -10,6 +10,8 @@ import { whatsappRouter } from './routes/whatsapp.js';
 import { webchatRouter } from './routes/webchat.js';
 import { requireJson } from './middleware/admin-guard.js';
 import { publicPages } from './public-pages.js';
+import { setCitiesProvider, groupCities } from './city-pages.js';
+import { getActiveHalls } from './services/hall-directory.js';
 
 const adminSite = fileURLToPath(new URL('../public/admin', import.meta.url));
 
@@ -26,6 +28,12 @@ export function createApp() {
   app.use((req, res, next) => (req.path === PICTURE_PATH ? next() : express.json()(req, res, next)));
 
   app.use('/api/webchat', webchatRouter); // הצ'אט באתר (JSON)
+  // ערים ושכונות בלבד (בלי פרטי אולמות): לדפי העיר של השרת הציבורי הנפרד
+  const cities = async () => groupCities(await getActiveHalls());
+  setCitiesProvider(cities);
+  app.get('/api/cities', async (req, res) => {
+    try { res.json(await cities()); } catch (e) { console.error('cities:', e.message); res.status(500).json({ error: 'server' }); }
+  });
   app.use(publicPages); // /health, דף נחיתה, מדיניות פרטיות וקישורי החיוג
 
   app.use('/api/ivr', express.urlencoded({ extended: true }), ivrRouter); // רק ימות שולחת טפסים
