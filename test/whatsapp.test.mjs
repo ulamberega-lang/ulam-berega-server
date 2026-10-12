@@ -359,7 +359,7 @@ test('הודעת אולם: אימוגי לכתובת ולכמות אורחים',
   const s = newSession('שלום');
   await say(s, { id: 'm:name' });
   const card = bodyOf(await say(s, 'אולם אימוגי בחיפה'));
-  assert.match(card, /\n📍 רחוב ב 2, חיפה\n🔢 עד 150 אורחים\n/);
+  assert.match(card, /\n📍 רחוב ב 2, חיפה\n👥 עד 150 אורחים\n/);
 });
 
 test('בדיקת תקינות Meta: מייל התראה אחרי שתי תקלות, פעם אחת, והודעת חזרה לפעולה', async () => {
