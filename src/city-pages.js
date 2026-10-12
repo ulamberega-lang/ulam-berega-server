@@ -104,6 +104,10 @@ export function cityPage({ city, hoods }) {
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 7h22a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H15l-6 5v-5H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><path d="M10 13h12M10 17h8"/></svg>
         <span><b>צ'אט באתר</b><small>מחפשים אולם ב${esc(city)} ישר מהדפדפן</small></span>
       </a>
+      <a class="way" href="https://wa.me/97233130858" target="_blank" rel="noopener">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4a12 12 0 0 0-10.3 18L4 28l6.2-1.6A12 12 0 1 0 16 4z"/><path d="M12 11c0 5 4 9 9 9l1.5-2-3-1.5-1.2 1c-1.4-.6-2.7-1.9-3.3-3.3l1-1.2L15 10z"/></svg>
+        <span><b>בוט WhatsApp</b><small>שולחים הודעה למספר ${PHONE}</small></span>
+      </a>
       <a class="way" href="tel:033130858">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 4h4l2 6-3 2a16 16 0 0 0 8 8l2-3 6 2v4a3 3 0 0 1-3 3A21 21 0 0 1 6 7a3 3 0 0 1 3-3z"/></svg>
         <span><b>שיחת טלפון</b><small>${PHONE}, ובוחרים בתפריט</small></span>

@@ -43,6 +43,7 @@ test('דף עיר: תוכן, canonical, מפת אתר ו-404', async () => {
   const r = await fetch(`${base}/${encodeURI('אולם-קטן-ב')}/${encodeURIComponent('בני-ברק')}`);
   assert.equal(r.status, 200);
   const h = await r.text();
+  assert.match(h, /href="https:\/\/wa\.me\/97233130858"/);
   assert.match(h, /<h1>אולם קטן בבני ברק<\/h1>/);
   assert.match(h, /זכרון מאיר · פרדס כץ/);
   assert.match(h, /rel="canonical" href="https:\/\/simcha-besicha\.co\.il\/%D7/);
