@@ -6,12 +6,13 @@ import { initStats, loadStats, getSelectedHall, setSelectedHall } from './stats.
 import { initCalls, loadCalls, setHallFilter, getHallFilter, restoreHallFilter } from './calls.js';
 import { initHalls, loadHalls } from './halls.js';
 import { initMails, loadMails } from './mails.js';
+import { initImport, loadImport } from './import.js';
 import { initNikud, loadNikud } from './nikud.js';
 import { initVoicemails, loadVoicemails, loadVoicemailCount } from './voicemails.js';
 import { initDetails, closeDetailsIfOpen } from './details.js';
 
 // nikud: בלי כפתור בתפריט, נפתח מ"ניהול אולמות"
-const TABS = ['stats', 'calls', 'halls', 'voicemails', 'mails', 'nikud'];
+const TABS = ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud'];
 const fromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stats');
 const state = { tab: fromHash(), range: preset('all'), halls: [] };
 
@@ -28,6 +29,7 @@ async function refresh() {
     else if (tab === 'calls') await loadCalls(state.range, state.halls, isCurrent);
     else if (tab === 'voicemails') await loadVoicemails(state.range, state.halls, isCurrent);
     else if (tab === 'mails') await loadMails(state.halls, isCurrent);
+    else if (tab === 'import') loadImport(state.halls);
     else if (tab === 'nikud') await loadNikud(state.halls, isCurrent);
     else await loadHalls(state.range, state.halls, isCurrent);
     if (isCurrent()) $('#updated').textContent = `עודכן ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
@@ -90,7 +92,7 @@ function setTab(tab, { record = true, load = true } = {}) {
   const navTab = tab === 'nikud' ? 'halls' : tab; // "ניקוד הקראה" שייך ללשונית האולמות
   $$('.topbar nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === navTab));
   for (const name of TABS) $(`#tab-${name}`).hidden = name !== tab;
-  $('#range').hidden = ['voicemails', 'mails', 'nikud'].includes(tab); // להודעות, למיילים ולניקוד אין טווח תאריכים
+  $('#range').hidden = ['voicemails', 'mails', 'import', 'nikud'].includes(tab); // להודעות, למיילים, לייבוא ולניקוד אין טווח תאריכים
   if (record && changed) pushPlace();
   window.scrollTo({ top: 0 });
   if (load) refresh();
@@ -130,6 +132,7 @@ function init() {
   initHalls(async () => { await loadHallList(); refresh(); });
   initVoicemails();
   initMails();
+  initImport();
   initNikud();
   $('#openNikud').addEventListener('click', () => setTab('nikud'));
   document.addEventListener('voicemails-changed', (e) => {

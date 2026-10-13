@@ -117,7 +117,7 @@ function suggestForCity() {
   }
 }
 
-function openForm(hall) {
+function openForm(hall, draft = null) {
   editing = hall || null;
   autoExt = '';
   $('#extHint').hidden = true;
@@ -132,6 +132,9 @@ function openForm(hall) {
       if (el.type === 'checkbox') el.checked = Boolean(hall[el.name]);
       else el.value = hall[el.name] ?? '';
     }
+  }
+  if (draft) { // אולם חדש משורה בקובץ ייבוא: ממלאים מה שידוע
+    for (const [name, value] of Object.entries(draft)) if (form.elements[name] && value !== '' && value != null) form.elements[name].value = value;
   }
   $('#hallDialog').showModal();
   suggestForCity();
@@ -215,6 +218,7 @@ export function initHalls(savedCallback) {
 
   $('#addHall').addEventListener('click', () => openForm());
   document.addEventListener('edit-hall', (e) => openForm(e.detail.hall)); // מחלון פרטי האולם
+  document.addEventListener('add-hall-draft', (e) => openForm(null, e.detail.draft)); // מלשונית הייבוא
   $('#hallsList').addEventListener('click', (e) => {
     if (e.target.closest('a')) return;                  // חיוג לא פותח עריכה
     const id = e.target.closest('[data-id]')?.dataset.id;

@@ -2,6 +2,7 @@
 // הרצה: node dev/mock-admin.mjs &   ואז   node dev/smoke-admin.mjs
 // אם Playwright מותקן גלובלית: NODE_PATH=$(npm root -g) node dev/smoke-admin.mjs
 import { createRequire } from 'node:module';
+import { buildXlsx } from './make-xlsx.mjs';
 
 const require = createRequire(`${process.env.NODE_PATH || ''}/`);
 const { chromium, devices } = require('playwright');
@@ -231,9 +232,36 @@ await p.fill('#nikudSearch', 'ירושלים'); await p.waitForTimeout(200);
 check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === 1, 'ניקוד: חיפוש');
 await p.fill('#nikudSearch', '');
 
+// ייבוא אולמות: גוררים (בוחרים) קובץ, ורואים מה כבר במערכת, מה לבדוק ומה חדש
+await p.click('button[data-tab=import]'); await p.waitForSelector('#importDrop');
+const sysHalls = await p.evaluate(() => fetch('/admin/api/halls').then((r) => r.json()));
+const h0 = sysHalls[0], h1 = sysHalls[1];
+const HEAD = ['שם אולם', 'שם בית כנסת', 'שכונה', 'כתובת מדויקת', 'טלפון / פלאפון', 'עיר', 'קטגוריה', 'מקסימום אורחים', 'הערות', 'מקור', 'מקור מקורי', 'מס׳ קבוצה'];
+const line = (o) => HEAD.map((_, i) => o[i] ?? '');
+const xlsx = buildXlsx([HEAD,
+  line({ 0: h0.name, 5: h0.city_name, 4: h0.gabbai_phone }),                       // כבר במערכת
+  line({ 0: 'שם אחר לגמרי', 5: 'חיפה', 4: h1.gabbai_phone }),                      // אותו טלפון: לבדיקה
+  line({ 0: 'אולם בדיקה חדש', 5: 'חיפה', 3: 'הנביאים 1, חיפה', 4: '04-8888888', 7: '90' }),
+]);
+await p.setInputFiles('#importFile', { name: 'halls.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(xlsx) });
+await p.waitForSelector('#importList tr.imp');
+check(await p.$$eval('#importList tr.imp', (t) => t.length) === 2, 'ייבוא: ברירת המחדל "לטיפול" מציגה רק מה שלא במערכת');
+await p.click('#importView button[data-value=all]');
+const impBadges = await p.$$eval('#importList tr.imp .badge:first-child', (t) => t.map((x) => x.textContent.trim()));
+check(impBadges.join() === 'כבר במערכת,לבדיקה,חדש', `ייבוא: סטטוסים (${impBadges.join()})`);
+await p.click('#importView button[data-value=new]');
+await p.click('#importList tr.imp .add');
+check(await p.inputValue('#hallForm [name=name]') === 'אולם בדיקה חדש' && await p.inputValue('#hallForm [name=gabbai_phone]') === '048888888' && await p.inputValue('#hallForm [name=max_guests]') === '90', 'ייבוא: "הוסף למערכת" ממלא את טופל האולם');
+await p.click('.actions .btn[value=cancel]');
+await p.click('#importList tr.imp .mark');
+check(await p.$$eval('#importList tr.imp', (t) => t.length) === 0, 'ייבוא: "סמן כטופל" מוריד את השורה מהרשימה');
+await p.click('#importView button[data-value=done]');
+check(await p.$$eval('#importList tr.imp', (t) => t.length) === 1, 'ייבוא: השורה שסומנה מופיעה ב"טופלו"');
+await p.click('#importList tr.imp .mark');
+
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
-for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'nikud']) {
+for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud']) {
   await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
   check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
 }
