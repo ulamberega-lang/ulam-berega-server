@@ -242,19 +242,28 @@ const xlsx = buildXlsx([HEAD,
   line({ 0: h0.name, 5: h0.city_name, 4: h0.gabbai_phone }),                       // כבר במערכת
   line({ 0: 'שם אחר לגמרי', 5: 'חיפה', 4: h1.gabbai_phone }),                      // אותו טלפון: לבדיקה
   line({ 0: 'אולם בדיקה חדש', 5: 'חיפה', 3: 'הנביאים 1, חיפה', 4: '04-8888888', 7: '90' }),
+  line({ 0: sysHalls[2].name, 5: sysHalls[2].city_name, 4: sysHalls[2].gabbai_phone, 10: 'מקור א', 11: '5' }),   // קבוצה: חבר אחד כבר במערכת
+  line({ 0: 'אולם אחר בקבוצה', 5: 'חיפה', 10: 'מקור ב', 11: '5' }),                                              // ...ולכן גם הוא (עד שמפרידים)
 ]);
 await p.setInputFiles('#importFile', { name: 'halls.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(xlsx) });
 await p.waitForSelector('#importList tr.imp');
 check(await p.$$eval('#importList tr.imp', (t) => t.length) === 2, 'ייבוא: ברירת המחדל "לטיפול" מציגה רק מה שלא במערכת');
 await p.click('#importView button[data-value=all]');
 const impBadges = await p.$$eval('#importList tr.imp .badge:first-child', (t) => t.map((x) => x.textContent.trim()));
-check(impBadges.join() === 'כבר במערכת,לבדיקה,חדש', `ייבוא: סטטוסים (${impBadges.join()})`);
+check(impBadges.join() === 'כבר במערכת,לבדיקה,חדש,כבר במערכת,כבר במערכת', `ייבוא: סטטוסים, וקבוצה שחבר בה כבר במערכת (${impBadges.join()})`);
+// הפרדה מקבוצה: "לא כפול" בודק את השורה לבד, והיא חוזרת לקבוצה בלחיצה נוספת
+await p.click('#importList tr.imp >> nth=4 >> .split');
+check(await p.textContent('#importList tr.imp >> nth=4 >> .badge') === 'חדש' && (await p.textContent('#importList tr.imp >> nth=4 >> .why')).includes('הופרד מקבוצה 5'), 'ייבוא: "לא כפול" מפריד שורה מהקבוצה ובודק אותה לבד');
+check(await p.$$eval('#importList .split', (t) => t.length) === 0, 'ייבוא: בקבוצה שנשארה בה שורה אחת אין כפתור הפרדה');
+await p.click('#importList tr.imp >> nth=4 >> .unsplit');
+check(await p.textContent('#importList tr.imp >> nth=4 >> .badge') === 'כבר במערכת', 'ייבוא: "החזר לקבוצה" מחזיר את השורה');
+await p.click('#importList tr.imp >> nth=4 >> .split');
 await p.click('#importView button[data-value=new]');
 await p.click('#importList tr.imp .add');
 check(await p.inputValue('#hallForm [name=name]') === 'אולם בדיקה חדש' && await p.inputValue('#hallForm [name=gabbai_phone]') === '048888888' && await p.inputValue('#hallForm [name=max_guests]') === '90', 'ייבוא: "הוסף למערכת" ממלא את טופל האולם');
 await p.click('.actions .btn[value=cancel]');
 await p.click('#importList tr.imp .mark');
-check(await p.$$eval('#importList tr.imp', (t) => t.length) === 0, 'ייבוא: "סמן כטופל" מוריד את השורה מהרשימה');
+check(await p.$$eval('#importList tr.imp', (t) => t.length) === 1, 'ייבוא: "סמן כטופל" מוריד את השורה מהרשימה (נשארת רק השורה שהופרדה)');
 await p.click('#importView button[data-value=done]');
 check(await p.$$eval('#importList tr.imp', (t) => t.length) === 1, 'ייבוא: השורה שסומנה מופיעה ב"טופלו"');
 await p.click('#importList tr.imp .mark');

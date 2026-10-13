@@ -138,4 +138,5 @@ export function hallDraft(item) {
 }
 
 // מפתח יציב לשורה (לסימון "טופל" בדפדפן)
-export const itemKey = (item) => `${nameKey(item.name)}|${cityKey(item.city)}|${item.phones[0] ?? ''}`;
+// "מקור מקורי" (קובץ, שורה וקישור) ייחודי לכל שורה, גם כששתי שורות באותה קבוצה זהות בשם, בעיר ובטלפון
+export const itemKey = (item) => `${nameKey(item.name)}|${cityKey(item.city)}|${item.phones[0] ?? ''}|${item.origin.slice(0, 120)}`;
