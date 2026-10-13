@@ -53,3 +53,12 @@ test('דף עיר: תוכן, canonical, מפת אתר ו-404', async () => {
   assert.match(s, /%D7%99%D7%A8%D7%95%D7%A9%D7%9C%D7%99%D7%9D/);
   assert.equal((await fetch(`${base}/${encodeURI('אולם-קטן-ב')}/${encodeURIComponent('אין')}`)).status, 404);
 });
+
+test('סמל האתר: favicon.ico וקובץ 192', async () => {
+  for (const p of ['/favicon.ico', '/icon-192.png']) {
+    const r = await fetch(`${base}${p}`);
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('content-type'), 'image/png');
+  }
+  assert.match(readFileSync(new URL('../public/site/index.html', import.meta.url), 'utf8'), /rel="icon"[^>]*href="\/icon-192\.png"/);
+});

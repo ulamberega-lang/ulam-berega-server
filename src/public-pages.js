@@ -45,6 +45,9 @@ publicPages.get(`${encodeURI('/אולם-קטן-ב')}/:slug`, async (req, res) =>
   res.type('html').send(cityPage(c));
 });
 publicPages.get('/logo.png', (req, res) => res.sendFile(`${publicSite}/logo.png`));
+// סמל האתר לגוגל (ריבוע, כפולה של 48): ב-/favicon.ico (גוגל בודקת גם שם) ובקובץ הקבוע
+publicPages.get('/icon-192.png', (req, res) => res.sendFile(`${publicSite}/icon-192.png`));
+publicPages.get('/favicon.ico', (req, res) => res.type('png').sendFile(`${publicSite}/icon-192.png`));
 
 // קישורי חיוג מהבוט (לאנדרואיד): דף קבוע שפותח את החייגן עם המספר והספרות. רק ספרות בכתובת, בלי גישה לנתונים
 const dialHtml = (href, label) => `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>חיוג</title></head><body style="font-family:sans-serif;text-align:center;padding:48px 16px"><p><a href="${href}" style="display:inline-block;background:#128c7e;color:#fff;padding:18px 36px;border-radius:12px;font-size:20px;text-decoration:none">📞 ${label}</a></p><script>location.href=${JSON.stringify(href)}</script></body></html>`;
