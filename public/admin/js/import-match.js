@@ -1,5 +1,5 @@
 // ייבוא אולמות מקובץ אקסל: קריאת השורות והשוואה לאולמות שכבר במערכת. פונקציות נקיות (נבדקות ב-test/).
-import { splitNames } from './hoods.js';
+import { splitNames, splitHoods } from './hoods.js';
 
 // עמודות הקובץ (A עד L)
 const COL = { name: 0, synagogue: 1, hood: 2, address: 3, phone: 4, city: 5, category: 6, guests: 7, notes: 8, source: 9, origin: 10, group: 11 };
@@ -85,30 +85,48 @@ export function parseRows(rows) {
 
 const RANK = { in: 2, maybe: 1, new: 0 };
 
-// משווה אולם מהקובץ לאולמות במערכת: in = כבר במערכת, maybe = דומה (לבדוק), new = לא נמצא
+// כל עמודה מושווית רק אם יש ערך גם בקובץ וגם באולם שבמערכת: true = תואמת, false = שונה, null = אי אפשר להשוות (חסר באחד)
+const sameAddress = (a, b) => a === b || (a.split('|')[1] === b.split('|')[1] && levenshtein(a.split('|')[0], b.split('|')[0]) <= 1);
+const FIELD_LABELS = { city: 'עיר', phone: 'טלפון', address: 'כתובת', hood: 'שכונה', synagogue: 'בית כנסת', guests: 'מקסימום אורחים' };
+
+export function compareFields(item, hall) {
+  const itemCity = cityKey(item.city), hallCity = cityKey(hall.city_name);
+  const itemAddr = addressKey(item.address, item.city), hallAddr = addressKey(hall.address, hall.city_name);
+  const itemHoods = splitHoods(item.hood).map(clean), hallHoods = splitHoods(hall.neighborhood_name).map(clean);
+  const hallPhones = phonesOf(hall.gabbai_phone);
+  return {
+    city: itemCity && hallCity ? itemCity === hallCity : null,
+    phone: item.phones.length && hallPhones.length ? hallPhones.some((p) => item.phones.includes(p)) : null,
+    address: itemAddr && hallAddr ? sameAddress(itemAddr, hallAddr) : null,
+    hood: itemHoods.length && hallHoods.length ? itemHoods.some((x) => hallHoods.includes(x)) : null,
+    synagogue: item.synagogue && hall.synagogue_name ? nameKey(item.synagogue) === nameKey(hall.synagogue_name) : null,
+    guests: item.guests && hall.max_guests ? item.guests === Number(hall.max_guests) : null,
+  };
+}
+
+// משווה אולם מהקובץ לאולמות במערכת:
+//  in = כבר במערכת: שם זהה, ולפחות עוד פרט (עיר, טלפון או כתובת) תואם, **וכל עמודה שיש בה ערך בשני הצדדים תואמת**;
+//  maybe = משהו דומה (לבדוק): מוצג מה תואם ומה שונה;  new = לא נמצא
 export function matchItem(item, halls) {
-  const city = cityKey(item.city);
-  const itemAddr = addressKey(item.address, item.city);
   const names = [item.name, item.synagogue].filter(Boolean);
   let best = { status: 'new', reasons: [], hall: null };
   for (const hall of halls) {
-    const sameCity = !city || !hall.city_name || cityKey(hall.city_name) === city;
     const hallNames = [...splitNames(hall.name), hall.synagogue_name].filter(Boolean);
     let name = 0;
     for (const a of names) for (const b of hallNames) name = Math.max(name, nameScore(a, b));
-    const phone = item.phones.length > 0 && phonesOf(hall.gabbai_phone).some((p) => item.phones.includes(p));
-    const hallAddr = addressKey(hall.address, hall.city_name);
-    const addr = Boolean(itemAddr) && sameCity && Boolean(hallAddr) && (itemAddr === hallAddr
-      || (itemAddr.split('|')[1] === hallAddr.split('|')[1] && levenshtein(itemAddr.split('|')[0], hallAddr.split('|')[0]) <= 1));
+    const f = compareFields(item, hall);
+    const related = (name >= 1 && f.city !== false) || f.phone === true || f.address === true;
+    if (!related) continue;
 
-    const reasons = [];
-    if (name === 2 && sameCity) reasons.push('שם ועיר זהים');
-    else if (name >= 1 && sameCity) reasons.push('שם דומה באותה עיר');
-    if (phone) reasons.push('אותו טלפון');
-    if (addr) reasons.push('אותה כתובת');
-    if (!reasons.length) continue;
-    const status = (name === 2 && sameCity) || (phone && name >= 1 && sameCity) ? 'in' : 'maybe';
-    if (RANK[status] > RANK[best.status] || (status === best.status && reasons.length > best.reasons.length)) best = { status, reasons, hall };
+    const same = [], diff = [];
+    if (name === 2) same.push('שם'); else if (name === 1) diff.push('שם דומה');
+    for (const [key, ok] of Object.entries(f)) (ok === true ? same : ok === false ? diff : []).push(FIELD_LABELS[key]);
+    const corroborated = f.city === true || f.phone === true || f.address === true;
+    const status = name === 2 && corroborated && diff.length === 0 ? 'in' : 'maybe';
+    const reasons = status === 'in' ? [`כל הפרטים שבקובץ תואמים (${same.join(', ')})`]
+      : [...(same.length ? [`תואם: ${same.join(', ')}`] : []), ...(diff.length ? [`שונה: ${diff.join(', ')}`] : [])];
+    const score = same.length - diff.length;
+    if (RANK[status] > RANK[best.status] || (status === best.status && score > (best.score ?? -99))) best = { status, reasons, hall, score };
   }
   return best;
 }
