@@ -89,6 +89,9 @@ const RANK = { in: 2, maybe: 1, new: 0 };
 const sameAddress = (a, b) => a === b || (a.split('|')[1] === b.split('|')[1] && levenshtein(a.split('|')[0], b.split('|')[0]) <= 1);
 const FIELD_LABELS = { city: 'עיר', phone: 'טלפון', address: 'כתובת', hood: 'שכונה', synagogue: 'בית כנסת', guests: 'מקסימום אורחים' };
 
+// כמה עמודות (כולל השם) חייבות להתאים כדי לקבוע "כבר במערכת". שם ועוד עמודה אחת לא מספיקים כשחסרים פרטים
+export const MIN_MATCHES = 3;
+
 export function compareFields(item, hall) {
   const itemCity = cityKey(item.city), hallCity = cityKey(hall.city_name);
   const itemAddr = addressKey(item.address, item.city), hallAddr = addressKey(hall.address, hall.city_name);
@@ -122,9 +125,11 @@ export function matchItem(item, halls) {
     if (name === 2) same.push('שם'); else if (name === 1) diff.push('שם דומה');
     for (const [key, ok] of Object.entries(f)) (ok === true ? same : ok === false ? diff : []).push(FIELD_LABELS[key]);
     const corroborated = f.city === true || f.phone === true || f.address === true;
-    const status = name === 2 && corroborated && diff.length === 0 ? 'in' : 'maybe';
+    const enough = same.length >= MIN_MATCHES;
+    const status = name === 2 && corroborated && diff.length === 0 && enough ? 'in' : 'maybe';
     const reasons = status === 'in' ? [`כל הפרטים שבקובץ תואמים (${same.join(', ')})`]
-      : [...(same.length ? [`תואם: ${same.join(', ')}`] : []), ...(diff.length ? [`שונה: ${diff.join(', ')}`] : [])];
+      : [...(same.length ? [`תואם: ${same.join(', ')}`] : []), ...(diff.length ? [`שונה: ${diff.join(', ')}`] : []),
+        ...(!diff.length && name === 2 && corroborated && !enough ? ['אין מספיק פרטים להשוואה כדי לאשר'] : [])];
     const score = same.length - diff.length;
     if (RANK[status] > RANK[best.status] || (status === best.status && score > (best.score ?? -99))) best = { status, reasons, hall, score };
   }

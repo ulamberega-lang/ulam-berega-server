@@ -38,22 +38,24 @@ test('השוואה למערכת: כבר במערכת רק אם כל העמודו
     row({ 0: 'אולם דוד', 5: 'ירושלים', 4: '050-111-1111', 3: 'הרב קוק 5', 7: '300' }),   // כל מה שיש בקובץ תואם
     row({ 0: 'אולם דוד', 5: 'ירושלים', 4: '02-111-2222' }),                               // שם ועיר זהים אבל הטלפון שונה
     row({ 0: 'אולם דוד', 5: 'ירושלים', 4: '050-111-1111', 7: '120' }),                  // מקסימום אורחים שונה
-    row({ 0: 'אולם דוד', 5: 'ירושלים' }),                                               // שם ועיר בלבד: אין מה להשוות מעבר לזה
+    row({ 0: 'אולם דוד', 5: 'ירושלים' }),                                               // שם ועיר בלבד: לא מספיק כדי לאשר
+    row({ 0: 'אולם דוד', 5: 'ירושלים', 4: '050-111-1111' }),                            // שם, עיר וטלפון: מספיק
     row({ 0: 'שם אחר לגמרי', 5: 'ירושלים', 4: '050-1111111' }),                        // אותו טלפון, שם שונה
     row({ 0: 'אולם חדש', 5: 'חיפה', 3: 'הנביאים 1, חיפה', 4: '04-8888888' }),
     row({ 0: 'משהו', 5: 'בני ברק', 3: 'רבי עקיבא 10' }),                                // אותה כתובת
-    row({ 0: 'בית אהרן', 5: 'בני ברק' }),                                              // שם בית הכנסת
+    row({ 0: 'בית אהרן', 5: 'בני ברק', 4: '052-222-2222' }),                           // שם בית הכנסת, עיר וטלפון
     row({ 0: 'אולם דוד', 5: 'חיפה' }),                                                  // שם זהה בעיר אחרת
     row({ 4: '052-3443508', 5: 'קיסריה', 8: 'ללא שם אולם בגיליון' }),                   // טלפון בלבד
     row({ 8: 'שורה ריקה' }),                                                            // בלי שם ובלי טלפון: מדולגת
   ]);
   const items = parseRows(await readXlsx(bytes.buffer));
-  assert.equal(items.length, 10);
-  const [full, phone, guests, nameCity, samePhone, fresh, addr, syn, otherCity, phoneOnly] = matchAll(items, HALLS);
+  assert.equal(items.length, 11);
+  const [full, phone, guests, nameCity, threeOfThem, samePhone, fresh, addr, syn, otherCity, phoneOnly] = matchAll(items, HALLS);
   assert.equal(full.status, 'in'); assert.equal(full.hall.id, 1);
   assert.equal(phone.status, 'maybe'); assert.ok(phone.reasons.join().includes('שונה: טלפון'));
   assert.equal(guests.status, 'maybe'); assert.ok(guests.reasons.join().includes('מקסימום אורחים'));
-  assert.equal(nameCity.status, 'in');
+  assert.equal(nameCity.status, 'maybe'); assert.ok(nameCity.reasons.join().includes('אין מספיק פרטים'));   // שם ועיר בלבד
+  assert.equal(threeOfThem.status, 'in');
   assert.equal(samePhone.status, 'maybe'); assert.ok(samePhone.reasons.join().includes('טלפון'));
   assert.equal(fresh.status, 'new');
   assert.equal(addr.status, 'maybe'); assert.ok(addr.reasons.join().includes('כתובת'));
@@ -74,8 +76,8 @@ test('כל עמודה שיש בה ערך בשני הצדדים חייבת להת
 });
 
 test('קבוצות: אם חבר אחד כבר במערכת, כל הקבוצה כבר במערכת', () => {
-  const g = (name, city, group) => ({ ...parseRows([row({ 0: name, 5: city, 11: group })])[0] });
-  const rows = matchAll([g('אולם שמחה', 'בני ברק', '7'), g('שמחה בני ברק מתחם', 'בני ברק', '7'), g('אולם זר', 'חיפה', '8')], HALLS);
+  const g = (name, city, phone, group) => ({ ...parseRows([row({ 0: name, 5: city, 4: phone, 11: group })])[0] });
+  const rows = matchAll([g('אולם שמחה', 'בני ברק', '052-222-2222', '7'), g('שמחה בני ברק מתחם', 'בני ברק', '', '7'), g('אולם זר', 'חיפה', '', '8')], HALLS);
   assert.deepEqual(rows.map((r) => r.groupStatus), ['in', 'in', 'new']);
 });
 
