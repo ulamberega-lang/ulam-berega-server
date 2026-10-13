@@ -40,6 +40,20 @@ adminApi.get('/halls', handle(() => halls.listAll()));
 const saved = (hall) => { hallsChanged(); return hall; };
 adminApi.post('/halls', handle(async (req) => saved(await halls.create(hallFromBody(req.body, true)))));
 adminApi.put('/halls/:id', handle(async (req) => saved(await halls.update(idOf(req), hallFromBody(req.body, false)))));
+// כמה שיחות יימחקו יחד עם האולם (מוצג בחלון האישור)
+adminApi.get('/halls/:id/usage', handle(async (req) => {
+  if (!(await halls.findById(idOf(req)))) throw new InputError('האולם לא נמצא', 404);
+  return { calls: await halls.callCount(idOf(req)) };
+}));
+// מחיקה מלאה של אולם וכל השיחות שלו ביומן. האישור נעשה באתר לפני הקריאה
+adminApi.delete('/halls/:id', handle(async (req) => {
+  const hall = await halls.findById(idOf(req));
+  if (!hall) throw new InputError('האולם לא נמצא', 404);
+  await halls.remove(hall.id);
+  hallsChanged();
+  console.log(`halls: נמחק אולם "${hall.name}" (${hall.city_name}, שלוחה ${hall.extension})`);
+  return { ok: true };
+}));
 
 // ---------- ניקוד הקראה (טבלת pronunciations) ----------
 

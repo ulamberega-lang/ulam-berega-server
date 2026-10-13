@@ -13,6 +13,8 @@ export const api = {
   listHalls: () => request('halls'),
   createHall: (hall) => request('halls', { method: 'POST', body: JSON.stringify(hall) }),
   updateHall: (id, hall) => request(`halls/${id}`, { method: 'PUT', body: JSON.stringify(hall) }),
+  hallUsage: (id) => request(`halls/${id}/usage`),
+  deleteHall: (id) => request(`halls/${id}`, { method: 'DELETE', body: '{}' }),
 
   listVoicemails: () => request('voicemails'),
   setVoicemailHandled: (id, handled) => request(`voicemails/${id}`, { method: 'PUT', body: JSON.stringify({ handled }) }),

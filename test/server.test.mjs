@@ -452,3 +452,24 @@ test('תפריט ראשי: 2 חיפוש לפי שם, 3 מספר שלוחה (הו
   assert.doesNotMatch(byName, /הקש את מספר השלוחה/);
   assert.match(byName, /עיר/);
 });
+
+test('אתר הניהול: מחיקה מלאה של אולם יחד עם השיחות שלו', async () => {
+  hallsChanged(); await sleep(100); // הרשימה בזיכרון מתעדכנת אחרי שהבדיקות הקודמות שינו את האולמות
+  await callHall('DEL-1', '101');
+  await callHall('DEL-2', '102');
+  const a = db.halls.find((x) => x.extension === '101');
+  assert.equal((await realFetch(`${app.base}/admin/api/halls/${a.id}/usage`)).status, 401);
+  assert.equal((await (await admin(`/admin/api/halls/${a.id}/usage`)).json()).calls, 1);
+  assert.equal((await admin('/admin/api/halls/9999/usage')).status, 404);
+  assert.equal((await realFetch(`${app.base}/admin/api/halls/${a.id}`, { method: 'DELETE', headers: { cookie: headers.cookie } })).status, 415);
+  assert.equal((await admin(`/admin/api/halls/${a.id}`, 'DELETE', {})).status, 200);
+  assert.ok(!db.halls.some((x) => x.extension === '101'));
+  assert.ok(!db.leads_log.some((r) => r.hall_id === a.id), 'השיחות של האולם נמחקו');
+  assert.ok(db.leads_log.some((r) => r.yemot_call_id === 'DEL-2'), 'שיחות של אולם אחר נשארו');
+  assert.equal((await admin(`/admin/api/halls/${a.id}`, 'DELETE', {})).status, 404);
+  // האולם לא מופיע יותר בטלפון: שלוחה 101 לא קיימת
+  await sleep(150);
+  const b = { ApiCallId: 'DEL-3', ApiYFCallId: 'DEL-3', ApiPhone: '0521234567' };
+  await ivr(app.base, b); await ivr(app.base, { ...b, v1: '3' });
+  assert.match(strip((await ivr(app.base, { ...b, v1: '3', v2: '101' })).text), /לא קיימת/);
+});

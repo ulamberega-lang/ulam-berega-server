@@ -31,3 +31,14 @@ export async function create(hall) {
 export async function update(id, hall) {
   return unwrap(await supabase.from('halls').update(hall).eq('id', id).select().single());
 }
+
+// כמה שורות ביומן השיחות קשורות לאולם (לחלון האישור במחיקה)
+export async function callCount(id) {
+  return (await selectAll(() => supabase.from('leads_log').select('id').eq('hall_id', id).order('id'))).length;
+}
+
+// מחיקה מלאה: קודם השיחות שלו ביומן (הן מפנות אליו), ואז האולם עצמו
+export async function remove(id) {
+  unwrap(await supabase.from('leads_log').delete().eq('hall_id', id));
+  return unwrap(await supabase.from('halls').delete().eq('id', id));
+}

@@ -125,6 +125,7 @@ http.createServer((req, res) => {
     req.on('end', () => setTimeout(() => json(JSON.parse(body || '{}')), 300));
     return;
   }
+  if (/^\/admin\/api\/halls\/\d+\/usage$/.test(url.pathname)) return json({ calls: 12 });
   if (url.pathname === '/admin/api/halls') return json(halls);
   if (url.pathname === '/admin/api/stats/halls') return json(stats);
   if (url.pathname === '/admin/api/stats/days') return json(days(url.searchParams.get('from'), url.searchParams.get('to'), url.searchParams.get('hall')));

@@ -124,6 +124,7 @@ function openForm(hall) {
   const form = $('#hallForm');
   form.reset();
   $('#hallFormError').innerHTML = '';
+  $('#deleteHall').hidden = !hall; // מחיקה רק באולם קיים
   $('#hallFormTitle').textContent = hall ? 'עריכת אולם' : 'אולם חדש';
   if (hall) {
     for (const el of form.elements) {
@@ -136,7 +137,33 @@ function openForm(hall) {
   suggestForCity();
 }
 
+// מחיקה מלאה: שואלים אישור (עם מספר השיחות שיימחקו יחד איתו) לפני שימחק
+async function removeHall() {
+  const hall = editing;
+  const button = $('#deleteHall');
+  button.disabled = true;
+  try {
+    const { calls } = await api.hallUsage(hall.id);
+    const sure = confirm(`למחוק את האולם "${hall.name}" (${hall.city_name || 'בלי עיר'}, שלוחה ${hall.extension}) לגמרי?\n`
+      + `${calls ? `גם ${formatNumber(calls)} שיחות שלו ביומן ובסטטיסטיקה יימחקו.\n` : ''}`
+      + 'אי אפשר לשחזר. אם רק רוצים שלא יופיע בחיפוש, עדיף לבטל את "האולם פעיל".');
+    if (!sure) return;
+    await api.deleteHall(hall.id);
+  } catch (err) {
+    $('#hallFormError').innerHTML = `<div class="error-box">${escapeHtml(err.message)}</div>`;
+    return;
+  } finally {
+    button.disabled = false;
+  }
+  $('#hallDialog').close();
+  toast(`האולם "${hall.name}" נמחק`);
+  try { await onSaved(null); } catch (err) {
+    toast('האולם נמחק, אבל רענון הרשימה נכשל. לחץ על כפתור הרענון', 'error');
+  }
+}
+
 async function save(e) {
+  if (e.submitter?.value === 'delete') { e.preventDefault(); removeHall(); return; }
   if (e.submitter?.value !== 'save') return;
   e.preventDefault();
   const form = e.target;
