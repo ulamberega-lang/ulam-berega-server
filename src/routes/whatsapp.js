@@ -84,7 +84,7 @@ async function process(phoneId, dial, msg) {
     await sendAll(phoneId, from, out);
   } finally {
     await searching;                                    // כדי ש-✔️ תגיע אחרי 🔍
-    await react(phoneId, from, msg.id, '✔️');
+    await react(phoneId, from, msg.id, s.misread ? '✖️' : '✔️'); // ✖️: לא הבנו ושאלנו שוב
   }
 }
 

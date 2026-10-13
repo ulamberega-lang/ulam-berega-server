@@ -185,6 +185,11 @@ test('webhook: אימות כתובת, חתימה, שליחה וסינון כפי
     await sleep(100);
     assert.equal(sent().length, 3);
     assert.match(sent()[2].body.text.body, /מוזמנים/);
+
+    const bad = payload('wamid.3', '972501234567', { type: 'text', text: { body: 'לא מספר' } }); // שלב כמות מוזמנים: לא מובן
+    await post(bad, sign(bad));
+    await sleep(100);
+    assert.deepEqual(reactions().filter((r) => r.startsWith('wamid.3')), ['wamid.3:🔍', 'wamid.3:✖️']);
   } finally { close(); }
 });
 
