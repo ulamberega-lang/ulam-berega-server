@@ -333,6 +333,9 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .halls-head .count { order: 2; }
   .halls-head::after { content: ""; order: 3; flex-basis: 100%; height: 0; } /* שבירת שורה: הכפתורים בשורה משלהם */
   .halls-head .btn { order: 4; flex: 1 1 calc(50% - 5px); margin-right: 0; min-height: 44px; }
+  /* הכפתור של "ניקוד הקראה" התפצל לשניים (ניקוד, ייבוא) באותו מקום; בלי לשנות את גודל "הוסף אולם" */
+  .split-btns { order: 4; flex: 1 1 calc(50% - 5px); display: flex; gap: 6px; }
+  .split-btns .btn { flex: 1 1 0; min-width: 0; padding: 6px 4px; font-size: .85rem; line-height: 1.15; text-align: center; }
   .count { margin-left: 0; margin-right: auto; }
 
   /* טבלה → כרטיסים */
@@ -430,6 +433,7 @@ tr.pending .nk-input { background: var(--soft); animation: nk-pulse 1.2s ease-in
 }
 
 /* ייבוא אולמות */
+.split-btns { display: contents; } /* במחשב הכפתורים נשארים בשורה כרגיל */
 .dropzone { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 22px 16px; margin-bottom: 12px; border: 2px dashed var(--line); border-radius: 14px; background: var(--card); cursor: pointer; }
 .dropzone:hover, .dropzone.over, .dropzone:focus-visible { border-color: var(--accent); background: var(--accent-soft); outline: none; }
 .dropzone span { color: var(--muted); font-size: .92rem; }
