@@ -163,7 +163,7 @@ export function cityPage(c, others = []) {
   return page({
     path: cityPath(city), h1: `אולם קטן ב${city}`, sub: 'אולם לברית, לאירוסין ולשבע ברכות',
     title: `אולם קטן ב${city} - אולם לברית, אירוסין ושבע ברכות | שמחה בשיחה`, desc, place: `ב${city}`,
-    intro: esc(`שמחה בשיחה עוזרת למצוא אולם ב${city} לפי כמות המוזמנים והשכונה, ומחברת ישירות לטלפון של האולם. מתאים לברית, לאירוסין, לשבע ברכות ולכל אירוע קטן. ${stats}`.trim()),
+    intro: esc(`שמחה בשיחה, ${PHONE}, עוזרת למצוא אולם ב${city} לפי כמות המוזמנים והשכונה, ומחברת ישירות לטלפון של האולם. מתאים לברית, לאירוסין, לשבע ברכות ולכל אירוע קטן. ${stats}`.trim()),
     sections: linksPanel(`אולמות ב${city} לפי שכונה`, hoods.map((n) => [`${n.name}${n.count ? ` (${n.count})` : ''}`, hoodPath(city, n.name)]))
       + linksPanel('אולמות בערים נוספות', others.filter((o) => o.city !== city).map((o) => [o.city, cityPath(o.city)])),
     faq, crumbs: [['שמחה בשיחה', '/'], [`אולם קטן ב${city}`, cityPath(city)]],
@@ -183,7 +183,7 @@ export function hoodPage(c, hood) {
   return page({
     path: hoodPath(city, hood.name), h1: `אולם קטן בשכונת ${hood.name}, ${city}`, sub: 'אולם לברית, לאירוסין ולשבע ברכות',
     title: `אולם קטן בשכונת ${hood.name} ב${city} - אולם לברית ואירוסין | שמחה בשיחה`, desc, place,
-    intro: esc(`שמחה בשיחה עוזרת למצוא אולם בשכונת ${hood.name} ב${city} לפי כמות המוזמנים, ומחברת ישירות לטלפון של האולם. ${stats}`.trim()),
+    intro: esc(`שמחה בשיחה, ${PHONE}, עוזרת למצוא אולם בשכונת ${hood.name} ב${city} לפי כמות המוזמנים, ומחברת ישירות לטלפון של האולם. ${stats}`.trim()),
     sections: linksPanel(`עוד שכונות ב${city}`, hoodsOf(c).filter((n) => n.name !== hood.name).map((n) => [n.name, hoodPath(city, n.name)]))
       + `
   <section class="panel"><p><a href="${esc(cityPath(city))}">כל האולמות ב${esc(city)}</a></p></section>`,
