@@ -49,7 +49,7 @@ export const findCity = async (slug) => (await getCities()).find((c) => slugOf(c
 export function cityPage({ city, hoods }) {
   const url = `${SITE_URL}${cityPath(city)}`;
   const title = `אולם קטן ב${city} - אולם לברית, אירוסין ושבע ברכות | שמחה בשיחה`;
-  const desc = `מחפשים אולם קטן ב${city}? אולם לברית, לאירוסין או לשבע ברכות. שמחה בשיחה מוצאת אולם ב${city} לפי כמות מוזמנים ושכונה - בטלפון, בוואטסאפ ובצ'אט.`;
+  const desc = `שמחה בשיחה: ${PHONE}. מחפשים אולם קטן ב${city}? אולם לברית, לאירוסין או לשבע ברכות. מוצאים אולם ב${city} לפי כמות מוזמנים ושכונה - בטלפון, בוואטסאפ ובצ'אט.`;
   const ld = JSON.stringify({
     '@context': 'https://schema.org', '@graph': [
       { '@type': 'Service', name: `חיפוש אולם אירועים ב${city}`, serviceType: 'מציאת אולם לברית, אירוסין, שבע ברכות ואירועים קטנים', provider: { '@id': `${SITE_URL}/#org` }, areaServed: { '@type': 'City', name: city }, url },
