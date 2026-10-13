@@ -187,7 +187,10 @@ export async function handleMessage(s, input, ctx = {}) {
   const id = input.id ?? '';
   const raw = (input.text ?? '').trim();
   const go = (step, note) => { s.step = step; return show(s, ctx, note); };
-  const invalid = () => show(s, ctx, t.unknown);
+  s.misread = false; // נקבע כשלא הבנו את התשובה ושואלים שוב (ה-webhook מסמן ✖️ במקום ✔️)
+  const miss = () => { s.misread = true; };
+  const invalid = () => { miss(); return show(s, ctx, t.unknown); };
+  const retryGo = (step, note) => { miss(); return go(step, note); };
   const pick = (items, key) => { // שורה שנבחרה ברשימה: "c:12" → הפריט
     const n = Number(id.split(':')[1]);
     return id.startsWith(`${key}:`) && Number.isInteger(n) && n >= 0 && n < items.length ? items[n] : null;
@@ -203,10 +206,11 @@ export async function handleMessage(s, input, ctx = {}) {
       if (id === 'm:name') { s.mode = 'name'; return go('freeName'); }
       if (id === 'x:owner') { reset(s); return [text(`${t.ownerInfo(ctx.dial, voicemailLink(ctx))}\n\n\n${signature(ctx)}`), ...menu(s)]; }
       if (id) return invalid();
+      miss();
       return show(s, ctx); // טקסט חופשי בתפריט: מציגים אותו שוב
     case 'guests': {
       const n = parseNumber(raw);
-      if (!(n >= 1 && n <= 5000)) return go('guests', t.badGuests);
+      if (!(n >= 1 && n <= 5000)) return retryGo('guests', t.badGuests);
       s.guests = n;
       if (s.redoGuests) { s.redoGuests = false; s.page = 0; return go('results'); } // שינוי כמות: ממשיכים באותה עיר ושכונה
       return go('city');
@@ -218,7 +222,7 @@ export async function handleMessage(s, input, ctx = {}) {
       let city = pick(s.cities, 'c');
       if (!city && raw) {
         city = bestMatch(raw, s.cities, { generic: CITY_WORDS });
-        if (!city) return go('city', t.cityNone(raw));
+        if (!city) return retryGo('city', t.cityNone(raw));
       }
       if (!city) return invalid();
       s.city = city; s.cityPage = 0; s.hood = null; s.hoodPage = 0;
@@ -231,7 +235,7 @@ export async function handleMessage(s, input, ctx = {}) {
       if (id === 'k:pick') return go('hoodMenu');
       if (raw) {
         const hood = bestMatch(raw, s.allHoods, { generic: HOOD_WORDS });
-        if (!hood) return go('hood', t.hoodNone(raw));
+        if (!hood) return retryGo('hood', t.hoodNone(raw));
         s.hood = hood;
         return go('results');
       }
@@ -245,7 +249,7 @@ export async function handleMessage(s, input, ctx = {}) {
       if (id === 'k:extra' && s.hoodExtra) { s.hood = NO_HOOD; return go('results'); }
       let hood = pick(s.hoods, 'k');
       if (!hood && raw) hood = bestMatch(raw, s.allHoods, { generic: HOOD_WORDS });
-      if (!hood) return raw ? go('hoodMenu', t.hoodNone(raw)) : invalid();
+      if (!hood) return raw ? retryGo('hoodMenu', t.hoodNone(raw)) : invalid();
       s.hood = hood;
       return go('results');
     }
@@ -289,7 +293,7 @@ export async function handleMessage(s, input, ctx = {}) {
       if (matches.length === 1) return hallCard(s, matches[0], ctx);
       if (matches.length) { s.hallChoices = matches; s.listPage = 0; return go('hallMenu'); }
       s.free = true; s.lastName = raw;
-      return go('noHall', t.hallNone(raw));
+      return retryGo('noHall', t.hallNone(raw));
     }
     // חיפוש לפי שם: שם אולם או בית כנסת בעיר שנבחרה
     case 'hallName': {
@@ -301,7 +305,7 @@ export async function handleMessage(s, input, ctx = {}) {
       if (matches.length === 1) return hallCard(s, matches[0], ctx);
       if (matches.length) { s.hallChoices = matches; s.listPage = 0; return go('hallMenu'); }
       s.lastName = raw;
-      return go('noHall', t.hallNone(raw));
+      return retryGo('noHall', t.hallNone(raw));
     }
     case 'noHall':
       if (id === 'h:retry') return go(s.free ? 'freeName' : 'hallName');
