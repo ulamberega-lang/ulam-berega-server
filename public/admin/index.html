@@ -53,7 +53,6 @@
         <button role="tab" data-tab="calls" aria-controls="tab-calls" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><span>יומן שיחות</span></button>
         <button role="tab" data-tab="halls" aria-controls="tab-halls" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-hall"/></svg><span>ניהול אולמות</span></button>
         <button role="tab" data-tab="voicemails" aria-controls="tab-voicemails" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><span>הודעות</span><span class="tab-count" id="voicemailBadge" hidden></span></button>
-        <button role="tab" data-tab="import" aria-controls="tab-import" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span>ייבוא אולמות</span></button>
         <button role="tab" data-tab="mails" aria-controls="tab-mails" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg><span>מיילים</span></button>
       </nav>
       <button id="logout" class="back logout" aria-label="יציאה" title="יציאה"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg><span>יציאה</span></button>
@@ -344,7 +343,10 @@
     <section id="tab-halls" role="tabpanel" hidden>
       <div class="section-head halls-head">
         <h2>אולמות</h2><span class="count" id="hallsCount"></span>
-        <button class="btn ghost" id="openNikud">ניקוד הקראה</button>
+        <div class="split-btns">
+          <button class="btn ghost" id="openNikud">ניקוד הקראה</button>
+          <button class="btn ghost" id="openImport">ייבוא אולמות</button>
+        </div>
         <button class="btn" id="addHall"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>הוסף אולם</button>
       </div>
       <div class="toolbar">

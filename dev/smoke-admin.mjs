@@ -233,7 +233,8 @@ check(await p.$$eval('#nikudList tr[data-word]', (t) => t.length) === 1, 'ניק
 await p.fill('#nikudSearch', '');
 
 // ייבוא אולמות: גוררים (בוחרים) קובץ, ורואים מה כבר במערכת, מה לבדוק ומה חדש
-await p.click('button[data-tab=import]'); await p.waitForSelector('#importDrop');
+await p.click('button[data-tab=halls]'); await p.click('#openImport'); await p.waitForSelector('#importDrop');
+check(await p.getAttribute('button[data-tab=halls]', 'aria-selected') === 'true' && await p.$('button[data-tab=import]') === null, 'ייבוא: נפתח מ"ניהול אולמות", בלי כפתור בתפריט, והלשונית "ניהול אולמות" נשארת מסומנת');
 const sysHalls = await p.evaluate(() => fetch('/admin/api/halls').then((r) => r.json()));
 const h0 = sysHalls[0], h1 = sysHalls[1];
 const HEAD = ['שם אולם', 'שם בית כנסת', 'שכונה', 'כתובת מדויקת', 'טלפון / פלאפון', 'עיר', 'קטגוריה', 'מקסימום אורחים', 'הערות', 'מקור', 'מקור מקורי', 'מס׳ קבוצה'];

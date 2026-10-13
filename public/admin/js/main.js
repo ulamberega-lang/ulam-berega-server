@@ -11,7 +11,7 @@ import { initNikud, loadNikud } from './nikud.js';
 import { initVoicemails, loadVoicemails, loadVoicemailCount } from './voicemails.js';
 import { initDetails, closeDetailsIfOpen } from './details.js';
 
-// nikud: בלי כפתור בתפריט, נפתח מ"ניהול אולמות"
+// nikud ו-import: בלי כפתור בתפריט, נפתחים מ"ניהול אולמות"
 const TABS = ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud'];
 const fromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stats');
 const state = { tab: fromHash(), range: preset('all'), halls: [] };
@@ -89,7 +89,7 @@ function setTab(tab, { record = true, load = true } = {}) {
   const changed = tab !== state.tab;
   if (record && changed) saveCurrent();
   state.tab = tab;
-  const navTab = tab === 'nikud' ? 'halls' : tab; // "ניקוד הקראה" שייך ללשונית האולמות
+  const navTab = ['nikud', 'import'].includes(tab) ? 'halls' : tab; // "ניקוד הקראה" ו"ייבוא אולמות" שייכים ללשונית האולמות
   $$('.topbar nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === navTab));
   for (const name of TABS) $(`#tab-${name}`).hidden = name !== tab;
   $('#range').hidden = ['voicemails', 'mails', 'import', 'nikud'].includes(tab); // להודעות, למיילים, לייבוא ולניקוד אין טווח תאריכים
@@ -135,6 +135,7 @@ function init() {
   initImport();
   initNikud();
   $('#openNikud').addEventListener('click', () => setTab('nikud'));
+  $('#openImport').addEventListener('click', () => setTab('import'));
   document.addEventListener('voicemails-changed', (e) => {
     const badge = $('#voicemailBadge');
     badge.hidden = !e.detail.open;
