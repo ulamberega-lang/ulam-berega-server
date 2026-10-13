@@ -428,3 +428,19 @@ tr.pending .nk-input { background: var(--soft); animation: nk-pulse 1.2s ease-in
   .topbar, .toolbar, .range, .icon-btn, .progress { display: none !important; }
   body { background: #fff; }
 }
+
+/* ייבוא אולמות */
+.dropzone { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 22px 16px; margin-bottom: 12px; border: 2px dashed var(--line); border-radius: 14px; background: var(--card); cursor: pointer; }
+.dropzone:hover, .dropzone.over, .dropzone:focus-visible { border-color: var(--accent); background: var(--accent-soft); outline: none; }
+.dropzone span { color: var(--muted); font-size: .92rem; }
+.import-table td, .import-table th { vertical-align: top; white-space: normal; }
+.import-table .acts button { white-space: nowrap; }
+.import-table tr.ga td { background: var(--card); }
+.import-table tr.gb td { background: var(--soft); }
+.import-table tr.off { opacity: .55; }
+.import-table .why { color: var(--muted); font-size: .88rem; margin-top: 4px; }
+.import-table .notes { color: var(--muted); font-size: .88rem; max-width: 34ch; }
+.import-table .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn.small { min-height: 34px; padding: 5px 12px; font-size: .88rem; }
+.badge.maybe { background: #fff3d6; color: #8a5a00; }
+.badge.new { background: #e3effd; color: #1b5aa8; }
