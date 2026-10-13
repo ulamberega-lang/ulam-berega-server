@@ -154,6 +154,8 @@ input:focus, select:focus { border-color: var(--accent); }
 .btn:hover { filter: brightness(1.12); }
 .btn.ghost { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
 .btn.ghost:hover { background: var(--hover); filter: none; }
+.btn.danger { background: #fff; color: #b3261e; border: 1px solid #e3b3af; }
+.btn.danger:hover { background: #fdecea; filter: none; }
 .btn:disabled { opacity: .6; }
 .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
 .icon-btn:hover { background: var(--hover); }

@@ -77,6 +77,19 @@ await p.click('.actions .btn[value=save]');
 await p.waitForSelector('.toast');
 check((await p.textContent('.toast')).includes('נוסף בהצלחה'), 'הודעת שמירה');
 
+// מחיקת אולם: הכפתור רק באולם קיים, ושואלים אישור (ביטול לא מוחק, אישור מוחק)
+await p.click('#addHall'); check(await p.isHidden('#deleteHall'), 'מחיקה: אין כפתור באולם חדש');
+await p.click('.actions .btn[value=cancel]');
+await p.click('.hall-card .edit >> nth=0'); check(await p.isVisible('#deleteHall'), 'מחיקה: כפתור באולם קיים');
+let hallAsk = '';
+p.once('dialog', (d) => { hallAsk = d.message(); d.dismiss(); });
+await p.click('#deleteHall'); await p.waitForTimeout(400);
+check(hallAsk.includes('12 שיחות') && hallAsk.includes('לגמרי'), 'מחיקה: האישור מציג כמה שיחות יימחקו');
+check(await p.isVisible('#hallDialog'), 'מחיקה: ביטול האישור משאיר את החלון פתוח');
+p.once('dialog', (d) => d.accept());
+await p.click('#deleteHall'); await p.waitForFunction(() => document.querySelector('.toast')?.textContent.includes('נמחק'));
+check(await p.isHidden('#hallDialog'), 'מחיקה: אחרי אישור החלון נסגר');
+
 // חזרה שומרת את סינון האולם שהוקלד ביומן (גם כשהוקלד אחרי הכניסה ללשונית)
 await p.click('button[data-tab=calls]'); await p.waitForSelector('#callsList tr');
 await p.fill('#callsHall', 'בני ברק'); await p.waitForTimeout(200);
