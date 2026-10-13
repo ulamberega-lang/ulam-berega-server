@@ -18,7 +18,7 @@ for (const [city, hoods] of cities) {
   for (const hood of hoods) {
     for (let i = 0; i < 2; i++) {
       halls.push({
-        id: id++, name: `אולם ${names[id % 6]} ${id}`, city_name: city, neighborhood_name: hood, address: `רחוב ${id} ${id}`,
+        id: id++, name: `אולם ${names[id % 6]} ${id}`, city_name: city, neighborhood_name: hood, address: `הרצל ${id}`,
         max_guests: 150 + id * 20, extension: String(100 + id), gabbai_phone: `05270${String(10000 + id * 7)}`.slice(0, 10),
         gabbai_email: '', is_active: id % 9 !== 0,
       });

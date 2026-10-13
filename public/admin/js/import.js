@@ -61,6 +61,8 @@ function render() {
     const why = r.status === 'new' ? '' : `${r.reasons.join(', ')}: ${escapeHtml(r.hall.name)}${r.hall.city_name ? ` (${escapeHtml(r.hall.city_name)})` : ''}`;
     const groupNote = it.group ? `<span class="muted">קבוצה ${escapeHtml(it.group)}${r.groupStatus !== r.status && r.groupStatus === 'in' ? ' · חבר אחר בקבוצה כבר במערכת' : ''}</span>`
       : it.wasGroup ? `<span class="muted">הופרד מקבוצה ${escapeHtml(it.wasGroup)}</span>` : '';
+    const target = r.hall ?? (r.groupStatus === 'in' ? r.groupHall : null); // האולם התואם במערכת (גם כשהקבוצה כבר במערכת בגלל חבר אחר)
+    const gotoBtn = target ? `<button class="btn small ghost goto" type="button" data-hall="${escapeHtml(target.id)}">מעבר לאולם</button>` : '';
     const splitBtn = it.group && groupSize.get(it.group) > 1 ? '<button class="btn small ghost split" type="button" title="האולם הזה לא כפול של האחרים בקבוצה: ייבדק לבד מול המערכת">לא כפול</button>'
       : it.wasGroup ? '<button class="btn small ghost unsplit" type="button">החזר לקבוצה</button>' : '';
     return `<tr class="imp${groupClass(r, i)}${isDone(r) ? ' off' : ''}" data-i="${rows.indexOf(r)}">
@@ -71,7 +73,7 @@ function render() {
       <td class="digits" data-label="טלפון" dir="ltr">${it.phoneRaw ? escapeHtml(it.phoneRaw) : '<span class="muted">חסר</span>'}</td>
       <td class="digits" data-label="אורחים">${it.guests ?? '<span class="muted">-</span>'}</td>
       <td class="span-all notes" title="${escapeHtml(it.notes)}">${escapeHtml(noteShort(it.notes))}${it.source ? `<small class="muted"> · ${escapeHtml(it.source.replace(/source_|\.xlsx/g, ''))}</small>` : ''}</td>
-      <td class="span-all"><div class="acts">${statusOf(r) === 'in' ? '' : '<button class="btn small add" type="button">הוסף למערכת</button>'}${splitBtn}<button class="btn small ghost mark" type="button">${isDone(r) ? 'החזר לרשימה' : 'סמן כטופל'}</button></div></td>
+      <td class="span-all"><div class="acts">${statusOf(r) === 'in' ? '' : '<button class="btn small add" type="button">הוסף למערכת</button>'}${gotoBtn}${splitBtn}<button class="btn small ghost mark" type="button">${isDone(r) ? 'החזר לרשימה' : 'סמן כטופל'}</button></div></td>
     </tr>`;
   }).join('') : `<tr><td colspan="7" class="empty">אין שורות שמתאימות לחיפוש או לסינון.</td></tr>`;
 
@@ -114,6 +116,8 @@ export function initImport() {
     const r = rows[Number(e.target.closest('tr[data-i]')?.dataset.i)];
     if (!r) return;
     if (e.target.closest('.add')) { document.dispatchEvent(new CustomEvent('add-hall-draft', { detail: { draft: hallDraft(r.item) } })); return; }
+    const goto = e.target.closest('.goto');
+    if (goto) { document.dispatchEvent(new CustomEvent('open-details', { detail: { id: goto.dataset.hall } })); return; } // חלון פרטי האולם, כמו בלחיצה עליו ב"שיחות לפי אולם"
     if (e.target.closest('.split, .unsplit')) {
       const key = itemKey(r.item);
       if (split.has(key)) split.delete(key); else split.add(key);
