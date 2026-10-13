@@ -240,10 +240,10 @@ const h0 = sysHalls[0], h1 = sysHalls[1];
 const HEAD = ['שם אולם', 'שם בית כנסת', 'שכונה', 'כתובת מדויקת', 'טלפון / פלאפון', 'עיר', 'קטגוריה', 'מקסימום אורחים', 'הערות', 'מקור', 'מקור מקורי', 'מס׳ קבוצה'];
 const line = (o) => HEAD.map((_, i) => o[i] ?? '');
 const xlsx = buildXlsx([HEAD,
-  line({ 0: h0.name, 5: h0.city_name, 4: h0.gabbai_phone }),                       // כבר במערכת
+  line({ 0: h0.name, 5: h0.city_name, 4: h0.gabbai_phone, 3: h0.address }),         // כבר במערכת (שם, עיר, טלפון וכתובת)
   line({ 0: 'שם אחר לגמרי', 5: 'חיפה', 4: h1.gabbai_phone }),                      // אותו טלפון: לבדיקה
   line({ 0: 'אולם בדיקה חדש', 5: 'חיפה', 3: 'הנביאים 1, חיפה', 4: '04-8888888', 7: '90' }),
-  line({ 0: sysHalls[2].name, 5: sysHalls[2].city_name, 4: sysHalls[2].gabbai_phone, 10: 'מקור א', 11: '5' }),   // קבוצה: חבר אחד כבר במערכת
+  line({ 0: sysHalls[2].name, 5: sysHalls[2].city_name, 4: sysHalls[2].gabbai_phone, 3: sysHalls[2].address, 10: 'מקור א', 11: '5' }),   // קבוצה: חבר אחד כבר במערכת
   line({ 0: 'אולם אחר בקבוצה', 5: 'חיפה', 10: 'מקור ב', 11: '5' }),                                              // ...ולכן גם הוא (עד שמפרידים)
 ]);
 await p.setInputFiles('#importFile', { name: 'halls.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(xlsx) });
@@ -259,6 +259,11 @@ check(await p.$$eval('#importList .split', (t) => t.length) === 0, 'ייבוא: 
 await p.click('#importList tr.imp >> nth=4 >> .unsplit');
 check(await p.textContent('#importList tr.imp >> nth=4 >> .badge') === 'כבר במערכת', 'ייבוא: "החזר לקבוצה" מחזיר את השורה');
 await p.click('#importList tr.imp >> nth=4 >> .split');
+// "מעבר לאולם": פותח את חלון פרטי האולם שבמערכת
+await p.click('#importList tr.imp >> nth=0 >> .goto');
+await p.waitForSelector('#detailsDialog[open]');
+check((await p.textContent('#detailsDialog')).includes(h0.name), 'ייבוא: "מעבר לאולם" פותח את חלון פרטי האולם');
+await p.keyboard.press('Escape'); await p.waitForTimeout(300);
 await p.click('#importView button[data-value=new]');
 await p.click('#importList tr.imp .add');
 check(await p.inputValue('#hallForm [name=name]') === 'אולם בדיקה חדש' && await p.inputValue('#hallForm [name=gabbai_phone]') === '048888888' && await p.inputValue('#hallForm [name=max_guests]') === '90', 'ייבוא: "הוסף למערכת" ממלא את טופל האולם');
