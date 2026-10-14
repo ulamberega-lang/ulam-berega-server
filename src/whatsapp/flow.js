@@ -72,7 +72,8 @@ export const signature = (ctx) => {
   if (!d) return '> שמחה בשיחה';
   // שורה אחת (כמה שורות בבלוק ציטוט מקבלות רווח ביניהן). RLM אחרי WhatsApp מפריד בינו לבין הקישור: בלעדיו שתי הריצות הלטיניות
   // מתמזגות לריצה אחת, שמתחלקת בין שורות ומתבלבלת בסדר
-  const site = ctx.link && !ctx.web ? ` או באתר ${bare(ctx.link)}/chat` : '';
+  // הקישור הקצר /w (מפנה לצ'אט ונספר כ"הקישור מהוואטסאפ שלך"; public-pages.js)
+  const site = ctx.link && !ctx.web ? ` או באתר ${bare(ctx.link)}/w` : '';
   const lines = [`> שמחה בשיחה ב\u05BEWhatsApp\u200F wa.me/${d}${site}`];
   return lines.join('\n');
 };
