@@ -70,7 +70,7 @@ const mails = Array.from({ length: 6 }, (_, i) => ({
   status: i === 4 ? 'repeat' : i === 3 ? 'failed' : 'sent', error: i === 3 ? '401 {"message":"Key not found"}' : '' }));
 // וואטסאפ, צ'אט ואתר: 10 הימים האחרונים
 const isoDay = (back) => new Date(Date.now() - back * 864e5).toISOString().slice(0, 10);
-const channels = {
+const makeChannels = () => ({
   days: Array.from({ length: 10 }, (_, i) => ['whatsapp', 'web', 'site'].map((channel, c) => ({
     day: isoDay(i), channel, users: (i * 3 + c * 5) % 11, messages: channel === 'site' ? 0 : (i * 7 + c) % 40,
     found_users: channel === 'site' ? 0 : (i + c) % 5, visits: channel === 'site' ? (i * 5) % 23 : 0 }))).flat(),
@@ -79,7 +79,8 @@ const channels = {
   breakdown: [['page', '/', 150, 90], ['page', '/chat', 40, 30], ['page', '/אולם-קטן-ב/ירושלים', 50, 35], ['page', '/אולם-קטן-ב/בני-ברק', 20, 15],
     ['source', '', 100, 60], ['source', 'google.com', 120, 70], ['source', 'internal', 30, 20], ['source', 'facebook.com', 10, 8]]
     .map(([dim, value, visits, users]) => ({ dim, value, visits, users })),
-};
+});
+let channels = makeChannels();
 // WAV של חצי שנייה שקט (8kHz, 16 סיביות), לבדיקת הנגן
 const silentWav = (() => {
   const samples = 4000, data = Buffer.alloc(samples * 2), h = Buffer.alloc(44);
@@ -94,7 +95,7 @@ http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const json = (data) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(data)); };
 
-  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
+  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); channels = makeChannels(); return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
   if (url.pathname === '/admin/api/pronunciations' || url.pathname === '/admin/api/pronunciations/suggest') {
     if (req.method === 'GET') return json(pronunciations);
     let body = '';
@@ -115,6 +116,7 @@ http.createServer((req, res) => {
     });
   }
   if (url.pathname === '/admin/api/mails') return json(mails);
+  if (url.pathname === '/admin/api/channels' && req.method === 'DELETE') { channels = { days: [], totals: [], breakdown: [] }; return json({ ok: true }); }
   if (url.pathname === '/admin/api/channels') return json(channels);
 
   const vm = /^\/admin\/api\/voicemails(?:\/(\d+)(\/audio)?)?$/.exec(url.pathname);

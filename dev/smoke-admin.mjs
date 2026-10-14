@@ -293,6 +293,13 @@ await p.click('.channel-visits th[data-sort=visits]');
 const visitsCol = await p.$$eval('#channelVisits td.total', (t) => t.map((x) => Number(x.textContent.replace(/,/g, ''))));
 check(visitsCol.every((v, i) => !i || visitsCol[i - 1] <= v), 'ערוצים: מיון לפי כניסות (כותרת)');
 await p.click('#channelVisitView button[data-value=page]');
+// איפוס: ביטול באישור לא מוחק; אישור מוחק ומציג אפסים
+p.once('dialog', (d) => d.dismiss()); await p.click('#resetChannels'); await p.waitForTimeout(300);
+check((await p.textContent('#channelTotals')).includes('42'), 'ערוצים: ביטול האיפוס לא מוחק');
+p.once('dialog', (d) => { check(d.message().includes('אי אפשר לשחזר'), 'ערוצים: האיפוס שואל אישור'); d.accept(); });
+await p.click('#resetChannels'); await p.waitForTimeout(700);
+check(!(await p.textContent('#channelTotals')).includes('42') && (await p.textContent('#channelDays')).includes('אין פעילות'), 'ערוצים: אחרי איפוס הכול ריק');
+await fetch(new URL('/__reset', base)).catch(() => {});
 await p.click('#back'); await p.waitForTimeout(600);
 check(await p.evaluate(() => location.hash) === '#stats', 'ערוצים: חזרה ל"שיחות לפי אולם"');
 

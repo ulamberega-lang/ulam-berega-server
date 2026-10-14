@@ -135,7 +135,7 @@ function init() {
   initHalls(async () => { await loadHallList(); refresh(); });
   initVoicemails();
   initMails();
-  initChannels();
+  initChannels(refresh);
   initImport();
   initNikud();
   $('#openNikud').addEventListener('click', () => setTab('nikud'));

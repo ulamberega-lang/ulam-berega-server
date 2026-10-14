@@ -461,3 +461,4 @@ tr.pending .nk-input { background: var(--soft); animation: nk-pulse 1.2s ease-in
   .channel-visits tbody tr { grid-template-columns: repeat(2, 1fr); }
 }
 .channel-days small.found { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); }
+.section-head .push-end { margin-inline-start: auto; } /* כפתור בצד השני של הכותרת (למשל "איפוס נתונים") */
