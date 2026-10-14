@@ -1,7 +1,7 @@
 // לשונית "וואטסאפ, צ'אט ואתר" (נפתחת מכפתור בלשונית "שיחות לפי אולם"): כמה פנו לבוט בוואטסאפ ובצ'אט באתר,
 // כמה קיבלו פרטי אולם, וכמה נכנסו לאתר (לפי יום, ולפי דף ומקור). הנתונים מ-sql/channel_events.sql.
 import { api } from './api.js';
-import { $, escapeHtml, formatNumber, matches, pref, savePref } from './dom.js';
+import { $, escapeHtml, formatNumber, matches, pref, savePref, toast } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { daysBetween, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.js';
 
@@ -102,7 +102,24 @@ function renderVisits() {
   $('#channelVisitCount').textContent = all.length ? `${formatNumber(shown.length)} מתוך ${formatNumber(all.length)}` : '';
 }
 
-export function initChannels() {
+// איפוס כל הנתונים (למשל אחרי תקופת ניסיונות לפני שיווק), עם אישור
+async function resetAll(reload) {
+  if (!confirm("למחוק את כל הנתונים של וואטסאפ, צ'אט ואתר?\nהספירה תתחיל מחדש מעכשיו. אי אפשר לשחזר.\nיומן השיחות הטלפוניות לא נמחק.")) return;
+  const button = $('#resetChannels');
+  button.disabled = true;
+  try {
+    await api.resetChannels();
+    toast('הנתונים אופסו');
+    reload();
+  } catch (err) {
+    toast(`האיפוס נכשל. ${err.message}`, 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+export function initChannels(reload) {
+  $('#resetChannels').addEventListener('click', () => resetAll(reload));
   daySort = initSort({
     box: $('#channelDaysSort'), table: $('.channel-days'), options: DAY_SORTS,
     initial: pref('channelDaysSort', { key: 'day', dir: 'desc' }),

@@ -121,16 +121,22 @@ adminApi.get('/calls', handle((req) => {
 }));
 
 // וואטסאפ, צ'אט באתר וכניסות לאתר (sql/channel_events.sql): לפי יום, סיכום לכל הטווח, ודפים ומקורות
+// הפונקציות או הטבלה לא קיימות: קובץ ה-SQL עוד לא הורץ
+const channelsSqlMissing = (e) => {
+  if (e.code === 'PGRST202' || e.code === '42P01' || e.code === '42883') throw new InputError('צריך להריץ ב-Supabase את הקובץ sql/channel_events.sql', 400);
+  throw e;
+};
 adminApi.get('/channels', handle(async (req) => {
   const { from, to } = range(req);
-  try {
-    const [days, totals, breakdown] = await Promise.all([channelEvents.statsByDay(from, to), channelEvents.totals(from, to), channelEvents.visitBreakdown(from, to)]);
-    return { days, totals, breakdown };
-  } catch (e) {
-    // הפונקציות או הטבלה לא קיימות: קובץ ה-SQL עוד לא הורץ
-    if (e.code === 'PGRST202' || e.code === '42P01' || e.code === '42883') throw new InputError('צריך להריץ ב-Supabase את הקובץ sql/channel_events.sql', 400);
-    throw e;
-  }
+  const [days, totals, breakdown] = await Promise.all([channelEvents.statsByDay(from, to), channelEvents.totals(from, to), channelEvents.visitBreakdown(from, to)])
+    .catch(channelsSqlMissing);
+  return { days, totals, breakdown };
+}));
+// איפוס כל נתוני הערוצים (האישור נעשה באתר לפני הקריאה). לא נוגע ביומן השיחות הטלפוניות
+adminApi.delete('/channels', handle(async () => {
+  await channelEvents.removeAll().catch(channelsSqlMissing);
+  console.log('channels: נתוני וואטסאפ, צ\'אט ואתר אופסו');
+  return { ok: true };
 }));
 
 // ---------- הגדרת וואטסאפ (public/admin/whatsapp.html) ----------

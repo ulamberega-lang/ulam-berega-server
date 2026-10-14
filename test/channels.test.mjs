@@ -114,3 +114,17 @@ test('אתר הניהול: /channels דורש כניסה ותאריכים, ומ�
   assert.equal(res.status, 200);
   assert.deepEqual(Object.keys(await res.json()).sort(), ['breakdown', 'days', 'totals']);
 });
+
+test('אתר הניהול: איפוס נתוני הערוצים דורש כניסה ו-JSON, מוחק את כולם ולא נוגע ביומן השיחות', async () => {
+  await post('/api/visit', { v: 'resetvisitor0001', p: '/' });
+  await sleep(30);
+  db.leads_log.push({ id: 999, yemot_call_id: 'keep-me', attempt: 1, caller_phone: '', created_at: new Date().toISOString() });
+  assert.ok(events().length > 0);
+  assert.equal((await realFetch(`${app.base}/admin/api/channels`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 401);
+  const headers = await adminHeaders(app.base);
+  assert.equal((await realFetch(`${app.base}/admin/api/channels`, { method: 'DELETE', headers: { cookie: headers.cookie } })).status, 415); // לא JSON
+  const res = await realFetch(`${app.base}/admin/api/channels`, { method: 'DELETE', headers, body: '{}' });
+  assert.equal(res.status, 200);
+  assert.equal(events().length, 0);
+  assert.ok(db.leads_log.some((r) => r.yemot_call_id === 'keep-me'));
+});

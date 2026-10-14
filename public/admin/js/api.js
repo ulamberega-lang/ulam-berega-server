@@ -22,6 +22,7 @@ export const api = {
 
   listMails: () => request('mails'),
   channels: ({ from, to }) => request(`channels?${query({ from, to })}`),
+  resetChannels: () => request('channels', { method: 'DELETE', body: '{}' }),
 
   listPronunciations: () => request('pronunciations'),
   savePronunciation: (word, nikud) => request('pronunciations', { method: 'PUT', body: JSON.stringify({ word, nikud }) }),

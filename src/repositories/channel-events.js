@@ -5,6 +5,11 @@ export async function record(row) {
   unwrap(await supabase.from('channel_events').insert(row));
 }
 
+// איפוס: מחיקת כל הנתונים (מאתר הניהול, למשל אחרי תקופת ניסיונות). PostgREST דורש תנאי במחיקה; channel אף פעם לא ריק
+export async function removeAll() {
+  unwrap(await supabase.from('channel_events').delete().not('channel', 'is', null));
+}
+
 export async function statsByDay(from, to) {
   return unwrap(await supabase.rpc('channel_stats_by_day', { p_from: from, p_to: to }));
 }
