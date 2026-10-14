@@ -10,6 +10,7 @@ export const webchatRouter = Router();
 
 const TTL_MS = 15 * 60 * 1000;           // כמו בוואטסאפ: בלי פעילות 15 דקות - מתחילים מחדש
 const SID = /^[A-Za-z0-9_-]{16,64}$/;    // מזהה שהדפדפן מייצר
+const VISITOR = /^[A-Za-z0-9_-]{8,64}$/; // מזהה הדפדפן לסטטיסטיקה (assets/visit.js)
 const MAX_SESSIONS = 5000;               // מגבלת זיכרון
 // לפי כתובת: גבוה יותר, כי בשרת הציבורי הנפרד כל הבקשות מגיעות דרך כתובת אחת (ההגבלה לפי כתובת שם); לפי מזהה שיחה: 30 בדקה
 const allowIp = makeLimiter(300, 60 * 1000);
@@ -23,7 +24,7 @@ setInterval(() => {
 
 // POST { sid, id? , text? }: בלי id וטקסט - פתיחת שיחה (ברכה ותפריט)
 webchatRouter.post('/', async (req, res) => {
-  const { sid, id, text, desktop } = req.body ?? {};
+  const { sid, id, text, desktop, v } = req.body ?? {};
   if (typeof sid !== 'string' || !SID.test(sid)) return res.status(400).json({ error: 'bad sid' });
   if (!allowIp(req.ip) || !allowSid(sid)) return res.status(429).json({ error: 'too many requests' });
   const input = { id: typeof id === 'string' ? id.slice(0, 40) : undefined, text: typeof text === 'string' ? text.slice(0, 300) : '' };
@@ -39,8 +40,10 @@ webchatRouter.post('/', async (req, res) => {
       if (!entry) { entry = { s: newSession(input.text) }; sessions.set(sid, entry); return greet(entry.s, ctx); }
       if (!input.id && !input.text) return greet(entry.s, ctx);
       const out = await handleMessage(entry.s, input, ctx);
-      track('web', 'message', sid); // לסטטיסטיקה לפי ערוץ (ברקע). פתיחת הדף לא נספרת כהודעה: היא נספרת ככניסה לאתר
-      if (entry.s.found) track('web', 'found', sid);
+      // לסטטיסטיקה לפי ערוץ (ברקע), לפי מזהה הדפדפן (כמו כניסות לאתר; בלעדיו - מזהה השיחה). פתיחת הדף לא נספרת כהודעה
+      const who = typeof v === 'string' && VISITOR.test(v) ? v : sid;
+      track('web', 'message', who);
+      if (entry.s.found) track('web', 'found', who);
       entry.s.found = false;
       return out;
     });

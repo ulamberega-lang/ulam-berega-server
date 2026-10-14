@@ -66,6 +66,30 @@ test('כניסה לאתר: הגבלת קצב לכל מבקר', async () => {
   assert.equal(codes.at(-1), 429);
 });
 
+test("צ'אט באתר: נספר לפי מזהה הדפדפן, כך ששתי לשוניות (שתי שיחות) הן משתמש אחד", async () => {
+  const before = events().length;
+  for (const sid of ['two-tabs-session-0001', 'two-tabs-session-0002']) {
+    await post('/api/webchat', { sid, v: 'browserid12345678' });
+    await post('/api/webchat', { sid, v: 'browserid12345678', id: 'm:search' });
+  }
+  await post('/api/webchat', { sid: 'no-visitor-session-01' });
+  await post('/api/webchat', { sid: 'no-visitor-session-01', v: 'x', id: 'm:search' }); // מזהה לא תקין: נספר לפי השיחה
+  await sleep(50);
+  const mine = events().slice(before).filter((e) => e.channel === 'web');
+  assert.deepEqual(mine.map((e) => e.visitor), [visitorId('browserid12345678'), visitorId('browserid12345678'), visitorId('no-visitor-session-01')]);
+});
+
+test('כניסה לאתר: הגבלה לפי כתובת, גם עם מזהים אקראיים (מונע הצפה של הטבלה)', async () => {
+  const before = events().length;
+  let first429 = -1;
+  for (let i = 0; i < 700 && first429 < 0; i++) {
+    if ((await post('/api/visit', { v: `flood${String(i).padStart(6, '0')}`, p: '/' })).status === 429) first429 = i;
+  }
+  assert.ok(first429 > 0 && first429 <= 600, `נחסם אחרי ${first429}`);
+  await sleep(50);
+  assert.ok(events().length - before <= 600);
+});
+
 test('sourceOf: דומיין בלבד, מעבר באתר עצמו = internal, בלי מקור = ריק', () => {
   assert.equal(sourceOf('https://www.google.co.il/url?q=1'), 'google.co.il');
   assert.equal(sourceOf('https://simcha-besicha.co.il/chat'), 'internal');
