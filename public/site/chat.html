@@ -134,6 +134,15 @@ function makeSid() {
   return s;
 }
 const sid = makeSid();
+// מזהה הדפדפן לסטטיסטיקה (אותו מזהה של assets/visit.js): משתמש בצ'אט נספר פעם אחת גם אם פתח כמה לשוניות
+function visitorKey() {
+  try {
+    let v = localStorage.getItem('ub-v');
+    if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : `${Math.random()}${Date.now()}`).replace(/[^A-Za-z0-9]/g, '').slice(0, 32); localStorage.setItem('ub-v', v); }
+    return v;
+  } catch { return undefined; }
+}
+const visitor = visitorKey();
 // קישורי חיוג (tel:) עובדים רק בטלפון: השרת לא יציג אותם במחשב
 const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 
@@ -221,7 +230,7 @@ async function send(payload) {
   const wait = bubble('in typing', '•••');
   wait.classList.add('typing');
   try {
-    const res = await fetch('/api/webchat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, desktop: !mobile, ...payload }) });
+    const res = await fetch('/api/webchat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, v: visitor, desktop: !mobile, ...payload }) });
     if (!res.ok) throw new Error(res.status);
     const { messages } = await res.json();
     wait.remove();

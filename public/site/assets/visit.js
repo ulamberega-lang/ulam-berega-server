@@ -1,7 +1,9 @@
 // ספירת כניסות לדף (לסטטיסטיקה באתר הניהול). נשלחים רק: מזהה אקראי של הדפדפן (לא מידע אישי), הדף, ומאיזה אתר הגיע.
 // רץ בדפדפן בלבד, ולכן רוב הרובוטים (שלא מריצים JavaScript) לא נספרים.
 (() => {
-  if (navigator.webdriver) return;
+  // דפדפן אוטומטי ורובוטים שמריצים JavaScript (Googlebot מריץ את הדף כדי לאנדקס אותו) לא נספרים.
+  // לפי "bot/" ולא "bot" לבד: יש טלפונים של Cubot
+  if (navigator.webdriver || /bot\/|bot;|crawl|spider|slurp|lighthouse|headless|facebookexternalhit/i.test(navigator.userAgent)) return;
   let v = '';
   try {
     v = localStorage.getItem('ub-v') || '';

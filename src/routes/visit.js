@@ -6,7 +6,10 @@ import { makeLimiter } from '../lib/rate-limit.js';
 
 export const visitRouter = Router();
 
-const allow = makeLimiter(30, 60 * 1000); // לכל מבקר; בשרת הציבורי הנפרד יש גם הגבלה לפי כתובת
+const allow = makeLimiter(30, 60 * 1000); // לכל מבקר
+// לפי כתובת: גבוה, כי בשרת הציבורי הנפרד כל הכניסות מגיעות לכאן מכתובת אחת (ושם יש הגבלה לפי כתובת המבקר);
+// מונע הצפה של הטבלה ממקור אחד עם מזהים אקראיים
+const allowIp = makeLimiter(600, 60 * 1000);
 const VISITOR = /^[A-Za-z0-9_-]{8,64}$/;
 // דומיינים של האתר עצמו (מעבר בין דפים באתר): לא "מקור"
 const OWN = /(^|\.)(simcha-besicha\.co\.il|simchabesicha\.co\.il|onrender\.com|localhost|127\.0\.0\.1)$/;
@@ -32,7 +35,7 @@ visitRouter.post('/', (req, res) => {
   const { v, p, r } = req.body ?? {};
   const page = pageOf(p);
   if (typeof v !== 'string' || !VISITOR.test(v) || !page) return res.status(400).json({ error: 'bad request' });
-  if (!allow(v)) return res.status(429).json({ error: 'too many requests' });
+  if (!allowIp(req.ip) || !allow(v)) return res.status(429).json({ error: 'too many requests' });
   track('site', 'visit', v, { page, source: sourceOf(r) });
   res.status(204).end();
 });
