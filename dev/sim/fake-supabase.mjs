@@ -1,6 +1,6 @@
 // מסד נתונים מדומה בזיכרון במקום @supabase/supabase-js, לבדיקות ולסימולציה.
 // תומך רק במה שהקוד של הפרויקט משתמש בו: select/insert/update/upsert/delete, eq/is/not/gte, order/range/limit, single/maybeSingle, rpc.
-export const db = { halls: [], leads_log: [], pronunciations: [], voicemails: [], mail_log: [] };
+export const db = { halls: [], leads_log: [], pronunciations: [], voicemails: [], mail_log: [], channel_events: [] };
 export const log = []; // רשימת פעולות, לבדיקות
 let idSeq = 1000;
 

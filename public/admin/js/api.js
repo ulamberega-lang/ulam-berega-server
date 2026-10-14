@@ -21,6 +21,7 @@ export const api = {
   deleteVoicemail: (id) => request(`voicemails/${id}`, { method: 'DELETE', body: '{}' }),
 
   listMails: () => request('mails'),
+  channels: ({ from, to }) => request(`channels?${query({ from, to })}`),
 
   listPronunciations: () => request('pronunciations'),
   savePronunciation: (word, nikud) => request('pronunciations', { method: 'PUT', body: JSON.stringify({ word, nikud }) }),

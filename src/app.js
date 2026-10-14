@@ -8,6 +8,7 @@ import { adminAuth } from './middleware/admin-auth.js';
 import { dialerRouter } from './routes/dialer.js';
 import { whatsappRouter } from './routes/whatsapp.js';
 import { webchatRouter } from './routes/webchat.js';
+import { visitRouter } from './routes/visit.js';
 import { requireJson } from './middleware/admin-guard.js';
 import { publicPages } from './public-pages.js';
 import { setCitiesProvider, groupCities } from './city-pages.js';
@@ -28,6 +29,7 @@ export function createApp() {
   app.use((req, res, next) => (req.path === PICTURE_PATH ? next() : express.json()(req, res, next)));
 
   app.use('/api/webchat', webchatRouter); // הצ'אט באתר (JSON)
+  app.use('/api/visit', visitRouter);     // ספירת כניסות לדפי האתר (JSON)
   // ערים ושכונות בלבד (בלי פרטי אולמות): לדפי העיר של השרת הציבורי הנפרד
   const cities = async () => groupCities(await getActiveHalls());
   setCitiesProvider(cities);

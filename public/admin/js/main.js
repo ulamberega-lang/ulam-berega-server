@@ -6,13 +6,14 @@ import { initStats, loadStats, getSelectedHall, setSelectedHall } from './stats.
 import { initCalls, loadCalls, setHallFilter, getHallFilter, restoreHallFilter } from './calls.js';
 import { initHalls, loadHalls } from './halls.js';
 import { initMails, loadMails } from './mails.js';
+import { initChannels, loadChannels } from './channels.js';
 import { initImport, loadImport } from './import.js';
 import { initNikud, loadNikud } from './nikud.js';
 import { initVoicemails, loadVoicemails, loadVoicemailCount } from './voicemails.js';
 import { initDetails, closeDetailsIfOpen } from './details.js';
 
-// nikud ו-import: בלי כפתור בתפריט, נפתחים מ"ניהול אולמות"
-const TABS = ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud'];
+// nikud ו-import: בלי כפתור בתפריט, נפתחים מ"ניהול אולמות"; channels - מ"שיחות לפי אולם"
+const TABS = ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'channels'];
 const fromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stats');
 const state = { tab: fromHash(), range: preset('all'), halls: [] };
 
@@ -29,6 +30,7 @@ async function refresh() {
     else if (tab === 'calls') await loadCalls(state.range, state.halls, isCurrent);
     else if (tab === 'voicemails') await loadVoicemails(state.range, state.halls, isCurrent);
     else if (tab === 'mails') await loadMails(state.halls, isCurrent);
+    else if (tab === 'channels') await loadChannels(state.range, state.halls, isCurrent);
     else if (tab === 'import') loadImport(state.halls);
     else if (tab === 'nikud') await loadNikud(state.halls, isCurrent);
     else await loadHalls(state.range, state.halls, isCurrent);
@@ -89,7 +91,8 @@ function setTab(tab, { record = true, load = true } = {}) {
   const changed = tab !== state.tab;
   if (record && changed) saveCurrent();
   state.tab = tab;
-  const navTab = ['nikud', 'import'].includes(tab) ? 'halls' : tab; // "ניקוד הקראה" ו"ייבוא אולמות" שייכים ללשונית האולמות
+  // "ניקוד הקראה" ו"ייבוא אולמות" שייכים ללשונית האולמות; "וואטסאפ, צ'אט ואתר" ללשונית השיחות
+  const navTab = ['nikud', 'import'].includes(tab) ? 'halls' : tab === 'channels' ? 'stats' : tab;
   $$('.topbar nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === navTab));
   for (const name of TABS) $(`#tab-${name}`).hidden = name !== tab;
   $('#range').hidden = ['voicemails', 'mails', 'import', 'nikud'].includes(tab); // להודעות, למיילים, לייבוא ולניקוד אין טווח תאריכים
@@ -132,10 +135,12 @@ function init() {
   initHalls(async () => { await loadHallList(); refresh(); });
   initVoicemails();
   initMails();
+  initChannels();
   initImport();
   initNikud();
   $('#openNikud').addEventListener('click', () => setTab('nikud'));
   $('#openImport').addEventListener('click', () => setTab('import'));
+  $('#openChannels').addEventListener('click', () => setTab('channels'));
   document.addEventListener('voicemails-changed', (e) => {
     const badge = $('#voicemailBadge');
     badge.hidden = !e.detail.open;

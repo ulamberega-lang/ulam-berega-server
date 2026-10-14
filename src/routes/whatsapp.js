@@ -6,6 +6,7 @@ import { handleMessage, greet, newSession } from '../whatsapp/flow.js';
 import { T } from '../whatsapp/texts.js';
 import { sendAll, react, typing } from '../whatsapp/api.js';
 import { localDigits } from '../lib/owner-phones.js';
+import { track } from '../services/channel-log.js';
 
 export const whatsappRouter = Router();
 
@@ -87,6 +88,9 @@ async function process(phoneId, dial, msg) {
     const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
     ok = await sendAll(phoneId, from, out);
   } finally {
+    track('whatsapp', 'message', from);                 // לסטטיסטיקה לפי ערוץ (ברקע)
+    if (ok && s.found) track('whatsapp', 'found', from); // קיבל פרטי אולם
+    s.found = false;
     await searching;                                    // כדי ש-✔️ תגיע אחרי 🔍
     if (ok) await react(phoneId, from, msg.id, s.misread ? '✖️' : '✔️'); // ✖️: לא הבנו ושאלנו שוב
     else await busyNotice(phoneId, from, msg.id, s.lang, before);

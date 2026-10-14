@@ -119,6 +119,7 @@ function page({ path, h1, sub, title, desc, place, intro, sections, faq, crumbs 
 <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700&family=Heebo:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/site.css">
 <script src="/assets/bg.js" defer></script>
+<script src="/assets/visit.js" defer></script>
 </head>
 <body>
 <main class="wrap">

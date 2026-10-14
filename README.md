@@ -14,6 +14,7 @@ src/
     ivr.js                    הנתיבים שימות פונה אליהם (/api/ivr)
     dialer.js                 חייגן יוצא לבעל הפרויקט (/api/dialer)
     admin-api.js              ה-API של אתר הניהול (/admin/api)
+    visit.js                  ספירת כניסות לדפי האתר (/api/visit)
   ivr/
     flow.js                   זרימת השיחה: מה נשאל בכל שלב ואיך מטפלים בתשובה
     route-to-hall.js          העברת המתקשר לאולם
@@ -28,12 +29,14 @@ src/
     nikud.js                  ניקוד שמות להקראה (טבלת pronunciations)
     nikud-suggest.js          הצעת ניקוד מ-OpenAI לאתר הניהול
     keep-alive.js             מונע מ-Render להירדם
+    channel-log.js            רישום לסטטיסטיקה לפי ערוץ (וואטסאפ, צ'אט, אתר)
   repositories/
     halls.js                  גישה לטבלת האולמות
     calls.js                  גישה ליומן השיחות ולסטטיסטיקה
     voicemails.js             גישה לטבלת ההודעות הקוליות
     mail-log.js               גישה ליומן המיילים
     pronunciations.js         גישה לטבלת הניקוד
+    channel-events.js         גישה לטבלת הסטטיסטיקה לפי ערוץ
   lib/
     yemot.js                  בניית תשובות בפורמט של ימות
     text-match.js             התאמת מה שנאמר לשמות ערים ושכונות

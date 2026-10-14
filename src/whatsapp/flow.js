@@ -91,6 +91,7 @@ function hallCard(s, h, ctx) {
   const t = T[s.lang];
   const body = hallBlock(h, t, ctx);
   s.step = 'menu';
+  s.found = true; // לסטטיסטיקה: המשתמש קיבל פרטי אולם (ה-route רושם ומאפס)
   return [buttons(body, [['m:menu', t.back]])];
 }
 
@@ -165,6 +166,7 @@ async function results(s, ctx, note) {
     s.step = 'noResults';
     return show(s, ctx, note);
   }
+  s.found = true; // לסטטיסטיקה: המשתמש קיבל פרטי אולמות
   const from = s.page * RESULTS_PAGE;
   const onPage = found.slice(from, from + RESULTS_PAGE);
   s.more = found.length > from + RESULTS_PAGE;

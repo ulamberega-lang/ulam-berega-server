@@ -6,6 +6,7 @@ import * as calls from '../repositories/calls.js';
 import * as voicemails from '../repositories/voicemails.js';
 import * as mailLog from '../repositories/mail-log.js';
 import * as pronunciations from '../repositories/pronunciations.js';
+import * as channelEvents from '../repositories/channel-events.js';
 import { reloadNikud } from '../services/nikud.js';
 import { suggestNikud } from '../services/nikud-suggest.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
@@ -117,6 +118,19 @@ adminApi.get('/stats/days', handle((req) => {
 adminApi.get('/calls', handle((req) => {
   const { from, to, hallId } = range(req);
   return calls.listCalls(from, to, hallId);
+}));
+
+// וואטסאפ, צ'אט באתר וכניסות לאתר (sql/channel_events.sql): לפי יום, סיכום לכל הטווח, ודפים ומקורות
+adminApi.get('/channels', handle(async (req) => {
+  const { from, to } = range(req);
+  try {
+    const [days, totals, breakdown] = await Promise.all([channelEvents.statsByDay(from, to), channelEvents.totals(from, to), channelEvents.visitBreakdown(from, to)]);
+    return { days, totals, breakdown };
+  } catch (e) {
+    // הפונקציות או הטבלה לא קיימות: קובץ ה-SQL עוד לא הורץ
+    if (e.code === 'PGRST202' || e.code === '42P01' || e.code === '42883') throw new InputError('צריך להריץ ב-Supabase את הקובץ sql/channel_events.sql', 400);
+    throw e;
+  }
 }));
 
 // ---------- הגדרת וואטסאפ (public/admin/whatsapp.html) ----------
