@@ -1,6 +1,6 @@
 // זרימת הבוט בוואטסאפ: handleMessage(session, input, ctx) → רשימת הודעות לשליחה.
 // פונקציה נקייה ביחס לרשת (הקריאה היחידה היא לרשימת האולמות שבזיכרון), כדי שאפשר יהיה לבדוק אותה.
-// הבוט רק מוסר מספר שלוחה: המתקשר מחייג בעצמו למרכזייה ומקיש 2 ושלוחה, ולכן ההעברה, המיילים ויומן השיחות
+// הבוט רק מוסר מספר שלוחה: המתקשר מחייג בעצמו למרכזייה ומקיש 3 ושלוחה, ולכן ההעברה, המיילים ויומן השיחות
 // נשארים כמו בשיחה רגילה.
 //
 // input: { id } (לחיצה על כפתור או שורה ברשימה) או { text }
@@ -44,14 +44,14 @@ export function pageRows(s, items, label, pageKey, moreLabel, extra) {
   const rows = items.slice(from, from + PAGE).map((it, i) => [`${label}:${from + i}`, ...it]);
   if (more) rows.push([`${label}:more`, moreLabel]);
   if (from > 0) rows.push([`${label}:prev`, s.lang === 'en' ? '→ Previous' : 'חזרה ←']);
-  // מגבלת וואטסאפ: 10 שורות. בעמוד אמצעי (עוד + חזרה) שורת התפריט נשמטת
-  return { rows: rows.length + extra.length > 10 ? rows : [...rows, ...extra], more, from };
+  // מגבלת וואטסאפ: 10 שורות. השורות הקבועות נכנסות לפי הסדר כל עוד יש מקום (בעמוד אמצעי - עוד + חזרה - האחרונות נשמטות)
+  return { rows: [...rows, ...extra.slice(0, Math.max(0, 10 - rows.length))], more, from };
 }
 
 // כתובת להצגה בלי https:// (וואטסאפ מזהה אותה כקישור בכל זאת)
 const bare = (url) => String(url).replace(/^https?:\/\//, '');
 
-// קישור לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
+// קישור לדף שפותח חייגן עם המספר, 3, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
 const dialPage = (ctx, ext, t) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
   return ctx.link && num ? `${t.dialPage}:\n\u200F${bare(ctx.link)}/c/${num}/${ext}` : undefined;
@@ -123,11 +123,11 @@ async function show(s, ctx, note) {
       return [buttons(ask(t.askHood), [['k:pick', t.pickHood], ['k:all', t.allCity]])];
     }
     case 'hoodMenu': {
-      const { rows, more } = pageRows(s, s.hoods.map((h) => [cut(h, 24)]), 'k', 'hoodPage', t.moreHoods, []);
-      // בעמוד האחרון: אולמות בעיר שלא רשומה להם שכונה
-      s.hoodExtra = !more && await halls.hasNoHoodHalls(s.city, s.guests);
-      if (s.hoodExtra) rows.push(['k:extra', cut(t.extraHalls, 24)]);
-      rows.push(['k:all', t.allCity]);
+      // בעמוד האחרון: אולמות בעיר שלא רשומה להם שכונה (תמיד נכנס: בעמוד האחרון אין "עוד"). "כל העיר" - אם יש מקום
+      const last = s.hoods.length <= ((s.hoodPage ?? 0) + 1) * PAGE;
+      s.hoodExtra = last && await halls.hasNoHoodHalls(s.city, s.guests);
+      const extra = [...(s.hoodExtra ? [['k:extra', cut(t.extraHalls, 24)]] : []), ['k:all', t.allCity]];
+      const { rows } = pageRows(s, s.hoods.map((h) => [cut(h, 24)]), 'k', 'hoodPage', t.moreHoods, extra);
       return [list(ask(t.askHood), t.hoodButton, rows)];
     }
     case 'freeName': return [text(ask(t.askFree))];

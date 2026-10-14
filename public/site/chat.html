@@ -224,18 +224,20 @@ async function send(payload) {
     if (!res.ok) throw new Error(res.status);
     const { messages } = await res.json();
     wait.remove();
-    for (const m of messages) { render(m); await new Promise((r) => setTimeout(r, 250)); }
+    // הפסקה קצרה בין הודעות (לא אחרי האחרונה, כדי שהכפתורים שלה יהיו פעילים מיד)
+    for (const [i, m] of messages.entries()) { if (i) await new Promise((r) => setTimeout(r, 250)); render(m); }
   } catch {
     wait.remove();
     bubble('in', 'הייתה תקלה. נסו שוב בעוד רגע 🙏');
   } finally { busy = false; }
 }
 
-function choose(id, title) { lockOld(); bubble('out', esc(title)); send({ id }); }
+// בזמן שהבוט עונה לא שולחים עוד (אחרת ההודעה הייתה מוצגת ולא נשלחת): הלחיצה לא נקלטת והטקסט נשאר בשדה
+function choose(id, title) { if (busy) return; lockOld(); bubble('out', esc(title)); send({ id }); }
 document.getElementById('form').onsubmit = (e) => {
   e.preventDefault();
   const t = input.value.trim();
-  if (!t) return;
+  if (!t || busy) return;
   input.value = '';
   lockOld(); bubble('out', esc(t)); send({ text: t });
 };
