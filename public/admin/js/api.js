@@ -31,4 +31,5 @@ export const api = {
   statsByHall: ({ from, to }) => request(`stats/halls?${query({ from, to })}`),
   statsByDay: ({ from, to }, hall) => request(`stats/days?${query({ from, to, hall })}`),
   listCalls: ({ from, to }, hall) => request(`calls?${query({ from, to, hall })}`),
+  resetCalls: () => request('calls', { method: 'DELETE', body: '{}' }),
 };

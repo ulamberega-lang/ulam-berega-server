@@ -81,6 +81,7 @@ const makeChannels = () => ({
     .map(([dim, value, visits, users]) => ({ dim, value, visits, users })),
 });
 let channels = makeChannels();
+let callsCleared = false; // אחרי "איפוס" של השיחות הטלפוניות
 // WAV של חצי שנייה שקט (8kHz, 16 סיביות), לבדיקת הנגן
 const silentWav = (() => {
   const samples = 4000, data = Buffer.alloc(samples * 2), h = Buffer.alloc(44);
@@ -95,7 +96,7 @@ http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const json = (data) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(data)); };
 
-  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); channels = makeChannels(); return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
+  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); channels = makeChannels(); callsCleared = false; return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
   if (url.pathname === '/admin/api/pronunciations' || url.pathname === '/admin/api/pronunciations/suggest') {
     if (req.method === 'GET') return json(pronunciations);
     let body = '';
@@ -142,6 +143,8 @@ http.createServer((req, res) => {
   }
   if (/^\/admin\/api\/halls\/\d+\/usage$/.test(url.pathname)) return json({ calls: 12 });
   if (url.pathname === '/admin/api/halls') return json(halls);
+  if (url.pathname === '/admin/api/calls' && req.method === 'DELETE') { callsCleared = true; return json({ ok: true }); }
+  if (callsCleared && /^\/admin\/api\/(stats\/halls|stats\/days|calls)$/.test(url.pathname)) return json([]);
   if (url.pathname === '/admin/api/stats/halls') return json(stats);
   if (url.pathname === '/admin/api/stats/days') return json(days(url.searchParams.get('from'), url.searchParams.get('to'), url.searchParams.get('hall')));
   if (url.pathname === '/admin/api/calls') {

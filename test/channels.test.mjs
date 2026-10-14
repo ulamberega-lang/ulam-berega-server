@@ -128,3 +128,16 @@ test('אתר הניהול: איפוס נתוני הערוצים דורש כני�
   assert.equal(events().length, 0);
   assert.ok(db.leads_log.some((r) => r.yemot_call_id === 'keep-me'));
 });
+
+test('אתר הניהול: איפוס השיחות הטלפוניות מוחק את יומן השיחות בלבד', async () => {
+  db.leads_log.push({ id: 1001, yemot_call_id: 'reset-me', attempt: 1, caller_phone: '0501', created_at: new Date().toISOString() });
+  db.mail_log.push({ id: 1, hall_id: 1, hall_name: 'א', status: 'sent', caller_phone: '0501' });
+  db.voicemails.push({ id: 1, caller_phone: '0501', yemot_path: 'ivr2:/8/vm.wav', handled: false });
+  assert.equal((await realFetch(`${app.base}/admin/api/calls`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 401);
+  const headers = await adminHeaders(app.base);
+  assert.equal((await realFetch(`${app.base}/admin/api/calls`, { method: 'DELETE', headers, body: '{}' })).status, 200);
+  assert.equal(db.leads_log.length, 0);
+  assert.equal(db.mail_log.length, 1);
+  assert.equal(db.voicemails.length, 1);
+  assert.ok(db.halls.length > 0);
+});

@@ -1,6 +1,6 @@
 // לשונית "שיחות לפי אולם": סיכום, תובנות, טבלה לפי אולם (חיפוש, סינון, קיבוץ, מיון) וטבלה לפי יום.
 import { api } from './api.js';
-import { $, escapeHtml, formatNumber, icon, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted } from './dom.js';
+import { $, escapeHtml, formatNumber, icon, percent, matches, pref, savePref, downloadCsv, fillSelect, uniqueSorted, toast } from './dom.js';
 import { initSearch, initChips, initSort, sortBy } from './controls.js';
 import { reasonsLegend, redSegments, reasonsTitle, buildRows, HALL_GETTERS, HALL_SORTS, byName, searchText, location } from './data.js';
 import { daysBetween, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.js';
@@ -219,7 +219,24 @@ export const getSelectedHall = () => selectedHall;
 // משחזר בחירת אולם (בחזרה אחורה) בלי לטעון; הטעינה נעשית אחר כך ב-refresh
 export function setSelectedHall(hall) { selectedHall = hall; }
 
+// איפוס כל השיחות הטלפוניות (למשל אחרי תקופת ניסיונות לפני שיווק), עם אישור
+async function resetCalls(reload) {
+  if (!confirm('למחוק את כל השיחות הטלפוניות?\nהסטטיסטיקה ויומן השיחות יתחילו מחדש מעכשיו. אי אפשר לשחזר.\nהאולמות, יומן המיילים וההודעות הקוליות לא נמחקים.')) return;
+  const button = $('#resetCalls');
+  button.disabled = true;
+  try {
+    await api.resetCalls();
+    toast('השיחות אופסו');
+    reload();
+  } catch (err) {
+    toast(`האיפוס נכשל. ${err.message}`, 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
 export function initStats(reload) {
+  $('#resetCalls').addEventListener('click', () => resetCalls(reload));
   const remember = () => savePref('statsFilters', { city: '', hood: '', group: filters.group });
   initSearch($('#statsSearch'), (value) => { filters.term = value; renderHallTable(); });
 

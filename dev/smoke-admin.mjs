@@ -303,6 +303,15 @@ await fetch(new URL('/__reset', base)).catch(() => {});
 await p.click('#back'); await p.waitForTimeout(600);
 check(await p.evaluate(() => location.hash) === '#stats', 'ערוצים: חזרה ל"שיחות לפי אולם"');
 
+// איפוס השיחות הטלפוניות: ביטול לא מוחק; אישור מאפס את הסטטיסטיקה
+await p.click('button[data-tab=stats]'); await p.waitForSelector('#hallStats tr.clickable');
+p.once('dialog', (d) => d.dismiss()); await p.click('#resetCalls'); await p.waitForTimeout(300);
+check(await p.$$eval('#hallStats td.total', (t) => t.some((x) => x.textContent.trim() !== '0')), 'שיחות: ביטול האיפוס לא מוחק');
+p.once('dialog', (d) => { check(d.message().includes('יומן המיילים'), 'שיחות: האיפוס שואל אישור ואומר מה נשאר'); d.accept(); });
+await p.click('#resetCalls'); await p.waitForTimeout(800);
+check(await p.$$eval('#hallStats td.total', (t) => t.every((x) => x.textContent.trim() === '0')) && (await p.textContent('#totals')).includes('0'), 'שיחות: אחרי איפוס כל המספרים אפס');
+await fetch(new URL('/__reset', base)).catch(() => {});
+
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
 for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'channels']) {

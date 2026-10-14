@@ -51,6 +51,11 @@ export async function deleteByCallId(callId) {
 
 export const findByCallId = latest;
 
+// איפוס יומן השיחות (מאתר הניהול, למשל אחרי תקופת ניסיונות). PostgREST דורש תנאי במחיקה; yemot_call_id אף פעם לא ריק
+export async function removeAll() {
+  unwrap(await supabase.from(TABLE).delete().not('yemot_call_id', 'is', null));
+}
+
 // השיחה האחרונה של המתקשר שהועברה לאולם ועוד לא התקבלה לה תוצאת חיוג (ב-3 השעות האחרונות)
 export async function findOpenRoutingByCaller(callerPhone) {
   const since = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
