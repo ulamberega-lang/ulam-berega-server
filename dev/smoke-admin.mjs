@@ -301,6 +301,8 @@ const m = await open(devices['iPhone 14']);
 for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'channels']) {
   await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
   check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
+  const narrow = await m.$$eval('.sortbox', (t) => t.filter((x) => x.offsetParent && x.getBoundingClientRect().width < 120).map((x) => x.id));
+  check(!narrow.length, `אייפון (${tab}): תיבת המיון לא נדחסת ${narrow.join(' ')}`);
 }
 
 await browser.close();
