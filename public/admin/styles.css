@@ -319,11 +319,11 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   .toolbar > select { flex: 1 1 calc(50% - 4px); min-width: 0; }
   .toolbar > #statsGroup { flex-basis: 100%; }
   .search { flex: 1 1 100%; }
-  .sortbox { flex: 1 1 0; min-width: 0; order: 5; }
+  .sortbox { flex: 1 1 0; min-width: 160px; order: 5; } /* רוחב מינימלי: שום דבר לא יכול לדחוס את המיון ולהיכנס לידו */
   .toolbar > .export { order: 6; flex: none; width: 44px; padding: 0; }
   .toolbar > .export span { display: none; }
   /* רוחב מלא כולל השוליים השליליים: כך שורת הסינון תמיד בשורה משלה (עם 100% בלבד היא נכנסה ליד המיון ודחסה אותו) */
-  .chips { order: 10; flex-wrap: nowrap; overflow-x: auto; margin: 0 -14px; padding: 0 14px 2px; scrollbar-width: none; flex-basis: calc(100% + 28px); }
+  .chips { order: 10; flex-wrap: nowrap; overflow-x: auto; margin: 0 -14px; padding: 0 14px 2px; scrollbar-width: none; flex-basis: calc(100% + 28px); width: calc(100% + 28px); } /* גם width: ב-Safari אחוזים ב-flex-basis לבד לא תמיד נלקחים בחשבון בשבירת השורה */
   .chips::-webkit-scrollbar { display: none; }
   .chips button { flex: none; }
   .section-head { margin-top: 20px; }
