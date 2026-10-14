@@ -32,10 +32,12 @@ export function sourceOf(referrer) {
 }
 
 visitRouter.post('/', (req, res) => {
-  const { v, p, r } = req.body ?? {};
+  const { v, p, r, s } = req.body ?? {};
   const page = pageOf(p);
   if (typeof v !== 'string' || !VISITOR.test(v) || !page) return res.status(400).json({ error: 'bad request' });
   if (!allowIp(req.ip) || !allow(v)) return res.status(429).json({ error: 'too many requests' });
-  track('site', 'visit', v, { page, source: sourceOf(r) });
+  // קישור מיוחד (?from=whatsapp): גובר על האתר שממנו הגיע, כי וואטסאפ לא מוסרת מקור
+  const link = typeof s === 'string' && /^[a-z0-9-]{1,30}$/.test(s) ? `link:${s}` : null;
+  track('site', 'visit', v, { page, source: link ?? sourceOf(r) });
   res.status(204).end();
 });

@@ -79,6 +79,15 @@ test("צ'אט באתר: נספר לפי מזהה הדפדפן, כך ששתי ל�
   assert.deepEqual(mine.map((e) => e.visitor), [visitorId('browserid12345678'), visitorId('browserid12345678'), visitorId('no-visitor-session-01')]);
 });
 
+test('קישור מיוחד (?from=whatsapp): נרשם כמקור וגובר על האתר שממנו הגיע; ערך לא תקין לא נשמר', async () => {
+  await post('/api/visit', { v: 'linkvisitor00001', p: '/', r: '', s: 'whatsapp' });
+  await post('/api/visit', { v: 'linkvisitor00002', p: '/chat', r: 'https://www.google.com/', s: 'group-1' });
+  await post('/api/visit', { v: 'linkvisitor00003', p: '/', r: 'https://www.google.com/', s: '<script>' });
+  await sleep(50);
+  const last = events().slice(-3).map((e) => e.source);
+  assert.deepEqual(last, ['link:whatsapp', 'link:group-1', 'google.com']);
+});
+
 test('כניסה לאתר: הגבלה לפי כתובת, גם עם מזהים אקראיים (מונע הצפה של הטבלה)', async () => {
   const before = events().length;
   let first429 = -1;
@@ -140,4 +149,13 @@ test('אתר הניהול: איפוס השיחות הטלפוניות מוחק �
   assert.equal(db.mail_log.length, 1);
   assert.equal(db.voicemails.length, 1);
   assert.ok(db.halls.length > 0);
+});
+
+test('sourceLabel: שמות קריאים למקורות', async () => {
+  const { sourceLabel } = await import('../public/admin/js/channels.js');
+  assert.equal(sourceLabel('link:whatsapp'), 'הקישור מהוואטסאפ שלך');
+  assert.equal(sourceLabel('link:status'), 'קישור מיוחד: status');
+  assert.equal(sourceLabel(''), 'כניסה ישירה (קישור, סימנייה או הקלדה)');
+  assert.equal(sourceLabel('internal'), 'מעבר מדף אחר באתר');
+  assert.equal(sourceLabel('google.com'), 'google.com');
 });
