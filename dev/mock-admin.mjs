@@ -68,6 +68,18 @@ const mails = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1, hall_id: i + 1, created_at: new Date(Date.now() - i * 3600e3 * 5).toISOString(), hall_name: `אולם ${['שמחה', 'גן עדן', 'היכל', 'פאר', 'נוף', 'כתר'][i]}`,
   to_email: i === 4 ? '' : `hall${i}@example.com`, caller_phone: i === 2 ? '' : `052${1000000 + i * 4111}`, answered: i % 2 === 0,
   status: i === 4 ? 'repeat' : i === 3 ? 'failed' : 'sent', error: i === 3 ? '401 {"message":"Key not found"}' : '' }));
+// וואטסאפ, צ'אט ואתר: 10 הימים האחרונים
+const isoDay = (back) => new Date(Date.now() - back * 864e5).toISOString().slice(0, 10);
+const channels = {
+  days: Array.from({ length: 10 }, (_, i) => ['whatsapp', 'web', 'site'].map((channel, c) => ({
+    day: isoDay(i), channel, users: (i * 3 + c * 5) % 11, messages: channel === 'site' ? 0 : (i * 7 + c) % 40,
+    found_users: channel === 'site' ? 0 : (i + c) % 5, visits: channel === 'site' ? (i * 5) % 23 : 0 }))).flat(),
+  totals: [{ channel: 'whatsapp', users: 42, messages: 310, found_users: 30, visits: 0 }, { channel: 'web', users: 18, messages: 95, found_users: 11, visits: 0 },
+    { channel: 'site', users: 120, messages: 0, found_users: 0, visits: 260 }],
+  breakdown: [['page', '/', 150, 90], ['page', '/chat', 40, 30], ['page', '/אולם-קטן-ב/ירושלים', 50, 35], ['page', '/אולם-קטן-ב/בני-ברק', 20, 15],
+    ['source', '', 100, 60], ['source', 'google.com', 120, 70], ['source', 'internal', 30, 20], ['source', 'facebook.com', 10, 8]]
+    .map(([dim, value, visits, users]) => ({ dim, value, visits, users })),
+};
 // WAV של חצי שנייה שקט (8kHz, 16 סיביות), לבדיקת הנגן
 const silentWav = (() => {
   const samples = 4000, data = Buffer.alloc(samples * 2), h = Buffer.alloc(44);
@@ -103,6 +115,7 @@ http.createServer((req, res) => {
     });
   }
   if (url.pathname === '/admin/api/mails') return json(mails);
+  if (url.pathname === '/admin/api/channels') return json(channels);
 
   const vm = /^\/admin\/api\/voicemails(?:\/(\d+)(\/audio)?)?$/.exec(url.pathname);
   if (vm) {

@@ -274,9 +274,31 @@ await p.click('#importView button[data-value=done]');
 check(await p.$$eval('#importList tr.imp', (t) => t.length) === 1, 'ייבוא: השורה שסומנה מופיעה ב"טופלו"');
 await p.click('#importList tr.imp .mark');
 
+// וואטסאפ, צ'אט ואתר: נפתח מ"שיחות לפי אולם", בלי כפתור בתפריט
+await p.click('button[data-tab=stats]'); await p.click('#openChannels'); await p.waitForSelector('#channelDays tr');
+check(await p.getAttribute('button[data-tab=stats]', 'aria-selected') === 'true' && await p.isVisible('#range'), 'ערוצים: נפתח מ"שיחות לפי אולם", הלשונית מסומנת וטווח התאריכים מוצג');
+check((await p.textContent('#channelTotals')).includes('42') && (await p.textContent('#channelTotals')).includes('260 כניסות'), 'ערוצים: סיכום לכל ערוץ');
+const dayRow = await p.$$eval('#channelDays tr', (t) => t.map((r) => r.textContent.replace(/\s+/g, ' ')));
+check(dayRow.length === 10 && dayRow[1].includes('1 קיבלו פרטי אולם'), 'ערוצים: לפי יום, כולל כמה קיבלו פרטי אולם');
+await p.selectOption('#channelDaysSort select', 'whatsappFound');
+const foundCol = await p.$$eval('#channelDays td:nth-child(2) small', (t) => t.map((x) => parseInt(x.textContent, 10)));
+check(foundCol.every((v, i) => !i || foundCol[i - 1] >= v), 'ערוצים: מיון לפי "קיבלו פרטי אולם"');
+await p.selectOption('#channelDaysSort select', 'day');
+check(await p.$$eval('#channelVisits tr', (t) => t.length) === 4 && (await p.textContent('#channelVisits')).includes('דף הבית'), 'ערוצים: כניסות לפי דף');
+await p.click('#channelVisitView button[data-value=source]');
+check((await p.textContent('#channelVisits')).includes('google.com') && (await p.textContent('#channelVisits')).includes('כניסה ישירה'), 'ערוצים: מאיפה הגיעו');
+await p.fill('#channelVisitSearch', 'google'); check(await p.$$eval('#channelVisits tr', (t) => t.length) === 1, 'ערוצים: חיפוש');
+await p.fill('#channelVisitSearch', '');
+await p.click('.channel-visits th[data-sort=visits]');
+const visitsCol = await p.$$eval('#channelVisits td.total', (t) => t.map((x) => Number(x.textContent.replace(/,/g, ''))));
+check(visitsCol.every((v, i) => !i || visitsCol[i - 1] <= v), 'ערוצים: מיון לפי כניסות (כותרת)');
+await p.click('#channelVisitView button[data-value=page]');
+await p.click('#back'); await p.waitForTimeout(600);
+check(await p.evaluate(() => location.hash) === '#stats', 'ערוצים: חזרה ל"שיחות לפי אולם"');
+
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
-for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud']) {
+for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'channels']) {
   await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
   check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
 }

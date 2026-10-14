@@ -83,6 +83,8 @@
 
     <!-- שיחות לפי אולם -->
     <section id="tab-stats" role="tabpanel">
+      <div class="section-head stats-head"><h2>שיחות טלפון</h2>
+        <button class="btn ghost" id="openChannels">וואטסאפ, צ'אט ואתר</button></div>
       <dl class="totals" id="totals"></dl>
       <div class="insights" id="insights"></div>
 
@@ -265,6 +267,61 @@
         </table>
       </div>
       <p class="note">"נשלח" = המייל התקבל אצל שירות השליחה (Brevo). אם הוא לא הגיע לתיבה, כדאי לבדוק גם בספאם של האולם.</p>
+    </section>
+
+    <!-- וואטסאפ, צ'אט באתר וכניסות לאתר (נפתח מ"שיחות לפי אולם") -->
+    <section id="tab-channels" role="tabpanel" hidden>
+      <div class="section-head"><h2>וואטסאפ, צ'אט ואתר</h2></div>
+      <dl class="totals three" id="channelTotals"></dl>
+
+      <div class="section-head"><h2>לפי יום</h2></div>
+      <div class="toolbar">
+        <label class="check"><input type="checkbox" id="channelHideEmpty"> הסתר ימים בלי פעילות</label>
+        <div class="sortbox" id="channelDaysSort">
+          <select aria-label="מיון ימים"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+      </div>
+      <div class="table-box">
+        <table class="rt days-table channel-days">
+          <thead><tr>
+            <th data-sort="day">יום</th>
+            <th data-sort="whatsapp" class="num">וואטסאפ<small class="found">פנו · קיבלו פרטי אולם</small></th>
+            <th data-sort="web" class="num">צ'אט באתר<small class="found">השתמשו · קיבלו פרטי אולם</small></th>
+            <th data-sort="site" class="num">מבקרים באתר</th>
+          </tr></thead>
+          <tbody id="channelDays"></tbody>
+        </table>
+      </div>
+      <p class="note" id="channelDaysNote" hidden></p>
+
+      <div class="section-head"><h2>כניסות לאתר</h2><span class="count" id="channelVisitCount"></span></div>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="channelVisitSearch" placeholder="חיפוש דף או אתר" aria-label="חיפוש" enterkeyhint="search" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי חיפוש"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="sortbox" id="channelVisitSort">
+          <select aria-label="מיון לפי"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+        <div class="chips" id="channelVisitView" role="group" aria-label="הצגה">
+          <button data-value="page">לפי דף<span class="n"></span></button>
+          <button data-value="source">מאיפה הגיעו<span class="n"></span></button>
+        </div>
+      </div>
+      <div class="table-box">
+        <table class="rt channel-visits">
+          <thead><tr>
+            <th data-sort="value" id="channelVisitHead">דף</th>
+            <th data-sort="visits" class="num">כניסות</th>
+            <th data-sort="users" class="num">מבקרים</th>
+          </tr></thead>
+          <tbody id="channelVisits"></tbody>
+        </table>
+      </div>
+      <p class="note">משתמש בוואטסאפ = מספר טלפון שפנה לבוט (המספר עצמו לא נשמר). "קיבלו פרטי אולם" = קיבלו לפחות תוצאה אחת. מבקר באתר = דפדפן אחד; כניסה = כל פתיחה של דף. הספירה התחילה עם העדכון הזה, ולכן אין נתונים על התקופה שלפניו.</p>
     </section>
 
     <section id="tab-import" role="tabpanel" hidden>

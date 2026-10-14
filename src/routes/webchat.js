@@ -4,6 +4,7 @@ import { handleMessage, greet, newSession } from '../whatsapp/flow.js';
 import { prettyPhone } from './whatsapp.js';
 import { config } from '../config.js';
 import { makeLimiter } from '../lib/rate-limit.js';
+import { track } from '../services/channel-log.js';
 
 export const webchatRouter = Router();
 
@@ -37,7 +38,11 @@ webchatRouter.post('/', async (req, res) => {
     const work = prev.then(async () => {
       if (!entry) { entry = { s: newSession(input.text) }; sessions.set(sid, entry); return greet(entry.s, ctx); }
       if (!input.id && !input.text) return greet(entry.s, ctx);
-      return handleMessage(entry.s, input, ctx);
+      const out = await handleMessage(entry.s, input, ctx);
+      track('web', 'message', sid); // לסטטיסטיקה לפי ערוץ (ברקע). פתיחת הדף לא נספרת כהודעה: היא נספרת ככניסה לאתר
+      if (entry.s.found) track('web', 'found', sid);
+      entry.s.found = false;
+      return out;
     });
     if (entry) entry.queue = work.catch(() => {});
     res.json({ messages: await work });

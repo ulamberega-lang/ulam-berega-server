@@ -448,3 +448,15 @@ tr.pending .nk-input { background: var(--soft); animation: nk-pulse 1.2s ease-in
 .btn.small { min-height: 34px; padding: 5px 12px; font-size: .88rem; }
 .badge.maybe { background: #fff3d6; color: #8a5a00; }
 .badge.new { background: #e3effd; color: #1b5aa8; }
+
+/* לשונית "וואטסאפ, צ'אט ואתר" (channels.js) והכפתור אליה בראש "שיחות לפי אולם" */
+.stats-head { margin-top: 12px; }
+.stats-head .btn { margin-inline-start: auto; }
+.totals.three { grid-template-columns: repeat(3, 1fr); }
+.totals small { display: block; margin-top: 2px; font-size: .78rem; color: var(--muted); }
+@media (max-width: 700px) {
+  .totals.three { grid-template-columns: repeat(2, 1fr); }
+  .totals.three div:last-child { grid-column: 1 / -1; }
+  .channel-visits tbody tr { grid-template-columns: repeat(2, 1fr); }
+}
+.channel-days small.found { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); }
