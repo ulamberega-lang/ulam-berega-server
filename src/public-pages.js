@@ -21,7 +21,7 @@ publicPages.use((req, res, next) => {
 });
 
 publicPages.get('/robots.txt', (req, res) => {
-  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /c/\nDisallow: /m/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /c/\nDisallow: /m/\nDisallow: /w\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 });
 publicPages.get('/sitemap.xml', async (req, res) => {
   const paths = ['/', '/chat', '/privacy', '/accessibility', ...(await getCities()).flatMap((c) => [cityPath(c.city), ...c.hoods.map((n) => hoodPath(c.city, typeof n === 'string' ? n : n.name))])];
@@ -55,6 +55,9 @@ publicPages.get(`${encodeURI('/אולם-קטן-ב')}/:slug/:hood`, async (req, r
   if (!hood) return res.status(404).type('text/plain').send('Not found');
   res.type('html').send(hoodPage(c, hood));
 });
+// קישור קצר לשיתוף בוואטסאפ (סטטוס, קבוצות): simcha-besicha.co.il/w → הצ'אט, ונספר כ"הקישור מהוואטסאפ שלך".
+// 302 ולא 301, כדי שדפדפנים לא ישמרו את ההפניה לתמיד (אפשר לשנות את היעד בעתיד)
+publicPages.get(['/w', '/w/'], (req, res) => res.redirect(302, '/chat?from=whatsapp'));
 publicPages.get('/logo.png', (req, res) => res.sendFile(`${publicSite}/logo.png`));
 // סמל האתר לגוגל (ריבוע, כפולה של 48): ב-/favicon.ico (גוגל בודקת גם שם) ובקובץ הקבוע
 publicPages.get('/icon-192.png', (req, res) => res.sendFile(`${publicSite}/icon-192.png`));
