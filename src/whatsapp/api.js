@@ -19,8 +19,10 @@ export function toPayload(to, m) {
 
 const RETRY_MS = Number(process.env.WA_RETRY_MS ?? 4000); // המתנה בין ניסיונות כשנחסמת מהגבלת קצב
 
-// שולח לפי הסדר. כשל לא זורק: נרשם בלוג, והשאר לא נשלח.
-// 131056 = Meta הגבילה הודעות רצופות לאותו משתמש (גם תגובות אימוג'י נספרות): ממתינים וחוזרים עד 3 ניסיונות
+// שולח לפי הסדר. כשל לא זורק: נרשם בלוג, השאר לא נשלח, ומוחזר false (true = הכול נשלח).
+// הגבלת קצב של Meta: ממתינים וחוזרים עד 3 ניסיונות.
+// 131056 = הודעות רצופות לאותו משתמש (גם תגובות אימוג'י נספרות); 130429 = עומס על המספר כולו
+const RATE_CODES = ['131056', '130429'];
 export async function sendAll(phoneId, to, messages) {
   for (const m of messages) {
     for (let attempt = 1; ; attempt++) {
@@ -33,15 +35,16 @@ export async function sendAll(phoneId, to, messages) {
         });
         if (res.ok) break;
         const err = (await res.text()).slice(0, 300);
-        if (err.includes('131056') && attempt < 3) { await new Promise((r) => setTimeout(r, RETRY_MS * attempt)); continue; }
+        if (RATE_CODES.some((c) => err.includes(c)) && attempt < 3) { await new Promise((r) => setTimeout(r, RETRY_MS * attempt)); continue; }
         console.error(`whatsapp: שליחה נכשלה ${res.status} ${err}`);
-        return;
+        return false;
       } catch (e) {
         console.error('whatsapp: שליחה נכשלה', e.message);
-        return;
+        return false;
       }
     }
   }
+  return true;
 }
 
 // תגובת אימוג'י על הודעת המשתמש (🔍 בזמן טיפול, ✔️ בסיום). לא זורק: כשל בתגובה לא פוגע בתשובה

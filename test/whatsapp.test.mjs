@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { boot, seedHalls, sleep, hallsChanged, realFetch, whatsappSent } from '../dev/sim/harness.mjs'; // ראשון: מחליף את Supabase
+import { boot, seedHalls, sleep, hallsChanged, realFetch, whatsappSent, behavior } from '../dev/sim/harness.mjs'; // ראשון: מחליף את Supabase
 const { handleMessage, greet, newSession, signature } = await import('../src/whatsapp/flow.js');
 const { toPayload } = await import('../src/whatsapp/api.js');
 const { splitCity } = await import('../src/lib/text-match.js');
@@ -191,6 +191,47 @@ test('webhook: אימות כתובת, חתימה, שליחה וסינון כפי
     await sleep(100);
     assert.deepEqual(reactions().filter((r) => r.startsWith('wamid.3')), ['wamid.3:🔍', 'wamid.3:✖️']);
   } finally { close(); }
+});
+
+test('webhook: עומס אצל Meta - הודעת עומס ⚠️, והשיחה חוזרת לשלב הקודם', async () => {
+  const { base, close } = await boot();
+  const from = '972509999999';
+  const mine = () => whatsappSent.filter((r) => r.body.to === from || r.body.reaction);
+  try {
+    const post = (raw) => realFetch(`${base}/api/whatsapp`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-hub-signature-256': sign(raw) }, body: raw });
+    const hi = payload('wamid.b1', from, { type: 'text', text: { body: 'שלום' } });
+    await post(hi); await sleep(100);                               // ברכה ותפריט
+    const before = structuredClone(sessions.get(from));
+
+    behavior.waFail = 3;                                            // שלושה ניסיונות לתשובה נכשלים
+    const click = payload('wamid.b2', from, { type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: 'm:search', title: 'x' } } });
+    const start = whatsappSent.length;
+    await post(click); await sleep(150);
+    const after = whatsappSent.slice(start);
+    const emojis = after.filter((r) => r.body.type === 'reaction').map((r) => r.body.reaction.emoji);
+    assert.deepEqual(emojis, ['🔍', '⚠️']);                         // לא ✔️
+    const texts = after.filter((r) => r.body.type === 'text').map((r) => r.body.text.body);
+    assert.match(texts.at(-1), /עומס/);
+    assert.match(texts.at(-1), /בעוד דקה/);
+    assert.deepEqual({ ...sessions.get(from), t: 0 }, { ...before, t: 0 }); // אותו שלב: הלחיצה תעבוד שוב
+
+    const again = payload('wamid.b3', from, { type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: 'm:search', title: 'x' } } });
+    await post(again); await sleep(100);
+    assert.match(whatsappSent.at(-2).body.text.body, /מוזמנים/);   // ניסיון חוזר עובד
+    assert.equal(whatsappSent.at(-1).body.reaction.emoji, '✔️');
+    assert.ok(mine().length > 0);
+  } finally { behavior.waFail = 0; close(); }
+});
+
+test('שליחה: עומס 130429 מנסה שוב, ובכשל מחזיר false', async () => {
+  const { sendAll } = await import('../src/whatsapp/api.js');
+  const orig = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return { ok: false, status: 400, text: async () => '{"error":{"code":130429}}' }; };
+  try {
+    assert.equal(await sendAll('1', '972500000000', [{ kind: 'text', text: 'א' }, { kind: 'text', text: 'ב' }]), false);
+    assert.equal(calls, 3);                                         // 3 ניסיונות להודעה הראשונה, השנייה לא נשלחה
+  } finally { globalThis.fetch = orig; }
 });
 
 test('אולם עם כמה שמות (/): חיפוש לפי כל שם', async () => {
