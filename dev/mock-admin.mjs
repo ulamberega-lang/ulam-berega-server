@@ -69,7 +69,7 @@ const mails = Array.from({ length: 6 }, (_, i) => ({
   to_email: i === 4 ? '' : `hall${i}@example.com`, caller_phone: i === 2 ? '' : `052${1000000 + i * 4111}`, answered: i % 2 === 0,
   status: i === 4 ? 'repeat' : i === 3 ? 'failed' : 'sent', error: i === 3 ? '401 {"message":"Key not found"}' : '' }));
 // וואטסאפ, צ'אט ואתר: 10 הימים האחרונים
-const isoDay = (back) => new Date(Date.now() - back * 864e5).toISOString().slice(0, 10);
+const isoDay = (back) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date(Date.now() - back * 864e5)); // לפי שעון ישראל, כמו האתר (אחרי חצות בישראל UTC עדיין ביום הקודם)
 const makeChannels = () => ({
   days: Array.from({ length: 10 }, (_, i) => ['whatsapp', 'web', 'site'].map((channel, c) => ({
     day: isoDay(i), channel, users: (i * 3 + c * 5) % 11, messages: channel === 'site' ? 0 : (i * 7 + c) % 40,
@@ -77,7 +77,7 @@ const makeChannels = () => ({
   totals: [{ channel: 'whatsapp', users: 42, messages: 310, found_users: 30, visits: 0 }, { channel: 'web', users: 18, messages: 95, found_users: 11, visits: 0 },
     { channel: 'site', users: 120, messages: 0, found_users: 0, visits: 260 }],
   breakdown: [['page', '/', 150, 90], ['page', '/chat', 40, 30], ['page', '/אולם-קטן-ב/ירושלים', 50, 35], ['page', '/אולם-קטן-ב/בני-ברק', 20, 15],
-    ['source', '', 100, 60], ['source', 'google.com', 120, 70], ['source', 'internal', 30, 20], ['source', 'facebook.com', 10, 8]]
+    ['source', '', 100, 60], ['source', 'google.com', 120, 70], ['source', 'internal', 30, 20], ['source', 'facebook.com', 10, 8], ['source', 'link:whatsapp', 25, 20]]
     .map(([dim, value, visits, users]) => ({ dim, value, visits, users })),
 });
 let channels = makeChannels();

@@ -86,7 +86,13 @@ export function pageLabel(p) {
   if (city) return `דף עיר: ${words(city)}`;
   return p;
 }
-const labelOf = (r) => (r.dim === 'page' ? pageLabel(r.value) : SOURCE_LABEL[r.value] ?? r.value);
+// מקור: קישור מיוחד (link:whatsapp מ-?from=whatsapp), כניסה ישירה, מעבר באתר, או הדומיין
+const LINK_LABEL = { whatsapp: 'הקישור מהוואטסאפ שלך' };
+export function sourceLabel(value) {
+  if (value.startsWith('link:')) { const name = value.slice(5); return LINK_LABEL[name] ?? `קישור מיוחד: ${name}`; }
+  return SOURCE_LABEL[value] ?? value;
+}
+const labelOf = (r) => (r.dim === 'page' ? pageLabel(r.value) : sourceLabel(r.value));
 
 function renderVisits() {
   const dim = visitView.get();

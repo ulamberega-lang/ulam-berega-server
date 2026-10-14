@@ -286,7 +286,7 @@ check(foundCol.every((v, i) => !i || foundCol[i - 1] >= v), 'ערוצים: מי�
 await p.selectOption('#channelDaysSort select', 'day');
 check(await p.$$eval('#channelVisits tr', (t) => t.length) === 4 && (await p.textContent('#channelVisits')).includes('דף הבית'), 'ערוצים: כניסות לפי דף');
 await p.click('#channelVisitView button[data-value=source]');
-check((await p.textContent('#channelVisits')).includes('google.com') && (await p.textContent('#channelVisits')).includes('כניסה ישירה'), 'ערוצים: מאיפה הגיעו');
+check((await p.textContent('#channelVisits')).includes('google.com') && (await p.textContent('#channelVisits')).includes('כניסה ישירה') && (await p.textContent('#channelVisits')).includes('הקישור מהוואטסאפ שלך'), 'ערוצים: מאיפה הגיעו (כולל הקישור המיוחד)');
 await p.fill('#channelVisitSearch', 'google'); check(await p.$$eval('#channelVisits tr', (t) => t.length) === 1, 'ערוצים: חיפוש');
 await p.fill('#channelVisitSearch', '');
 await p.click('.channel-visits th[data-sort=visits]');
