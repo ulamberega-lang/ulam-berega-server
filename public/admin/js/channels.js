@@ -8,7 +8,9 @@ import { daysBetween, formatDay, hebrewDay, isWeekend, MAX_DAYS } from './dates.
 const DAY_SORTS = [
   { key: 'day', label: 'תאריך', first: 'desc' },
   { key: 'whatsapp', label: 'וואטסאפ' },
+  { key: 'whatsappFound', label: 'וואטסאפ: קיבלו פרטי אולם' },
   { key: 'web', label: "צ'אט באתר" },
+  { key: 'webFound', label: "צ'אט: קיבלו פרטי אולם" },
   { key: 'site', label: 'מבקרים באתר' },
 ];
 const VISIT_SORTS = [
@@ -32,6 +34,9 @@ export async function loadChannels(r, halls, isCurrent = () => true) {
 }
 
 const n = (v) => Number(v || 0);
+const EMPTY = { whatsapp: 0, whatsappFound: 0, web: 0, webFound: 0, site: 0, visits: 0 };
+// מתחת למספר המשתמשים: כמה מהם קיבלו פרטי אולם באותו יום
+const found = (k) => `<small class="found">${formatNumber(k)} קיבלו פרטי אולם</small>`;
 
 function renderTotals() {
   const by = Object.fromEntries(data.totals.map((t) => [t.channel, t]));
@@ -48,8 +53,9 @@ function renderTotals() {
 function renderDays() {
   const byDay = new Map();
   for (const r of data.days) {
-    const d = byDay.get(r.day) ?? { whatsapp: 0, web: 0, site: 0, visits: 0 };
+    const d = byDay.get(r.day) ?? { ...EMPTY };
     d[r.channel] = n(r.users);
+    if (r.channel !== 'site') d[`${r.channel}Found`] = n(r.found_users);
     if (r.channel === 'site') d.visits = n(r.visits);
     byDay.set(r.day, d);
   }
@@ -58,14 +64,14 @@ function renderDays() {
   const all = first ? daysBetween(first > range.from ? first : range.from, range.to) : [];
   $('#channelDaysNote').hidden = !all.length || all[0] <= (first > range.from ? first : range.from);
   $('#channelDaysNote').textContent = `הטווח ארוך: מוצגים ${MAX_DAYS} הימים האחרונים בו. הסיכום למעלה כולל את כל הטווח.`;
-  let list = all.map((day) => ({ day, ...(byDay.get(day) ?? { whatsapp: 0, web: 0, site: 0, visits: 0 }) }));
+  let list = all.map((day) => ({ day, ...(byDay.get(day) ?? EMPTY) }));
   if (hideEmpty) list = list.filter((d) => d.whatsapp || d.web || d.site);
-  list = sortBy(list, daySort.state, { day: (d) => d.day, whatsapp: (d) => d.whatsapp, web: (d) => d.web, site: (d) => d.site },
+  list = sortBy(list, daySort.state, { day: (d) => d.day, whatsapp: (d) => d.whatsapp, whatsappFound: (d) => d.whatsappFound, web: (d) => d.web, webFound: (d) => d.webFound, site: (d) => d.site },
     (a, b) => b.day.localeCompare(a.day));
   $('#channelDays').innerHTML = list.length ? list.map((d) => `<tr class="${isWeekend(d.day) ? 'weekend' : ''}">
       <td class="span-all name">${formatDay(d.day)} <span class="heb">${hebrewDay(d.day)}</span></td>
-      <td class="num" data-label="וואטסאפ">${formatNumber(d.whatsapp)}</td>
-      <td class="num" data-label="צ'אט באתר">${formatNumber(d.web)}</td>
+      <td class="num" data-label="וואטסאפ">${formatNumber(d.whatsapp)}${found(d.whatsappFound)}</td>
+      <td class="num" data-label="צ'אט באתר">${formatNumber(d.web)}${found(d.webFound)}</td>
       <td class="num" data-label="מבקרים באתר" title="${formatNumber(d.visits)} כניסות לדפים">${formatNumber(d.site)}</td>
     </tr>`).join('') : '<tr><td colspan="4" class="empty">אין פעילות בתקופה הזו.</td></tr>';
 }
