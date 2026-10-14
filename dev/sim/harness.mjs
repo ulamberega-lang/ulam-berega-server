@@ -12,6 +12,7 @@ process.env.WA_ACCESS_TOKEN = 'wa-token';
 process.env.WA_APP_SECRET = 'wa-secret';
 process.env.WA_VERIFY_TOKEN = 'wa-verify';
 process.env.WA_RETRY_MS = '1';  // בלי המתנה אמיתית בניסיון חוזר
+process.env.WA_BUSY_WAIT_MS = '1'; // בלי המתנה אמיתית לפני הודעת עומס
 process.env.SUPABASE_URL = 'http://fake';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake';
 register('./loader.mjs', import.meta.url);
@@ -22,7 +23,7 @@ export const yemotCalls = [];    // כתובות שנקראו בימות (הור
 export const transcripts = [];   // תור הטקסטים ש-OpenAI "ישמע"
 export const chatReplies = [];    // תשובות "OpenAI" להשלמת צ'אט (הצעת ניקוד): מחרוזת JSON או אובייקט
 export const whatsappSent = [];  // הודעות שהבוט שלח ל-Meta
-export const behavior = { brevoStatus: 201 };   // לבדיקת כשל בשליחה
+export const behavior = { brevoStatus: 201, waFail: 0 }; // לבדיקת כשל בשליחה; waFail = כמה הודעות וואטסאפ הבאות ייכשלו בעומס (130429)
 
 globalThis.fetch = async (url, opts = {}) => {
   const u = String(url);
@@ -34,6 +35,10 @@ globalThis.fetch = async (url, opts = {}) => {
   if (u.includes('graph.facebook.com')) {
     const raw = typeof opts.body === 'string' ? JSON.parse(opts.body) : opts.body ? { bytes: opts.body.length, headers: opts.headers } : null; // גוף בינארי (העלאת תמונה)
     whatsappSent.push({ url: u, body: raw });
+    if (behavior.waFail > 0 && raw?.type && raw.type !== 'reaction') {
+      behavior.waFail--;
+      return new Response('{"error":{"code":130429}}', { status: 400 });
+    }
     if (/\/\d+\/uploads\?/.test(u)) return new Response('{"id":"upload:SESSION"}', { status: 200 });
     if (u.includes('/upload:')) return new Response('{"h":"HANDLE123"}', { status: 200 });
     return new Response('{}', { status: 200 });

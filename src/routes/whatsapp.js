@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { Router, raw } from 'express';
 import { config } from '../config.js';
 import { handleMessage, greet, newSession } from '../whatsapp/flow.js';
+import { T } from '../whatsapp/texts.js';
 import { sendAll, react, typing } from '../whatsapp/api.js';
 import { localDigits } from '../lib/owner-phones.js';
 
@@ -10,6 +11,7 @@ export const whatsappRouter = Router();
 
 export const SESSION_TTL_MS = 15 * 60 * 1000; // בלי הודעה 15 דקות: השיחה מתחילה מחדש (ברכה ותפריט)
 export const sessions = new Map(); // מספר משתמש → מצב
+const BUSY_WAIT_MS = Number(globalThis.process.env.WA_BUSY_WAIT_MS ?? 10000); // המתנה לפני הודעת עומס (globalThis: בקובץ יש פונקציה בשם process)
 
 // השיחה הפעילה של משתמש; פגה - נמחקת, וההודעה הבאה מתחילה שיחה חדשה (לא מחכים לניקוי התקופתי)
 export function activeSession(from, now = Date.now()) {
@@ -79,13 +81,26 @@ async function process(phoneId, dial, msg) {
   const ctx = { dial: prettyPhone(dial), link: config.publicLinkBase };
   const searching = react(phoneId, from, msg.id, '🔍'); // מיד, במקביל לטיפול
   typing(phoneId, msg.id);                              // "מקליד..." עד שהתשובה נשלחת
+  const before = isNew ? null : structuredClone(s);      // לשחזור אם התשובה לא הגיעה למשתמש
+  let ok = false;
   try {
     const out = isNew ? await greet(s, ctx) : await handleMessage(s, input, ctx);
-    await sendAll(phoneId, from, out);
+    ok = await sendAll(phoneId, from, out);
   } finally {
     await searching;                                    // כדי ש-✔️ תגיע אחרי 🔍
-    await react(phoneId, from, msg.id, s.misread ? '✖️' : '✔️'); // ✖️: לא הבנו ושאלנו שוב
+    if (ok) await react(phoneId, from, msg.id, s.misread ? '✖️' : '✔️'); // ✖️: לא הבנו ושאלנו שוב
+    else await busyNotice(phoneId, from, msg.id, s.lang, before);
   }
+}
+
+// התשובה לא נשלחה (עומס אצל Meta או תקלה): מחזירים את השיחה לשלב שלפני ההודעה,
+// כדי שאותה תשובה תעבוד בניסיון הבא, ומודיעים למשתמש לנסות שוב בעוד דקה
+async function busyNotice(phoneId, from, msgId, lang, before) {
+  if (before) sessions.set(from, before); else sessions.delete(from);
+  console.error(`whatsapp: התשובה לא נשלחה, נשלחת הודעת עומס (${from.slice(-4)})`);
+  await new Promise((r) => setTimeout(r, BUSY_WAIT_MS)); // לתת לעומס לרדת לפני ההודעה
+  await react(phoneId, from, msgId, '⚠️');
+  await sendAll(phoneId, from, [{ kind: 'text', text: T[lang ?? 'he'].busy }]);
 }
 
 whatsappRouter.post('/', raw({ type: '*/*', limit: '1mb' }), (req, res) => {
