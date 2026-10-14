@@ -14,6 +14,7 @@ import { T } from './texts.js';
 
 const { NO_HOOD } = halls;
 const PAGE = 8;          // פריטים בכל עמוד ברשימה (בנוסף: "עוד" ו"תפריט"/"כל העיר" - עד 10 שורות)
+const HOOD_PAGE = 7;     // שכונות בעמוד: נשאר מקום תמיד ל"עוד", "חזרה" ו"כל העיר" (ובעמוד האחרון גם "אולמות נוספים בעיר")
 const RESULTS_PAGE = 5;  // אולמות בכל הודעת תוצאות
 
 const text = (t) => ({ kind: 'text', text: t });
@@ -38,10 +39,10 @@ function menu(s, note, t = T[s.lang]) {
 }
 
 // עמוד של רשימה: PAGE פריטים, ואחריהם "עוד" אם יש, ושורות קבועות (extra)
-export function pageRows(s, items, label, pageKey, moreLabel, extra) {
-  const from = (s[pageKey] ?? 0) * PAGE;
-  const more = items.length > from + PAGE;
-  const rows = items.slice(from, from + PAGE).map((it, i) => [`${label}:${from + i}`, ...it]);
+export function pageRows(s, items, label, pageKey, moreLabel, extra, size = PAGE) {
+  const from = (s[pageKey] ?? 0) * size;
+  const more = items.length > from + size;
+  const rows = items.slice(from, from + size).map((it, i) => [`${label}:${from + i}`, ...it]);
   if (more) rows.push([`${label}:more`, moreLabel]);
   if (from > 0) rows.push([`${label}:prev`, s.lang === 'en' ? '→ Previous' : 'חזרה ←']);
   // מגבלת וואטסאפ: 10 שורות. השורות הקבועות נכנסות לפי הסדר כל עוד יש מקום (בעמוד אמצעי - עוד + חזרה - האחרונות נשמטות)
@@ -123,11 +124,11 @@ async function show(s, ctx, note) {
       return [buttons(ask(t.askHood), [['k:pick', t.pickHood], ['k:all', t.allCity]])];
     }
     case 'hoodMenu': {
-      // בעמוד האחרון: אולמות בעיר שלא רשומה להם שכונה (תמיד נכנס: בעמוד האחרון אין "עוד"). "כל העיר" - אם יש מקום
-      const last = s.hoods.length <= ((s.hoodPage ?? 0) + 1) * PAGE;
+      // 7 שכונות בעמוד, כך ש"עוד", "חזרה" ו"כל העיר" תמיד נכנסים; בעמוד האחרון (בלי "עוד") גם אולמות בעיר שלא רשומה להם שכונה
+      const last = s.hoods.length <= ((s.hoodPage ?? 0) + 1) * HOOD_PAGE;
       s.hoodExtra = last && await halls.hasNoHoodHalls(s.city, s.guests);
       const extra = [...(s.hoodExtra ? [['k:extra', cut(t.extraHalls, 24)]] : []), ['k:all', t.allCity]];
-      const { rows } = pageRows(s, s.hoods.map((h) => [cut(h, 24)]), 'k', 'hoodPage', t.moreHoods, extra);
+      const { rows } = pageRows(s, s.hoods.map((h) => [cut(h, 24)]), 'k', 'hoodPage', t.moreHoods, extra, HOOD_PAGE);
       return [list(ask(t.askHood), t.hoodButton, rows)];
     }
     case 'freeName': return [text(ask(t.askFree))];

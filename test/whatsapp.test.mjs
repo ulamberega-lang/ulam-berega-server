@@ -332,15 +332,21 @@ test('רשימת שכונות בעיר עם הרבה שכונות: עד 10 שו�
   const rows = Array.from({ length: 24 }, (_, i) => hall(`רב ${i}`, String(500 + i), 200, 'רבת שכונות', `שכונה ${String(i).padStart(2, '0')}`));
   rows.push(hall('בלי שכונה', '600', 200, 'רבת שכונות'));
   seedHalls(rows); hallsChanged(); await sleep(50);
-  for (const hoods of [24, 16]) { // 24: עמוד אמצעי; 16: עמוד אחרון מלא (8 שכונות + חזרה + אולמות נוספים)
+  for (const hoods of [24, 21, 7]) { // 24: עמוד אמצעי; 21: עמוד אחרון מלא (7 שכונות + חזרה + אולמות נוספים + כל העיר); 7: עמוד אחד
     seedHalls(rows.filter((h, i) => i < hoods || !h.neighborhood_name)); hallsChanged(); await sleep(50);
     const s = newSession('שלום');
     await say(s, { id: 'm:search' }); await say(s, '200'); await say(s, 'רבת שכונות');
     const pages = [await say(s, { id: 'k:pick' })];
     while (pages.at(-1)[0].rows.some((r) => r[0] === 'k:more')) pages.push(await say(s, { id: 'k:more' }));
-    for (const p of pages) assert.ok(p[0].rows.length <= 10, `${hoods}: ${p[0].rows.length} שורות`);
+    for (const p of pages) {
+      const ids = p[0].rows.map((r) => r[0]);
+      assert.ok(ids.length <= 10, `${hoods}: ${ids.length} שורות`);
+      assert.ok(ids.includes('k:all'), 'כל העיר בכל עמוד');
+      assert.ok(ids.filter((id) => /^k:\d+$/.test(id)).length <= 7, '7 שכונות בעמוד');
+    }
+    assert.ok(pages.slice(1).every((p) => p[0].rows.some((r) => r[0] === 'k:prev')), 'חזרה בכל עמוד אחרי הראשון');
+    assert.ok(pages.slice(0, -1).every((p) => p[0].rows.some((r) => r[0] === 'k:more')), 'עוד בכל עמוד חוץ מהאחרון');
     assert.ok(pages.at(-1)[0].rows.some((r) => r[0] === 'k:extra'));
-    assert.ok(pages[0][0].rows.some((r) => r[0] === 'k:all'));
   }
 });
 
