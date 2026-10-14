@@ -121,6 +121,14 @@ adminApi.get('/calls', handle((req) => {
 }));
 
 // וואטסאפ, צ'אט באתר וכניסות לאתר (sql/channel_events.sql): לפי יום, סיכום לכל הטווח, ודפים ומקורות
+// איפוס יומן השיחות הטלפוניות (האישור נעשה באתר לפני הקריאה): כל הסטטיסטיקה ו"יומן שיחות" מתאפסים.
+// יומן המיילים וההודעות הקוליות נשארים
+adminApi.delete('/calls', handle(async () => {
+  await calls.removeAll();
+  console.log('calls: יומן השיחות הטלפוניות אופס');
+  return { ok: true };
+}));
+
 // הפונקציות או הטבלה לא קיימות: קובץ ה-SQL עוד לא הורץ
 const channelsSqlMissing = (e) => {
   if (e.code === 'PGRST202' || e.code === '42P01' || e.code === '42883') throw new InputError('צריך להריץ ב-Supabase את הקובץ sql/channel_events.sql', 400);

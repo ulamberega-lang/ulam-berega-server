@@ -452,7 +452,7 @@ tr.pending .nk-input { background: var(--soft); animation: nk-pulse 1.2s ease-in
 
 /* לשונית "וואטסאפ, צ'אט ואתר" (channels.js) והכפתור אליה בראש "שיחות לפי אולם" */
 .stats-head { margin-top: 12px; }
-.stats-head .btn { margin-inline-start: auto; }
+.stats-head #resetCalls { margin-inline-start: auto; } /* שני הכפתורים יחד בצד השני של הכותרת */
 .totals.three { grid-template-columns: repeat(3, 1fr); }
 .totals small { display: block; margin-top: 2px; font-size: .78rem; color: var(--muted); }
 @media (max-width: 700px) {
