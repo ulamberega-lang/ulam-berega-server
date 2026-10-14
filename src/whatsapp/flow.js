@@ -1,6 +1,6 @@
 // זרימת הבוט בוואטסאפ: handleMessage(session, input, ctx) → רשימת הודעות לשליחה.
 // פונקציה נקייה ביחס לרשת (הקריאה היחידה היא לרשימת האולמות שבזיכרון), כדי שאפשר יהיה לבדוק אותה.
-// הבוט רק מוסר מספר שלוחה: המתקשר מחייג בעצמו למרכזייה ומקיש 2 ושלוחה, ולכן ההעברה, המיילים ויומן השיחות
+// הבוט רק מוסר מספר שלוחה: המתקשר מחייג בעצמו למרכזייה ומקיש 3 ושלוחה, ולכן ההעברה, המיילים ויומן השיחות
 // נשארים כמו בשיחה רגילה.
 //
 // input: { id } (לחיצה על כפתור או שורה ברשימה) או { text }
@@ -14,6 +14,7 @@ import { T } from './texts.js';
 
 const { NO_HOOD } = halls;
 const PAGE = 8;          // פריטים בכל עמוד ברשימה (בנוסף: "עוד" ו"תפריט"/"כל העיר" - עד 10 שורות)
+const HOOD_PAGE = 7;     // שכונות בעמוד: נשאר מקום תמיד ל"עוד", "חזרה" ו"כל העיר" (ובעמוד האחרון גם "אולמות נוספים בעיר")
 const RESULTS_PAGE = 5;  // אולמות בכל הודעת תוצאות
 
 const text = (t) => ({ kind: 'text', text: t });
@@ -38,20 +39,20 @@ function menu(s, note, t = T[s.lang]) {
 }
 
 // עמוד של רשימה: PAGE פריטים, ואחריהם "עוד" אם יש, ושורות קבועות (extra)
-export function pageRows(s, items, label, pageKey, moreLabel, extra) {
-  const from = (s[pageKey] ?? 0) * PAGE;
-  const more = items.length > from + PAGE;
-  const rows = items.slice(from, from + PAGE).map((it, i) => [`${label}:${from + i}`, ...it]);
+export function pageRows(s, items, label, pageKey, moreLabel, extra, size = PAGE) {
+  const from = (s[pageKey] ?? 0) * size;
+  const more = items.length > from + size;
+  const rows = items.slice(from, from + size).map((it, i) => [`${label}:${from + i}`, ...it]);
   if (more) rows.push([`${label}:more`, moreLabel]);
   if (from > 0) rows.push([`${label}:prev`, s.lang === 'en' ? '→ Previous' : 'חזרה ←']);
-  // מגבלת וואטסאפ: 10 שורות. בעמוד אמצעי (עוד + חזרה) שורת התפריט נשמטת
-  return { rows: rows.length + extra.length > 10 ? rows : [...rows, ...extra], more, from };
+  // מגבלת וואטסאפ: 10 שורות. השורות הקבועות נכנסות לפי הסדר כל עוד יש מקום (בעמוד אמצעי - עוד + חזרה - האחרונות נשמטות)
+  return { rows: [...rows, ...extra.slice(0, Math.max(0, 10 - rows.length))], more, from };
 }
 
 // כתובת להצגה בלי https:// (וואטסאפ מזהה אותה כקישור בכל זאת)
 const bare = (url) => String(url).replace(/^https?:\/\//, '');
 
-// קישור לדף שפותח חייגן עם המספר, 2, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
+// קישור לדף שפותח חייגן עם המספר, 3, השלוחה וסולמית (וואטסאפ לא מפעילה קישורי tel: באנדרואיד)
 const dialPage = (ctx, ext, t) => {
   const num = String(ctx.dial ?? '').replace(/\D/g, '');
   return ctx.link && num ? `${t.dialPage}:\n\u200F${bare(ctx.link)}/c/${num}/${ext}` : undefined;
@@ -123,11 +124,11 @@ async function show(s, ctx, note) {
       return [buttons(ask(t.askHood), [['k:pick', t.pickHood], ['k:all', t.allCity]])];
     }
     case 'hoodMenu': {
-      const { rows, more } = pageRows(s, s.hoods.map((h) => [cut(h, 24)]), 'k', 'hoodPage', t.moreHoods, []);
-      // בעמוד האחרון: אולמות בעיר שלא רשומה להם שכונה
-      s.hoodExtra = !more && await halls.hasNoHoodHalls(s.city, s.guests);
-      if (s.hoodExtra) rows.push(['k:extra', cut(t.extraHalls, 24)]);
-      rows.push(['k:all', t.allCity]);
+      // 7 שכונות בעמוד, כך ש"עוד", "חזרה" ו"כל העיר" תמיד נכנסים; בעמוד האחרון (בלי "עוד") גם אולמות בעיר שלא רשומה להם שכונה
+      const last = s.hoods.length <= ((s.hoodPage ?? 0) + 1) * HOOD_PAGE;
+      s.hoodExtra = last && await halls.hasNoHoodHalls(s.city, s.guests);
+      const extra = [...(s.hoodExtra ? [['k:extra', cut(t.extraHalls, 24)]] : []), ['k:all', t.allCity]];
+      const { rows } = pageRows(s, s.hoods.map((h) => [cut(h, 24)]), 'k', 'hoodPage', t.moreHoods, extra, HOOD_PAGE);
       return [list(ask(t.askHood), t.hoodButton, rows)];
     }
     case 'freeName': return [text(ask(t.askFree))];

@@ -81,8 +81,8 @@ function renderInsights() {
     const [city, count] = [...cities].sort((a, b) => b[1] - a[1])[0];
     cards.push(insight('העיר הפעילה ביותר', city || 'ללא עיר', `${formatNumber(count)} שיחות`, { city }));
   }
-  const idle = rows.filter((r) => r.total === 0 && r.active).length;
-  if (idle) cards.push(insight('אולמות פעילים בלי שיחות', formatNumber(idle), 'בתקופה שנבחרה', { view: 'idle' }));
+  const idle = rows.filter(VIEWS.idle).length; // כמו בסינון "בלי שיחות" שהלחיצה פותחת (כולל מושבתים)
+  if (idle) cards.push(insight('אולמות בלי שיחות', formatNumber(idle), 'בתקופה שנבחרה', { view: 'idle' }));
   $('#insights').innerHTML = cards.join('');
 }
 

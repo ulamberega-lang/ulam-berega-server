@@ -26,9 +26,11 @@ export function startHallDirectory() {
   setInterval(() => refresh().catch((e) => console.error('halls refresh:', e.message)), REFRESH_MS).unref();
 }
 
-// אחרי הוספה/עריכה באתר הניהול
+// אחרי הוספה/עריכה/מחיקה באתר הניהול. רענון שכבר רץ התחיל לפני השמירה ועלול להחזיר רשימה ישנה,
+// ולכן מחכים שיסתיים ומרעננים שוב
 export function hallsChanged() {
-  refresh().catch((e) => console.error('halls refresh:', e.message));
+  (loading ?? Promise.resolve()).catch(() => {})
+    .then(() => refresh()).catch((e) => console.error('halls refresh:', e.message));
 }
 
 const uniqueSorted = (values) => [...new Set(values.filter(Boolean))].sort();
