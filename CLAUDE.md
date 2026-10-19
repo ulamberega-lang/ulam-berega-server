@@ -20,7 +20,7 @@
 
 ## תשתית
 - **ימות המשיח** (מרכזייה): שרת פרטי `private.call2all.co.il`. הקוד פונה אליה רק דרך `src/lib/yemot.js` ו-`src/services/transcriber.js`.
-- **Render** (אזור Frankfurt, קרוב ל-Supabase ולימות; הכתובת `https://ulam-berega.onrender.com`): פריסה אוטומטית מ-main. `npm start` → `node server.js`. `RENDER_EXTERNAL_URL` משמש לפינג עצמי נגד שינה. השירות הישן (`ulam-berega-server`, Oregon) אמור להיות מושעה. ההעברה מ-Oregon קיצרה את הורדת ההקלטה מימות מ-1.1 שניות לכ-0.3.
+- **Render** (אזור Frankfurt, קרוב ל-Supabase ולימות; הכתובת `https://ulam-berega.onrender.com`): פריסה אוטומטית מ-main. `npm start` → `node server.js`. `RENDER_EXTERNAL_URL` משמש לפינג עצמי נגד שינה. השירות הישן (`ulam-berega-server`, Oregon) **נמחק ב-19.10.2026**. **שעות חינם:** בתוכנית Free יש 750 שעות בחודש לכל חשבון Render (לכל השירותים החינמיים יחד); שירות אחד שרץ כל הזמן צורך 720-744 שעות, ולכן **אסור להוסיף עוד שירות חינמי לחשבון של `ulam-berega`** (אחרת השעות נגמרות באמצע החודש וכל המערכת הטלפונית נופלת עד 1 בחודש הבא). ב-17.10.2026 הגיע מייל אזהרה מ-Render על 674 שעות מתוך 750. התוצאה הבטוחה: Starter בתשלום לשירות הראשי (גם לא נרדם). ההעברה מ-Oregon קיצרה את הורדת ההקלטה מימות מ-1.1 שניות לכ-0.3.
 - **Supabase**: טבלאות `halls`, `leads_log`, `pronunciations`, ופונקציות הסטטיסטיקה ב-`sql/call_stats.sql`. שינויי סכמה - קובץ חדש ב-`sql/` שבעל הפרויקט מריץ ב-SQL Editor.
 - **OpenAI** (`gpt-transcribe`): תמלול הקלטות. **Brevo**: מיילים לאולמות (חינם עד 300 ביום).
 
