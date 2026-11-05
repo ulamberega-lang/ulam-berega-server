@@ -1,54 +1,181 @@
-/* עיצוב משותף לאתר הציבורי: שמנת, זהב ויוקרה שקטה. הרקע (אולם מעומעם ושורות "שמחה בשיחה ♥ מזל טוב") נבנה ב-bg.js */
+/* עיצוב משותף לאתר הציבורי (דף הבית, פרטיות, נגישות, דפי עיר ושכונה, והצבעים של הצ'אט).
+   שילוב של גוונים כהים עמוקים (כחול לילה, ירוק בקבוק, יין) עם זהב שמפניה כצבע הדגשה יחיד.
+   כל מקטע ברצועה בגוון משלו (.band.tone-*), ומשטחים מוגבהים בגוון בהיר יותר באותה משפחה. */
 :root {
-  --cream: #faf5ea; --ivory: #fffdf8; --champagne: #f1e3bd;
-  --gold: #b08d4a; --gold-deep: #8a6a2c; --gold-light: #d9c08a;
-  --ink: #33291c; --muted: #6b5d47; --link: #7a5a1f;
+  --navy: #0c1220; --navy-2: #141c30; --navy-3: #1c2640;
+  --green: #0b1d19; --green-2: #12302a; --green-3: #1a4038;
+  --wine: #1c0a12; --wine-2: #2c1220; --wine-3: #3d1a2c;
+  --ink: #08090c;
+  --bg: var(--navy); --surface: var(--navy-2); --surface-2: var(--navy-3);
+  --line: rgba(241,234,217,.10); --line-strong: rgba(241,234,217,.20);
+  --text: #f1ead9; --muted: rgba(241,234,217,.64);
+  --gold: #d4b06e; --gold-hover: #e2c287; --gold-line: rgba(212,176,110,.45); --on-gold: #17120a;
+  --r: 6px;
   --serif: "Frank Ruhl Libre", "David Libre", "David", "Times New Roman", serif;
-  --sans: "Heebo", "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --sans: "IBM Plex Sans Hebrew", "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html { background: linear-gradient(180deg, #f3e9d0 0%, #faf5ea 55%, #fffdf8 100%) fixed; }
-body { margin: 0; min-height: 100vh; font-family: var(--sans); color: var(--ink); line-height: 1.8; background: transparent; }
-:focus-visible { outline: 3px solid #6b4a12; outline-offset: 3px; }
-a { color: var(--link); text-underline-offset: 3px; }
+html { background: var(--ink); -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; font-family: var(--sans); font-size: 17px; color: var(--text); line-height: 1.6; background: var(--bg); }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+a { color: var(--gold); text-decoration: none; background: linear-gradient(currentColor, currentColor) no-repeat 100% 100% / 0 1px; transition: background-size .2s ease-out, color .2s ease-out; }
+a:hover { background-size: 100% 1px; }
+p a, li a { background-size: 100% 1px; }
+p a:hover { color: var(--gold-hover); }
+.ltr { direction: ltr; unicode-bidi: isolate; }
+.nb { white-space: nowrap; } /* מספר טלפון לא נשבר לשתי שורות */
+.eyebrow { font-size: .95rem; color: var(--gold); margin: 0 0 22px; }
 
-/* שכבת הרקע */
-.bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.bg svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.bg .veil { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 42%, rgba(255,253,248,.5), rgba(255,253,248,0) 72%); }
-.bg .rows { position: absolute; inset: -10% -5%; transform: rotate(-7deg); display: flex; flex-direction: column; justify-content: space-around; }
-.bg .row { display: flex; width: max-content; white-space: nowrap; font-family: var(--serif); font-size: 15px; letter-spacing: .02em; line-height: 1; will-change: transform; animation: run 140s linear infinite; }
-.bg .row.rev { animation-direction: reverse; animation-duration: 170s; }
-.bg .row span { color: rgba(138,106,44,.62); padding: 0 14px; }
-.bg .row i { font-style: normal; font-size: 19px; color: #fff; text-shadow: 0 0 7px rgba(176,141,74,.85), 0 0 2px rgba(138,106,44,.9); padding: 0 6px; }
-@keyframes run { from { transform: translateX(0); } to { transform: translateX(50%); } }
-@media (prefers-reduced-motion: reduce) { .bg .row { animation: none; } }
+/* רצועות צבע: כל מקטע בגוון כהה משלו */
+.band { position: relative; }
+.tone-navy { background: var(--navy); --surface: var(--navy-2); --surface-2: var(--navy-3); }
+.tone-green { background: var(--green); --surface: var(--green-2); --surface-2: var(--green-3); }
+.tone-wine { background: var(--wine); --surface: var(--wine-2); --surface-2: var(--wine-3); }
+.tone-ink { background: #0e0f14; --surface: #171920; --surface-2: #20232c; }
+/* פתיחה: מעבר עדין מכחול לילה ליין, ושכבת ירוק בפינה */
+.hero-band { background:
+  linear-gradient(200deg, rgba(11,29,25,0) 55%, rgba(18,48,42,.85) 100%),
+  linear-gradient(160deg, #0c1220 0%, #161a2e 45%, #2a0f1d 100%); }
 
-/* מבנה הדף */
-.wrap { max-width: 760px; margin: 0 auto; padding: 56px 20px 72px; }
-.brand { text-align: center; padding: 0 0 36px; }
-.brand img { width: 108px; height: 108px; border-radius: 50%; border: 1.5px solid var(--gold); padding: 3px; background: var(--ivory); box-shadow: 0 14px 34px rgba(90,64,20,.20); }
-.brand h1, h1.page { font-family: var(--serif); font-weight: 700; font-size: clamp(2.2rem, 7vw, 3.2rem); line-height: 1.1; margin: 22px 0 8px; color: var(--ink); }
-.brand .sub { margin: 0; color: var(--muted); font-size: 1.15rem; }
+/* פס עליון */
+.top { max-width: 1200px; margin: 0 auto; padding: 20px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--line); }
+.mark { display: flex; align-items: center; gap: 10px; color: var(--text); font-family: var(--serif); font-weight: 700; font-size: 1.15rem; background: none; }
+.mark img { width: 36px; height: 36px; border-radius: 50%; }
+.top nav { margin-inline-start: auto; display: flex; gap: 24px; align-items: center; font-size: .95rem; }
+.top nav a { color: var(--muted); }
+.top nav a:hover { color: var(--text); }
+.top .tel { font-family: var(--mono); color: var(--gold); border: 1px solid var(--gold-line); padding: 6px 12px; border-radius: var(--r); background: none; transition: background-color .2s ease-out; }
+.top .tel:hover { background: rgba(212,176,110,.12); color: var(--gold); }
 
-.panel { background: rgba(255,253,248,.74); -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(14px) saturate(1.1);
-  border: 1px solid rgba(255,255,255,.75); outline: 1px solid rgba(176,141,74,.28); outline-offset: -1px; border-radius: 20px; padding: 28px 32px; margin: 0 0 18px;
-  box-shadow: 0 18px 50px rgba(90,64,20,.10); }
-.panel h2 { font-family: var(--serif); font-weight: 700; font-size: 1.35rem; margin: 0 0 8px; color: var(--gold-deep); }
-.panel p { margin: 0 0 8px; }
-.panel p:last-child { margin-bottom: 0; }
+/* פתיחה בדף הבית: טקסט מימין, "הזמנה" משמאל */
+.hero { max-width: 1200px; margin: 0 auto; padding: 96px 24px 112px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; align-items: center; }
+.hero-text { grid-column: 1 / span 7; }
+.hero h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(3rem, 7.2vw, 6.4rem); line-height: .98; letter-spacing: -.025em; margin: 0; }
+.hero h1 em { font-style: normal; color: var(--gold); }
+.lead { font-size: 1.2rem; color: var(--muted); max-width: 46ch; margin: 32px 0 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+.btn { display: inline-flex; align-items: center; gap: 10px; background: var(--gold); color: var(--on-gold); font-weight: 500; padding: 14px 26px; border-radius: var(--r); border: 1px solid var(--gold); transition: background-color .2s ease-out, color .2s ease-out; }
+.btn:hover { background: var(--gold-hover); color: var(--on-gold); }
+.btn::after { content: "\2190"; }
+.btn.ghost { background: transparent; color: var(--text); border-color: var(--line-strong); }
+.btn.ghost:hover { border-color: var(--gold); color: var(--gold); background: transparent; }
 
-.ways { display: grid; gap: 10px; margin-top: 18px; }
-.way { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 14px; background: rgba(255,253,248,.85); border: 1px solid rgba(176,141,74,.45); color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s, background .15s; }
-.way::after { content: "\2190"; margin-inline-start: auto; font-size: 1.3rem; color: var(--gold-deep); }
-.way:hover { transform: translateY(-1px); background: #fff; box-shadow: 0 10px 26px rgba(90,64,20,.14); }
-.way svg { width: 30px; height: 30px; flex: none; stroke: var(--gold-deep); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.way b { display: block; font-family: var(--serif); font-size: 1.2rem; }
-.way small { display: block; color: var(--muted); font-size: .92rem; line-height: 1.4; }
-.way.main { background: var(--gold); border-color: var(--gold); }
-.way.main svg, .way.main::after { stroke: var(--ink); color: var(--ink); }
-.way.main small { color: #2f2410; }
-.way.main:hover { background: #bd9a55; }
+/* ההזמנה: כרטיס יין עם מסגרת זהב כפולה, כמו הזמנה מודפסת */
+.invite { grid-column: 9 / span 4; background: linear-gradient(170deg, var(--wine-3), var(--wine-2) 60%, #22101a); border-radius: var(--r); padding: 12px; transform: rotate(-2deg); border: 1px solid var(--gold-line); }
+.invite-in { border: 1px solid var(--gold-line); border-radius: 3px; padding: 34px 22px 28px; text-align: center; }
+.invite-k { font-family: var(--serif); font-size: 1.5rem; color: var(--gold); margin: 0 0 16px; }
+.invite img { width: 96px; height: 96px; border-radius: 50%; display: block; margin: 0 auto 18px; }
+.invite-t { margin: 0 0 6px; color: var(--muted); line-height: 1.5; }
+.number { display: inline-block; font-family: var(--serif); font-weight: 700; font-size: clamp(2rem, 3.3vw, 2.7rem); line-height: 1.1; color: var(--text); background: none; font-variant-numeric: tabular-nums; }
+.number:hover { color: var(--gold); }
+.invite-note { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: .88rem; color: var(--muted); }
 
-footer.site { text-align: center; color: var(--muted); font-size: .95rem; margin-top: 36px; }
-footer.site a { margin: 0 8px; }
+/* מקטעים */
+.section { max-width: 1200px; margin: 0 auto; padding: 104px 24px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 40px 24px; }
+.section > header { grid-column: 1 / span 4; }
+.section > .body { grid-column: 5 / span 8; }
+.section > .cards, .section > .steps { grid-column: 1 / -1; }
+.section h2 { font-family: var(--serif); font-weight: 700; font-size: clamp(1.9rem, 3.6vw, 2.8rem); line-height: 1.08; letter-spacing: -.015em; margin: 0; }
+.section header p { color: var(--muted); margin: 14px 0 0; max-width: 36ch; }
+.section .body p { margin: 0 0 12px; max-width: 62ch; }
+
+/* שלוש הדרכים */
+.ways { list-style: none; margin: 0; padding: 0; counter-reset: way; }
+.way { display: grid; grid-template-columns: 56px 1fr auto; align-items: baseline; gap: 4px 16px; padding: 26px 4px; border-bottom: 1px solid var(--line); color: var(--text); background: none; counter-increment: way; transition: background-color .2s ease-out, border-color .2s ease-out; }
+.ways:not(.cards) { border-top: 1px solid var(--line); }
+.way::before { content: "0" counter(way); font-family: var(--mono); font-size: .85rem; color: var(--gold); grid-row: span 2; }
+.way::after { content: "\2190"; grid-column: 3; grid-row: 1 / span 2; align-self: center; color: var(--muted); font-size: 1.3rem; transition: transform .2s ease-out, color .2s ease-out; }
+.way:hover::after { color: var(--gold); transform: translateX(-6px); }
+.way b { font-family: var(--serif); font-weight: 700; font-size: 1.5rem; line-height: 1.2; }
+.way small { grid-column: 2; color: var(--muted); font-size: .98rem; }
+.way.main b { color: var(--gold); }
+/* בדף הבית: שלושה כרטיסים, כל אחד בגוון אחר */
+.ways.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.ways.cards .way { height: 100%; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr auto; align-items: start; gap: 0; padding: 28px 28px 30px; border: 1px solid var(--line); border-radius: var(--r); min-height: 240px; }
+.ways.cards .way::before { grid-row: 1; grid-column: 1; margin-bottom: 56px; }
+.ways.cards .way::after { grid-row: 1; grid-column: 2; align-self: start; }
+.ways.cards .way b { grid-row: 2; grid-column: 1 / -1; align-self: end; font-size: 1.7rem; }
+.ways.cards .way small { grid-row: 3; grid-column: 1 / -1; margin-top: 6px; }
+.ways.cards li:nth-child(1) .way { background: linear-gradient(160deg, var(--wine-3), var(--wine-2)); border-color: var(--gold-line); }
+.ways.cards li:nth-child(2) .way { background: linear-gradient(160deg, var(--green-3), var(--green-2)); }
+.ways.cards li:nth-child(3) .way { background: linear-gradient(160deg, var(--navy-3), var(--navy-2)); }
+.ways.cards .way:hover { border-color: var(--gold); }
+
+/* איך זה עובד */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: step; }
+.steps li { padding: 26px 24px 28px; counter-increment: step; background: var(--surface); border-radius: var(--r); border-top: 2px solid var(--gold); }
+.steps li::before { content: counter(step); display: block; font-family: var(--serif); font-size: 3rem; line-height: 1; color: var(--gold); margin-bottom: 18px; }
+.steps b { display: block; font-weight: 500; font-size: 1.08rem; margin-bottom: 4px; }
+.steps span { color: var(--muted); font-size: .95rem; }
+
+/* רשימת קישורים (ערים, שכונות) */
+.links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 10px; }
+.links a { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 18px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); transition: border-color .2s ease-out, color .2s ease-out; }
+.links a:hover { color: var(--gold); border-color: var(--gold-line); }
+.links small { font-size: .85rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* דפים פנימיים (פרטיות, נגישות, עיר ושכונה) */
+.page-band { background: linear-gradient(160deg, #0c1220 0%, #161a2e 50%, #2a0f1d 100%); }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 24px 64px; }
+.page-head { max-width: 1200px; margin: 0 auto; padding: 72px 24px 80px; }
+.page-head h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(2.4rem, 6vw, 4.6rem); line-height: 1.02; letter-spacing: -.02em; margin: 0; max-width: 900px; }
+.page-head .sub { color: var(--gold); font-size: 1.15rem; margin: 18px 0 0; }
+.panel { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 24px; padding: 48px 0; border-bottom: 1px solid var(--line); } /* בלי רווח בין שורות: הכותרת נפרשת על שורות ריקות */
+.panel:last-of-type { border-bottom: 0; }
+.panel > * { grid-column: 5 / span 8; }
+.panel > h2 { grid-column: 1 / span 4; grid-row: 1 / span 30; font-family: var(--serif); font-weight: 700; font-size: 1.6rem; line-height: 1.15; margin: 0; color: var(--text); }
+.panel p { margin: 0 0 10px; max-width: 64ch; }
+.panel h3 { font-size: 1.05rem; font-weight: 500; margin: 18px 0 4px; color: var(--gold); }
+.panel h3:first-of-type { margin-top: 0; }
+.panel h3 + p { color: var(--muted); }
+.panel .ways { margin-top: 24px; }
+.panel .ways.cards .way { min-height: 190px; }
+.panel .ways.cards .way::before { margin-bottom: 32px; }
+
+/* בעלי אולמות */
+.owners .body p { font-size: 1.15rem; }
+.owners .mail { display: inline-block; margin-top: 8px; font-family: var(--mono); font-size: clamp(1rem, 2.4vw, 1.45rem); }
+
+/* תחתית */
+footer.site { background: var(--ink); border-top: 1px solid var(--line); padding: 40px max(24px, calc(50% - 576px)) 56px; display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; color: var(--muted); font-size: .92rem; }
+footer.site a { color: var(--muted); }
+footer.site a:hover { color: var(--text); }
+footer.site .mark { margin-inline-end: auto; font-size: 1rem; color: var(--text); }
+
+@media (max-width: 960px) {
+  .hero-text { grid-column: 1 / span 12; }
+  .invite { grid-column: 1 / span 12; justify-self: start; width: min(380px, 100%); transform: rotate(-1.5deg); margin-top: 24px; }
+  .ways.cards { grid-template-columns: 1fr; }
+  .ways.cards .way { min-height: 0; }
+  .ways.cards .way::before { margin-bottom: 28px; }
+  .steps { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 860px) {
+  .hero { padding: 56px 20px 72px; }
+  .section { padding: 72px 20px; gap: 28px; }
+  .section > header, .section > .body { grid-column: 1 / -1; }
+  .panel { padding: 36px 0; }
+  .panel > *, .panel > h2 { grid-column: 1 / -1; grid-row: auto; }
+  .panel > h2 { margin-bottom: 10px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .top { padding: 14px 16px; }
+  .top nav .hide-s { display: none; }
+  .hero { padding: 44px 16px 64px; }
+  .hero h1 { font-size: 3.1rem; }
+  .actions .btn { flex: 1 1 100%; justify-content: center; }
+  .section { padding: 60px 16px; }
+  .wrap { padding: 8px 16px 48px; }
+  .page-head { padding: 44px 16px 52px; }
+  .way { grid-template-columns: 36px 1fr auto; padding: 22px 0; }
+  .ways.cards .way { padding: 22px 20px 24px; }
+  .way b, .ways.cards .way b { font-size: 1.35rem; }
+  .steps { gap: 10px; }
+  .steps li { padding: 20px 16px 22px; }
+  .steps li::before { font-size: 2.2rem; margin-bottom: 12px; }
+  footer.site { padding: 32px 16px 44px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
