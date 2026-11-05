@@ -81,4 +81,4 @@ NODE_PATH=$(npm root -g) node dev/smoke-staff.mjs   # בדיקת דפדפן לא
 
 ## אתר ההוספה של העובד
 
-`https://ulam-berega.onrender.com/staff`, עם הסיסמה `STAFF_PASSWORD`. העובד מוסיף אולמות (בטופס או מקובץ אקסל), והם מגיעים ללשונית "לאישור" באתר הניהול. צריך להריץ פעם אחת את `sql/hall_submissions.sql` ב-Supabase.
+`https://simcha-besicha.co.il/staff` (מפנה ל-`https://ulam-berega.onrender.com/staff`), עם הסיסמה `STAFF_PASSWORD`. העובד מוסיף אולמות (בטופס או מקובץ אקסל), והם מגיעים ללשונית "לאישור" באתר הניהול. צריך להריץ פעם אחת את `sql/hall_submissions.sql` ב-Supabase.

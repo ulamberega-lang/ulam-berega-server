@@ -19,7 +19,12 @@ test('שרת ציבורי נפרד: דפים ציבוריים כן, ניהול �
       assert.equal(r.status, 302, path);
       assert.equal(r.headers.get('location'), '/chat?from=whatsapp');
     }
-    for (const path of ['/admin/', '/admin/login', '/admin/api/halls', '/api/ivr', '/api/whatsapp', '/api/dialer', '/c/abc/1']) {
+    for (const path of ['/staff', '/staff/']) { // אתר העובד: הפניה לשרת הראשי
+      const r = await fetch(`${base}${path}`, { redirect: 'manual' });
+      assert.equal(r.status, 302, path);
+      assert.equal(r.headers.get('location'), 'https://ulam-berega.onrender.com/staff/');
+    }
+    for (const path of ['/staff/api/halls', '/staff/login', '/admin/', '/admin/login', '/admin/api/halls', '/api/ivr', '/api/whatsapp', '/api/dialer', '/c/abc/1']) {
       assert.equal((await fetch(`${base}${path}`)).status, 404, path);
     }
     assert.equal((await fetch(`${base}/`)).headers.get('x-powered-by'), null);
