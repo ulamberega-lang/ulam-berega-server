@@ -29,14 +29,14 @@ publicPages.get('/sitemap.xml', async (req, res) => {
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>\n`);
 });
 
-// עיצוב ורקע משותפים (site.css, bg.js)
+// עיצוב משותף (site.css) וספירת כניסות (visit.js)
 publicPages.use('/assets', express.static(`${publicSite}/assets`, { maxAge: '1h' }));
 publicPages.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
 // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)
 // דף הבית: בלוק קישורי הערים (קישור פנימי לדפי העיר) נוצר מהערים הפעילות
 publicPages.get('/', async (req, res) => {
   const [html, cities] = await Promise.all([readFile(`${publicSite}/index.html`, 'utf8'), getCities()]);
-  res.type('html').send(html.replace('<!--cities-->', cities.length ? `<section class="panel">\n    <h2>אולמות לפי עיר</h2>\n    <p>${cityLinks(cities)}</p>\n  </section>` : ''));
+  res.type('html').send(html.replace('<!--cities-->', cities.length ? `<section class="section" aria-labelledby="cities-title">\n    <header>\n      <h2 id="cities-title">אולמות לפי עיר</h2>\n      <p>אולמות לברית, לאירוסין ולשבע ברכות בכל עיר.</p>\n    </header>\n    <div class="body"><ul class="links">${cityLinks(cities)}</ul></div>\n  </section>` : ''));
 });
 publicPages.get('/privacy', (req, res) => res.sendFile(`${publicSite}/privacy.html`));
 publicPages.get('/accessibility', (req, res) => res.sendFile(`${publicSite}/accessibility.html`));

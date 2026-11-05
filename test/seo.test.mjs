@@ -43,12 +43,14 @@ test('canonical ו-JSON-LD תקינים', () => {
 test('דף עיר: תוכן, canonical, מפת אתר ו-404', async () => {
   const r = await fetch(`${base}/${encodeURI('אולם-קטן-ב')}/${encodeURIComponent('בני-ברק')}`);
   assert.equal(r.status, 200);
-  const h = await r.text();
+  const raw = await r.text();
+  const h = raw.replace(/<\/?span[^>]*>/g, ''); // הטקסט הגלוי (המספר עטוף ב-span כדי שלא יישבר בין שורות)
+  assert.match(raw, /<span class="nb">03-313-0858<\/span>/);
   assert.match(h, /href="https:\/\/wa\.me\/97233130858"/);
   assert.match(h, /<h1>אולם קטן בבני ברק<\/h1>/);
   assert.match(h, /<p>שמחה בשיחה, 03-313-0858, עוזרת למצוא/); // המספר בפסקה הראשונה (נראה בקטע התוצאה בגוגל)
   assert.match(h, /רשומים במערכת 2 אולמות, בקיבולת של 60 עד 100 אורחים/);
-  assert.match(h, /<a href="[^"]*">זכרון מאיר \(1\)<\/a>/);
+  assert.match(h, /<a href="[^"]*">זכרון מאיר<small>אולם אחד<\/small><\/a>/);
   assert.match(h, /אולמות בערים נוספות/);
   assert.match(h, /rel="canonical" href="https:\/\/simcha-besicha\.co\.il\/%D7/);
   const ld = h.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
