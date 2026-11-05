@@ -36,7 +36,7 @@ publicPages.get('/health', (req, res) => res.send('ok')); // לפינג נגד �
 // דף הבית: בלוק קישורי הערים (קישור פנימי לדפי העיר) נוצר מהערים הפעילות
 publicPages.get('/', async (req, res) => {
   const [html, cities] = await Promise.all([readFile(`${publicSite}/index.html`, 'utf8'), getCities()]);
-  res.type('html').send(html.replace('<!--cities-->', cities.length ? `<section class="section" aria-labelledby="cities-title">\n    <header>\n      <h2 id="cities-title">אולמות לפי עיר</h2>\n      <p>אולמות לברית, לאירוסין ולשבע ברכות בכל עיר.</p>\n    </header>\n    <div class="body"><ul class="links">${cityLinks(cities)}</ul></div>\n  </section>` : ''));
+  res.type('html').send(html.replace('<!--cities-->', cities.length ? `<section class="band tone-ink" aria-labelledby="cities-title">\n    <div class="section">\n      <header>\n        <h2 id="cities-title">אולמות לפי עיר</h2>\n        <p>אולמות לברית, לאירוסין ולשבע ברכות בכל עיר.</p>\n      </header>\n      <div class="body"><ul class="links">${cityLinks(cities)}</ul></div>\n    </div>\n  </section>` : ''));
 });
 publicPages.get('/privacy', (req, res) => res.sendFile(`${publicSite}/privacy.html`));
 publicPages.get('/accessibility', (req, res) => res.sendFile(`${publicSite}/accessibility.html`));

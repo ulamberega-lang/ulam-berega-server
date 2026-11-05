@@ -69,10 +69,10 @@ const nb = (html) => html.replaceAll(PHONE, `<span class="nb">${PHONE}</span>`);
 const hallsWord = (n) => (n === 1 ? 'אולם אחד' : `${n} אולמות`);
 
 const WAYS = (place) => `
-    <ol class="ways">
+    <ol class="ways cards">
       <li><a class="way main" href="/chat"><b>צ'אט באתר</b><small>מחפשים אולם ${esc(place)} ישר מהדפדפן</small></a></li>
-      <li><a class="way" href="https://wa.me/97233130858" target="_blank" rel="noopener"><b>בוט WhatsApp</b><small>שולחים הודעה למספר <span class="ltr">${PHONE}</span></small></a></li>
-      <li><a class="way" href="tel:033130858"><b>שיחת טלפון</b><small>מחייגים <span class="ltr">${PHONE}</span> ובוחרים בתפריט</small></a></li>
+      <li><a class="way" href="https://wa.me/97233130858" target="_blank" rel="noopener"><b>בוט WhatsApp</b><small>שולחים הודעה למספר <span class="ltr nb">${PHONE}</span></small></a></li>
+      <li><a class="way" href="tel:033130858"><b>שיחת טלפון</b><small>מחייגים <span class="ltr nb">${PHONE}</span> ובוחרים בתפריט</small></a></li>
     </ol>`;
 
 // עמוד עיר או שכונה: faq = [[שאלה, תשובה]] מוצג בדף ובנתונים המובנים (אותו טקסט)
@@ -114,6 +114,7 @@ function page({ path, h1, sub, title, desc, place, intro, sections, faq, crumbs 
 <script src="/assets/visit.js" defer></script>
 </head>
 <body>
+<div class="band page-band">
 <header class="top">
   <a class="mark" href="/"><img src="/logo.png" alt="" width="36" height="36">שמחה בשיחה</a>
   <nav aria-label="ניווט">
@@ -121,11 +122,12 @@ function page({ path, h1, sub, title, desc, place, intro, sections, faq, crumbs 
     <a class="tel ltr" href="tel:033130858">${PHONE}</a>
   </nav>
 </header>
+<header class="page-head">
+  <h1>${esc(h1)}</h1>
+  <p class="sub">${esc(sub)}</p>
+</header>
+</div>
 <main class="wrap">
-  <header class="page-head">
-    <h1>${esc(h1)}</h1>
-    <p class="sub">${esc(sub)}</p>
-  </header>
   <section class="panel">
     <h2>${esc(`מחפשים אולם ${place}?`)}</h2>
     <p>${nb(intro)}</p>${WAYS(place)}
