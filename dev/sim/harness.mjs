@@ -3,6 +3,7 @@
 import { register } from 'node:module';
 
 process.env.ADMIN_PASSWORD = 'pw';
+process.env.STAFF_PASSWORD = 'staffpw'; // אתר ההוספה של העובד
 process.env.BREVO_API_KEY = 'k';
 process.env.MAIL_FROM = 'noreply@example.com';
 process.env.YEMOT_TOKEN = '0777:key';
@@ -91,5 +92,11 @@ export async function ivr(base, params, path = '/api/ivr') {
 // כניסה לאתר הניהול; מחזיר כותרות עם העוגייה
 export async function adminHeaders(base) {
   const res = await realFetch(`${base}/admin/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: 'pw' }) });
+  return { cookie: res.headers.get('set-cookie').split(';')[0], 'content-type': 'application/json' };
+}
+
+// כניסה לאתר ההוספה של העובד (/staff); מחזיר כותרות עם העוגייה
+export async function staffHeaders(base) {
+  const res = await realFetch(`${base}/staff/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: 'staffpw' }) });
   return { cookie: res.headers.get('set-cookie').split(';')[0], 'content-type': 'application/json' };
 }

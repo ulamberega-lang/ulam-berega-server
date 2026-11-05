@@ -81,6 +81,12 @@ const makeChannels = () => ({
     .map(([dim, value, visits, users]) => ({ dim, value, visits, users })),
 });
 let channels = makeChannels();
+// אולמות שהעובד שלח לאישור (לשונית "לאישור")
+const makeSubmissions = () => [
+  { id: 1, created_at: new Date(Date.now() - 3600e3).toISOString(), status: 'pending', note: 'מצאתי בגוגל', reason: '', data: { name: 'אולם הגשה ראשון', city_name: 'ירושלים', neighborhood_name: 'גאולה', address: 'רחוב הגשה 5', max_guests: 140, gabbai_phone: '0527771111' } },
+  { id: 2, created_at: new Date().toISOString(), status: 'pending', note: '', reason: '', data: { name: 'אולם הגשה שני', city_name: 'בני ברק', address: 'רחוב שני 2', max_guests: 90, gabbai_phone: '0527772222' } },
+];
+let submissions = makeSubmissions();
 let callsCleared = false; // אחרי "איפוס" של השיחות הטלפוניות
 // WAV של חצי שנייה שקט (8kHz, 16 סיביות), לבדיקת הנגן
 const silentWav = (() => {
@@ -96,7 +102,7 @@ http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const json = (data) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(data)); };
 
-  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); channels = makeChannels(); callsCleared = false; return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
+  if (url.pathname === '/__reset') { voicemails = makeVoicemails(); pronunciations = makePronunciations(); channels = makeChannels(); submissions = makeSubmissions(); callsCleared = false; return json({ ok: true }); } // מחזיר את הנתונים המשתנים למצב ההתחלתי
   if (url.pathname === '/admin/api/pronunciations' || url.pathname === '/admin/api/pronunciations/suggest') {
     if (req.method === 'GET') return json(pronunciations);
     let body = '';
@@ -114,6 +120,16 @@ http.createServer((req, res) => {
       pronunciations = pronunciations.filter((p) => p.word !== data.word);
       if (data.nikud) pronunciations.push({ word: data.word, nikud: data.nikud });
       return json({ word: data.word, nikud: data.nikud ?? '' });
+    });
+  }
+  if (url.pathname === '/admin/api/submissions') return json(submissions);
+  const sub = /^\/admin\/api\/submissions\/(\d+)\/(approve|reject)$/.exec(url.pathname);
+  if (sub) {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    return req.on('end', () => {
+      submissions = submissions.filter((x) => x.id !== Number(sub[1]));
+      setTimeout(() => json(sub[2] === 'approve' ? { id: 900 + Number(sub[1]), ...JSON.parse(body || '{}') } : { ok: true }), 200);
     });
   }
   if (url.pathname === '/admin/api/mails') return json(mails);

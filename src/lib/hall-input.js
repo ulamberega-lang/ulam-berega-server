@@ -20,10 +20,14 @@ const PLAIN_FIELDS = ['name', 'synagogue_name', 'city_name', 'neighborhood_name'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// הגשה מאתר ההוספה של העובד (/staff): בלי שלוחה ובלי "פעיל" - אותם קובע בעל הפרויקט באישור
+export const DRAFT_FIELDS = HALL_FIELDS.filter((f) => f !== 'extension' && f !== 'is_active');
+export const draftFromBody = (body) => hallFromBody(body, true, { draft: true });
+
 // isNew: באולם חדש כל שדות החובה חייבים להופיע; בעריכה - רק אם נשלחו, לא ריקים
-export function hallFromBody(body, isNew) {
+export function hallFromBody(body, isNew, { draft = false } = {}) {
   const hall = {};
-  for (const f of HALL_FIELDS) {
+  for (const f of draft ? DRAFT_FIELDS : HALL_FIELDS) {
     if (f in body) hall[f] = typeof body[f] === 'string' ? body[f].trim() || null : body[f];
   }
   for (const f of PLAIN_FIELDS) if (hall[f]) hall[f] = plainName(hall[f]) || null;
@@ -36,6 +40,7 @@ export function hallFromBody(body, isNew) {
   if ('is_active' in hall) hall.is_active = hall.is_active === true || hall.is_active === 'true';
 
   for (const [field, label] of Object.entries(REQUIRED)) {
+    if (draft && field === 'extension') continue;
     if ((isNew || field in hall) && (hall[field] == null || hall[field] === '')) throw new InputError(`חסר ${label}`);
   }
   if (hall.max_guests != null && !(Number.isInteger(hall.max_guests) && hall.max_guests > 0)) {

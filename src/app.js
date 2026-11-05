@@ -1,9 +1,11 @@
 // הרכבת שרת ה-Express: נתיבי ימות, אתר הניהול ובדיקת תקינות.
 import express from 'express';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { config } from './config.js';
 import { ivrRouter } from './routes/ivr.js';
 import { adminApi } from './routes/admin-api.js';
+import { staffApi } from './routes/staff-api.js';
 import { adminAuth } from './middleware/admin-auth.js';
 import { dialerRouter } from './routes/dialer.js';
 import { whatsappRouter } from './routes/whatsapp.js';
@@ -15,6 +17,11 @@ import { setCitiesProvider, groupCities } from './city-pages.js';
 import { getActiveHalls } from './services/hall-directory.js';
 
 const adminSite = fileURLToPath(new URL('../public/admin', import.meta.url));
+const staffSite = fileURLToPath(new URL('../public/staff', import.meta.url));
+// דף הכניסה של העובד: אותו דף כמו של הניהול, עם הכתובות והכותרת של /staff
+const staffLogin = readFileSync(`${adminSite}/login.html`, 'utf8')
+  .replaceAll("'/admin/", "'/staff/").replace('value="admin"', 'value="staff"')
+  .replace('כניסה לאתר הניהול', 'כניסה להוספת אולמות').replace('<title>כניסה לניהול</title>', '<title>הוספת אולמות</title>');
 
 export function createApp() {
   const app = express();
@@ -51,6 +58,18 @@ export function createApp() {
   app.use(PICTURE_PATH, express.json({ limit: '8mb' }));
   app.use('/admin/api', requireJson, adminApi);
   app.use('/admin', express.static(adminSite));
+
+  // אתר ההוספה של העובד (STAFF_PASSWORD): מגיש אולמות לאישור, ורואה את האולמות שבמערכת לקריאה בלבד.
+  // משתמש באותם מודולים ועיצוב של אתר הניהול (/staff/lib, /staff/styles.css) - קוד דפדפן בלבד, בלי נתונים
+  const staffAuth = adminAuth(config.staffPassword, undefined, 'staff');
+  app.get('/staff/login', staffAuth.loginPage((res) => res.type('html').send(staffLogin)));
+  app.post('/staff/login', requireJson, staffAuth.login);
+  app.post('/staff/logout', requireJson, staffAuth.logout);
+  app.use('/staff', staffAuth.guard);
+  app.use('/staff/api', requireJson, staffApi);
+  app.use('/staff/lib', express.static(`${adminSite}/js`));
+  app.get('/staff/styles.css', (req, res) => res.sendFile(`${adminSite}/styles.css`));
+  app.use('/staff', express.static(staffSite));
 
   return app;
 }

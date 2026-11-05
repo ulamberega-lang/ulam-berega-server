@@ -11,6 +11,7 @@ export const config = {
   brevoKey: process.env.BREVO_API_KEY,
   mailFrom: process.env.MAIL_FROM,
   adminPassword: process.env.ADMIN_PASSWORD,
+  staffPassword: process.env.STAFF_PASSWORD,           // אתר ההוספה של העובד (/staff); בלי זה האתר סגור
   waToken: process.env.WA_ACCESS_TOKEN,               // בוט הוואטסאפ (WhatsApp Cloud API של Meta)
   waAppSecret: process.env.WA_APP_SECRET,             // לאימות חתימת ה-webhook
   waVerifyToken: process.env.WA_VERIFY_TOKEN,         // לאימות הכתובת בהגדרת ה-webhook אצל Meta

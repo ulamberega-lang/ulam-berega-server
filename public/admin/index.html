@@ -361,6 +361,29 @@
       </div>
     </section>
 
+    <!-- אולמות לאישור: הגשות מאתר ההוספה של העובד (/staff), נפתח מכפתור בלשונית "ניהול אולמות" -->
+    <section id="tab-pending" role="tabpanel" hidden>
+      <div class="section-head"><h2>אולמות לאישור</h2><span class="count" id="pendingCount"></span></div>
+      <p class="note">אולמות שהעובד שלח מאתר ההוספה. "אישור" פותח את טופס האולם עם מה שהוא מילא ועם שלוחה מוצעת: בודקים, מתקנים אם צריך, ושומרים - והאולם נכנס למערכת. "דחייה" מוחקת מהרשימה (העובד רואה שנדחה, ואת הסיבה אם נכתבה).</p>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="pendingSearch" placeholder="חיפוש לפי שם, עיר, כתובת או טלפון" aria-label="חיפוש" enterkeyhint="search" autocomplete="off">
+          <button type="button" class="clear" hidden aria-label="ניקוי חיפוש"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="sortbox" id="pendingSort">
+          <select aria-label="מיון לפי"></select>
+          <button type="button" class="dir" aria-label="הפוך סדר"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+      </div>
+      <div class="table-box">
+        <table class="rt sub-table pending-table">
+          <thead><tr><th data-sort="name">אולם</th><th data-sort="city">עיר</th><th>כתובת</th><th>טלפון</th><th data-sort="guests">אורחים</th><th data-sort="date">נשלח</th><th></th></tr></thead>
+          <tbody id="pendingList"></tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- ניקוד הקראה (נפתח מכפתור בלשונית "ניהול אולמות") -->
     <section id="tab-nikud" role="tabpanel" hidden>
       <div class="section-head"><h2>ניקוד הקראה</h2><span class="count" id="nikudMissingCount"></span></div>
@@ -403,6 +426,7 @@
       <div class="section-head halls-head">
         <h2>אולמות</h2><span class="count" id="hallsCount"></span>
         <div class="split-btns">
+          <button class="btn ghost" id="openPending">לאישור<span class="tab-count inline" id="pendingBadge" hidden></span></button>
           <button class="btn ghost" id="openNikud">ניקוד הקראה</button>
           <button class="btn ghost" id="openImport">ייבוא אולמות</button>
         </div>

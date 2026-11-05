@@ -32,7 +32,7 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; font: 16px/1.5 Rubik, "Segoe UI", system-ui, Arial, sans-serif; color: var(--ink); background: var(--bg); }
-button, input, select { font: inherit; color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 a { color: var(--accent); text-decoration: none; }
@@ -98,7 +98,8 @@ body.busy main { opacity: .72; transition: opacity .2s; }
 .hebrew-range { flex-basis: 100%; margin: 0; font-size: .88rem; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; }
 input, select { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-height: 42px; font-size: 16px; }
 input[type=date] { min-width: 150px; }
-input:focus, select:focus { border-color: var(--accent); }
+textarea { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 16px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
 /* סיכום */
 .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0 12px; }
@@ -292,7 +293,7 @@ dialog label.check { display: flex; color: var(--ink); font-size: 1rem; }
   main.wrap { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 28px); }
   .topbar h1 { padding: 12px 0; font-size: 1.1rem; }
 
-  .topbar nav { position: fixed; inset: auto 0 0 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+  .topbar nav { position: fixed; inset: auto 0 0 0; z-index: 30; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0;
     background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -2px 12px rgba(0, 0, 0, .08); }
   .topbar nav button { flex-direction: column; gap: 2px; padding: 8px 4px 9px; border-radius: 0; color: var(--muted); font-size: .72rem; white-space: normal; text-align: center; min-height: var(--nav-h); justify-content: center; }
   .topbar nav button .ic { width: 24px; height: 24px; }
@@ -462,3 +463,15 @@ tr.pending .nk-input { background: var(--soft); animation: nk-pulse 1.2s ease-in
 }
 .channel-days small.found { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); }
 .section-head .push-end { margin-inline-start: auto; } /* כפתור בצד השני של הכותרת (למשל "איפוס נתונים") */
+
+/* הגשות לאישור (אתר העובד /staff ולשונית "לאישור" בניהול) */
+.staff-intro { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 14px; }
+.staff-intro .note { flex: 1 1 260px; margin: 0; }
+.sub-table .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.sub-table .acts button { white-space: nowrap; }
+.sub-table .why { color: var(--muted); font-size: .88rem; margin-top: 4px; }
+.info-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+.info-grid dt { color: var(--muted); }
+.info-grid dd { margin: 0; }
+.tab-count.inline { position: static; display: inline-block; margin-inline-start: 6px; vertical-align: 1px; } /* מונה בתוך כפתור רגיל ("לאישור") */
+.tab-count[hidden] { display: none; }

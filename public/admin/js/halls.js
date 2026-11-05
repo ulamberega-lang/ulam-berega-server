@@ -19,6 +19,7 @@ const VIEWS = {
 let halls = [];
 let rows = [];
 let editing = null;
+let approving = null; // הגשה מאתר העובד שמאשרים בטופס (לשונית "לאישור")
 let autoExt = '';   // ההצעה האחרונה שמולאה אוטומטית (מחליפים אותה רק אם לא נערכה ידנית)
 let onSaved = () => {};
 const filters = { term: '', city: '', hood: '' };
@@ -117,15 +118,17 @@ function suggestForCity() {
   }
 }
 
-function openForm(hall, draft = null) {
+function openForm(hall, draft = null, submission = null) {
   editing = hall || null;
+  approving = submission;
   autoExt = '';
   $('#extHint').hidden = true;
   const form = $('#hallForm');
   form.reset();
   $('#hallFormError').innerHTML = '';
   $('#deleteHall').hidden = !hall; // מחיקה רק באולם קיים
-  $('#hallFormTitle').textContent = hall ? 'עריכת אולם' : 'אולם חדש';
+  $('#hallFormTitle').textContent = hall ? 'עריכת אולם' : submission ? 'אישור אולם שהעובד שלח' : 'אולם חדש';
+  $('#hallForm [value=save]').textContent = submission ? 'אישור והוספה למערכת' : 'שמור';
   if (hall) {
     for (const el of form.elements) {
       if (!el.name) continue;
@@ -176,11 +179,14 @@ async function save(e) {
   const button = e.submitter;
   const label = button.textContent;
   const wasEditing = Boolean(editing);
+  const wasApproving = approving;
   button.disabled = true;
   button.textContent = 'שומר…';
   let saved;
   try {
-    saved = editing ? await api.updateHall(editing.id, data) : await api.createHall(data);
+    saved = editing ? await api.updateHall(editing.id, data)
+      : approving ? await api.approveSubmission(approving.id, data)
+      : await api.createHall(data);
   } catch (err) {
     $('#hallFormError').innerHTML = `<div class="error-box">${escapeHtml(err.message)}</div>`;
     return;
@@ -190,7 +196,7 @@ async function save(e) {
   }
 
   $('#hallDialog').close();
-  toast(wasEditing ? 'השינויים באולם נשמרו בהצלחה' : 'האולם נוסף בהצלחה');
+  toast(wasEditing ? 'השינויים באולם נשמרו בהצלחה' : wasApproving ? 'האולם אושר ונוסף למערכת' : 'האולם נוסף בהצלחה');
   // השמירה הצליחה; אם רענון הרשימה נכשל אומרים את זה במפורש (אחרת נראה שהאולם לא נשמר ואפשר לשמור כפול)
   try { await onSaved(saved); } catch (err) {
     toast('האולם נשמר, אבל רענון הרשימה נכשל. לחץ על כפתור הרענון', 'error');
@@ -218,7 +224,7 @@ export function initHalls(savedCallback) {
 
   $('#addHall').addEventListener('click', () => openForm());
   document.addEventListener('edit-hall', (e) => openForm(e.detail.hall)); // מחלון פרטי האולם
-  document.addEventListener('add-hall-draft', (e) => openForm(null, e.detail.draft)); // מלשונית הייבוא
+  document.addEventListener('add-hall-draft', (e) => openForm(null, e.detail.draft, e.detail.submission ?? null)); // מלשונית הייבוא, או אישור הגשה
   $('#hallsList').addEventListener('click', (e) => {
     if (e.target.closest('a')) return;                  // חיוג לא פותח עריכה
     const id = e.target.closest('[data-id]')?.dataset.id;

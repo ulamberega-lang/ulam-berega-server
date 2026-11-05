@@ -274,6 +274,27 @@ await p.click('#importView button[data-value=done]');
 check(await p.$$eval('#importList tr.imp', (t) => t.length) === 1, 'ייבוא: השורה שסומנה מופיעה ב"טופלו"');
 await p.click('#importList tr.imp .mark');
 
+// אולמות לאישור (מאתר העובד): מונה על הכפתור, אישור דרך טופס האולם עם שלוחה מוצעת, ודחייה עם סיבה
+await p.click('button[data-tab=halls]'); await p.waitForTimeout(300);
+check(await p.textContent('#pendingBadge') === '2', 'לאישור: מונה ההגשות על הכפתור');
+await p.click('#openPending'); await p.waitForSelector('#pendingList tr[data-id]');
+check(await p.getAttribute('button[data-tab=halls]', 'aria-selected') === 'true' && !(await p.isVisible('#range')), 'לאישור: נפתח מ"ניהול אולמות", בלי טווח תאריכים');
+check((await p.textContent('#pendingList')).includes('הערת העובד: מצאתי בגוגל'), 'לאישור: הערת העובד מוצגת');
+await p.click('#pendingList tr[data-id="1"] .approve');
+check(await p.inputValue('#hallForm [name=name]') === 'אולם הגשה ראשון' && /^\d{2,4}$/.test(await p.inputValue('#hallForm [name=extension]'))
+  && (await p.textContent('#hallFormTitle')).includes('אישור'), 'לאישור: "אישור" ממלא את הטופס ומציע שלוחה');
+await p.click('#hallForm [value=save]'); await p.waitForTimeout(900);
+check((await p.textContent('#toasts')).includes('אושר') && !(await p.$('#pendingList tr[data-id="1"]')), 'לאישור: האישור יוצר אולם ומוריד מהרשימה');
+check(await p.$eval('#pendingBadge', (b) => b.textContent) === '1', 'לאישור: המונה ירד');
+await p.click('button[data-tab=halls]'); await p.click('#addHall');
+check(await p.textContent('#hallForm [value=save]') === 'שמור' && await p.textContent('#hallFormTitle') === 'אולם חדש', 'לאישור: טופס רגיל אחרי אישור חוזר ל"שמור"');
+await p.click('.actions .btn[value=cancel]');
+await p.click('#openPending'); await p.waitForSelector('#pendingList tr[data-id]');
+p.once('dialog', (d) => d.accept('כפול'));
+await p.click('#pendingList tr[data-id="2"] .reject'); await p.waitForTimeout(500);
+check(!(await p.$('#pendingList tr[data-id]')) && (await p.textContent('#pendingList')).includes('אין אולמות שממתינים'), 'לאישור: דחייה מורידה מהרשימה');
+await fetch(new URL('/__reset', base)).catch(() => {});
+
 // וואטסאפ, צ'אט ואתר: נפתח מ"שיחות לפי אולם", בלי כפתור בתפריט
 await p.click('button[data-tab=stats]'); await p.click('#openChannels'); await p.waitForSelector('#channelDays tr');
 check(await p.getAttribute('button[data-tab=stats]', 'aria-selected') === 'true' && await p.isVisible('#range'), 'ערוצים: נפתח מ"שיחות לפי אולם", הלשונית מסומנת וטווח התאריכים מוצג');
@@ -314,7 +335,7 @@ await fetch(new URL('/__reset', base)).catch(() => {});
 
 // ---- אייפון ----
 const m = await open(devices['iPhone 14']);
-for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'channels']) {
+for (const tab of ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'pending', 'channels']) {
   await m.goto(`${base}#${tab}`); await m.waitForTimeout(600);
   check(!(await m.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `אייפון (${tab}): בלי גלילה אופקית`);
   const narrow = await m.$$eval('.sortbox', (t) => t.filter((x) => x.offsetParent && x.getBoundingClientRect().width < 120).map((x) => x.id));
