@@ -34,6 +34,8 @@ export function createPublicApp() {
   });
   proxy('/api/webchat', allowIp);
   proxy('/api/visit', allowVisit);
+  // אתר ההוספה של העובד יושב בשרת הראשי (צריך מסד נתונים): simcha-besicha.co.il/staff מפנה לשם
+  app.get(['/staff', '/staff/'], (req, res) => res.redirect(302, `${mainUrl()}/staff/`));
   app.use((req, res) => res.status(404).type('text/plain').send('Not found')); // כל השאר (כולל /admin) כאילו לא קיים
   return app;
 }

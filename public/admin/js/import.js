@@ -58,7 +58,7 @@ function render() {
   $('#importList').innerHTML = shown.length ? shown.map((r, i) => {
     const [label, cls] = STATUS[statusOf(r)];
     const it = r.item;
-    const why = r.status === 'new' ? '' : `${r.reasons.join(', ')}: ${escapeHtml(r.hall.name)}${r.hall.city_name ? ` (${escapeHtml(r.hall.city_name)})` : ''}`;
+    const why = r.status === 'new' ? '' : `${r.reasons.join(', ')}: ${escapeHtml(r.hall.name)}${r.hall.city_name ? ` (${escapeHtml(r.hall.city_name)})` : ''}${r.hall.pending ? ' · נשלח לאישור' : ''}`; // pending: באתר העובד, אולם שכבר נשלח לאישור
     const groupNote = it.group ? `<span class="muted">קבוצה ${escapeHtml(it.group)}${r.groupStatus !== r.status && r.groupStatus === 'in' ? ' · חבר אחר בקבוצה כבר במערכת' : ''}</span>`
       : it.wasGroup ? `<span class="muted">הופרד מקבוצה ${escapeHtml(it.wasGroup)}</span>` : '';
     const target = r.hall ?? (r.groupStatus === 'in' ? r.groupHall : null); // האולם התואם במערכת (גם כשהקבוצה כבר במערכת בגלל חבר אחר)

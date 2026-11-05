@@ -21,7 +21,7 @@ publicPages.use((req, res, next) => {
 });
 
 publicPages.get('/robots.txt', (req, res) => {
-  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /c/\nDisallow: /m/\nDisallow: /w\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /staff\nDisallow: /api/\nDisallow: /c/\nDisallow: /m/\nDisallow: /w\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 });
 publicPages.get('/sitemap.xml', async (req, res) => {
   const paths = ['/', '/chat', '/privacy', '/accessibility', ...(await getCities()).flatMap((c) => [cityPath(c.city), ...c.hoods.map((n) => hoodPath(c.city, typeof n === 'string' ? n : n.name))])];

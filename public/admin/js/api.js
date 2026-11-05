@@ -16,6 +16,10 @@ export const api = {
   hallUsage: (id) => request(`halls/${id}/usage`),
   deleteHall: (id) => request(`halls/${id}`, { method: 'DELETE', body: '{}' }),
 
+  listSubmissions: () => request('submissions'),
+  approveSubmission: (id, hall) => request(`submissions/${id}/approve`, { method: 'POST', body: JSON.stringify(hall) }),
+  rejectSubmission: (id, reason) => request(`submissions/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
   listVoicemails: () => request('voicemails'),
   setVoicemailHandled: (id, handled) => request(`voicemails/${id}`, { method: 'PUT', body: JSON.stringify({ handled }) }),
   deleteVoicemail: (id) => request(`voicemails/${id}`, { method: 'DELETE', body: '{}' }),

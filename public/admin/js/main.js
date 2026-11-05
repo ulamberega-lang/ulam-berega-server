@@ -9,11 +9,12 @@ import { initMails, loadMails } from './mails.js';
 import { initChannels, loadChannels } from './channels.js';
 import { initImport, loadImport } from './import.js';
 import { initNikud, loadNikud } from './nikud.js';
+import { initPending, loadPending, loadPendingCount } from './pending.js';
 import { initVoicemails, loadVoicemails, loadVoicemailCount } from './voicemails.js';
 import { initDetails, closeDetailsIfOpen } from './details.js';
 
-// nikud ו-import: בלי כפתור בתפריט, נפתחים מ"ניהול אולמות"; channels - מ"שיחות לפי אולם"
-const TABS = ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'channels'];
+// nikud, import ו-pending: בלי כפתור בתפריט, נפתחים מ"ניהול אולמות"; channels - מ"שיחות לפי אולם"
+const TABS = ['stats', 'calls', 'halls', 'voicemails', 'mails', 'import', 'nikud', 'pending', 'channels'];
 const fromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'stats');
 const state = { tab: fromHash(), range: preset('all'), halls: [] };
 
@@ -33,6 +34,7 @@ async function refresh() {
     else if (tab === 'channels') await loadChannels(state.range, state.halls, isCurrent);
     else if (tab === 'import') loadImport(state.halls);
     else if (tab === 'nikud') await loadNikud(state.halls, isCurrent);
+    else if (tab === 'pending') await loadPending(state.halls, isCurrent);
     else await loadHalls(state.range, state.halls, isCurrent);
     if (isCurrent()) $('#updated').textContent = `עודכן ב-${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
   } catch (err) {
@@ -92,10 +94,10 @@ function setTab(tab, { record = true, load = true } = {}) {
   if (record && changed) saveCurrent();
   state.tab = tab;
   // "ניקוד הקראה" ו"ייבוא אולמות" שייכים ללשונית האולמות; "וואטסאפ, צ'אט ואתר" ללשונית השיחות
-  const navTab = ['nikud', 'import'].includes(tab) ? 'halls' : tab === 'channels' ? 'stats' : tab;
+  const navTab = ['nikud', 'import', 'pending'].includes(tab) ? 'halls' : tab === 'channels' ? 'stats' : tab;
   $$('.topbar nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === navTab));
   for (const name of TABS) $(`#tab-${name}`).hidden = name !== tab;
-  $('#range').hidden = ['voicemails', 'mails', 'import', 'nikud'].includes(tab); // להודעות, למיילים, לייבוא ולניקוד אין טווח תאריכים
+  $('#range').hidden = ['voicemails', 'mails', 'import', 'nikud', 'pending'].includes(tab); // להודעות, למיילים, לייבוא, לניקוד ולאישור אין טווח תאריכים
   if (record && changed) pushPlace();
   window.scrollTo({ top: 0 });
   if (load) refresh();
@@ -132,7 +134,8 @@ function init() {
 
   initStats(refresh);
   initCalls(refresh);
-  initHalls(async () => { await loadHallList(); refresh(); });
+  initHalls(async () => { await loadHallList(); refresh(); loadPendingCount(); });
+  initPending(refresh);
   initVoicemails();
   initMails();
   initChannels(refresh);
@@ -140,6 +143,7 @@ function init() {
   initNikud();
   $('#openNikud').addEventListener('click', () => setTab('nikud'));
   $('#openImport').addEventListener('click', () => setTab('import'));
+  $('#openPending').addEventListener('click', () => setTab('pending'));
   $('#openChannels').addEventListener('click', () => setTab('channels'));
   document.addEventListener('voicemails-changed', (e) => {
     const badge = $('#voicemailBadge');
@@ -172,6 +176,7 @@ function init() {
   updateBack();
   setBusy(true);
   loadVoicemailCount();
+  loadPendingCount();
   loadHallList().then(refresh).catch((err) => { setBusy(false); showError(err.message); });
 }
 

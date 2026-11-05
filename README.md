@@ -14,6 +14,7 @@ src/
     ivr.js                    הנתיבים שימות פונה אליהם (/api/ivr)
     dialer.js                 חייגן יוצא לבעל הפרויקט (/api/dialer)
     admin-api.js              ה-API של אתר הניהול (/admin/api)
+    staff-api.js              ה-API של אתר ההוספה של העובד (/staff/api)
     visit.js                  ספירת כניסות לדפי האתר (/api/visit)
   ivr/
     flow.js                   זרימת השיחה: מה נשאל בכל שלב ואיך מטפלים בתשובה
@@ -37,6 +38,7 @@ src/
     mail-log.js               גישה ליומן המיילים
     pronunciations.js         גישה לטבלת הניקוד
     channel-events.js         גישה לטבלת הסטטיסטיקה לפי ערוץ
+    submissions.js            גישה לאולמות שהעובד שלח לאישור
   lib/
     yemot.js                  בניית תשובות בפורמט של ימות
     text-match.js             התאמת מה שנאמר לשמות ערים ושכונות
@@ -44,9 +46,10 @@ src/
     brevo.js                  שליחת מייל (Brevo)
     supabase.js               חיבור למסד הנתונים
   middleware/
-    admin-auth.js             כניסה לאתר הניהול (דף כניסה + עוגייה)
+    admin-auth.js             כניסה לאתר הניהול ולאתר העובד (דף כניסה + עוגייה)
     admin-guard.js            הגנה מזיוף בקשות (JSON + Origin)
 public/admin/                 אתר הניהול (HTML, עיצוב, JavaScript)
+public/staff/                 אתר ההוספה של העובד (משתמש בקוד ובעיצוב של אתר הניהול)
 sql/                          קבצי SQL להרצה ב-Supabase
 test/                         בדיקות אוטומטיות (npm test)
 dev/                          כלי פיתוח: שרת דמה לאתר הניהול, בדיקת עשן, סימולציית שרת
@@ -62,14 +65,20 @@ dev/                          כלי פיתוח: שרת דמה לאתר הניה
 | `YEMOT_TOKEN` | `מספר_מערכת:סיסמה`, להורדת הקלטות מימות |
 | `BREVO_API_KEY`, `MAIL_FROM` | מיילים לאולמות והודעות קוליות |
 | `ADMIN_PASSWORD` | סיסמה לאתר הניהול |
+| `STAFF_PASSWORD` | (לא חובה) סיסמה לאתר ההוספה של העובד (`/staff`); בלעדיה האתר סגור |
 
 ## פיתוח
 
 ```
 npm ci && npm test        # בדיקות אוטומטיות (כולל סימולציית שרת עם מסד נתונים מדומה)
 node dev/mock-admin.mjs   # אתר הניהול עם נתונים מדומים ב-http://localhost:4173/admin/
+NODE_PATH=$(npm root -g) node dev/smoke-staff.mjs   # בדיקת דפדפן לאתר העובד ולאישור (מפעילה שרת בעצמה)
 ```
 
 ## אתר הניהול
 
 `https://ulam-berega.onrender.com/admin`. שם המשתמש לא נבדק, הסיסמה היא `ADMIN_PASSWORD`.
+
+## אתר ההוספה של העובד
+
+`https://simcha-besicha.co.il/staff` (מפנה ל-`https://ulam-berega.onrender.com/staff`), עם הסיסמה `STAFF_PASSWORD`. העובד מוסיף אולמות (בטופס או מקובץ אקסל), והם מגיעים ללשונית "לאישור" באתר הניהול. צריך להריץ פעם אחת את `sql/hall_submissions.sql` ב-Supabase.

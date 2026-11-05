@@ -7,6 +7,7 @@ import * as voicemails from '../repositories/voicemails.js';
 import * as mailLog from '../repositories/mail-log.js';
 import * as pronunciations from '../repositories/pronunciations.js';
 import * as channelEvents from '../repositories/channel-events.js';
+import * as submissions from '../repositories/submissions.js';
 import { reloadNikud } from '../services/nikud.js';
 import { suggestNikud } from '../services/nikud-suggest.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
@@ -17,7 +18,7 @@ export const adminApi = Router();
 
 // שגיאה בכל נתיב → הודעה ברורה לאתר במקום קריסה. קלט לא תקין (InputError) מוצג כמו שהוא;
 // תקלת שרת (למשל מסד הנתונים) נרשמת בלוג, ולאתר חוזרת הודעה כללית
-const handle = (fn) => async (req, res) => {
+export const handle = (fn) => async (req, res) => {
   try {
     res.json(await fn(req));
   } catch (err) {
@@ -31,7 +32,7 @@ const handle = (fn) => async (req, res) => {
 
 // ---------- אולמות ----------
 
-const idOf = (req) => {
+export const idOf = (req) => {
   if (!/^\d+$/.test(req.params.id)) throw new InputError('מזהה לא תקין');
   return req.params.id;
 };
@@ -54,6 +55,33 @@ adminApi.delete('/halls/:id', handle(async (req) => {
   hallsChanged();
   console.log(`halls: נמחק אולם "${hall.name}" (${hall.city_name}, שלוחה ${hall.extension})`);
   return { ok: true };
+}));
+
+// ---------- אולמות לאישור (הגשות מאתר ההוספה של העובד, /staff) ----------
+
+// בלי הטבלה: הודעה ברורה מה להריץ
+export const submissionsSqlMissing = (e) => {
+  if (e.code === 'PGRST205' || e.code === '42P01') throw new InputError('צריך להריץ ב-Supabase את הקובץ sql/hall_submissions.sql', 400);
+  throw e;
+};
+adminApi.get('/submissions', handle(() => submissions.listPending().catch(submissionsSqlMissing)));
+// אישור: הגוף הוא האולם המלא מטופס האולם (כולל שלוחה, אחרי שבעל הפרויקט בדק ותיקן). נוצר אולם, וההגשה מסומנת "אושר"
+adminApi.post('/submissions/:id/approve', handle(async (req) => {
+  const sub = await submissions.findById(idOf(req)).catch(submissionsSqlMissing);
+  if (!sub) throw new InputError('ההגשה לא נמצאה', 404);
+  if (sub.status !== 'pending') throw new InputError('ההגשה כבר טופלה');
+  const hall = await halls.create(hallFromBody(req.body, true));
+  if (!(await submissions.decide(sub.id, { status: 'approved', hall_id: hall.id }))) console.error(`submissions: אולם ${hall.id} נוצר, אבל ההגשה ${sub.id} לא סומנה כמאושרת`);
+  hallsChanged();
+  console.log(`submissions: אושר אולם "${hall.name}" (${hall.city_name}, שלוחה ${hall.extension})`);
+  return hall;
+}));
+adminApi.post('/submissions/:id/reject', handle(async (req) => {
+  const reason = String(req.body?.reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  const done = await submissions.decide(idOf(req), { status: 'rejected', reason }).catch(submissionsSqlMissing);
+  if (!done) throw new InputError('ההגשה לא נמצאה או שכבר טופלה', 404);
+  console.log(`submissions: נדחה אולם "${done.data?.name}"`);
+  return done;
 }));
 
 // ---------- ניקוד הקראה (טבלת pronunciations) ----------
