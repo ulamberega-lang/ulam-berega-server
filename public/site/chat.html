@@ -29,14 +29,14 @@
 <script src="/assets/bg.js" defer></script>
 <script src="/assets/visit.js" defer></script>
 <style>
-  :root { --green: #2f261d; --hdr-text: #f5f1ea; --bg: rgba(255,244,225,.06); --out: rgba(226,191,120,.24); --in: rgba(255,244,225,.11); --text: #f5f1ea; --muted: rgba(245,241,234,.68); --link: #f0cf8a; --line: rgba(255,255,255,.16); }
+  :root { --green: #2f261d; --hdr-text: #f5f1ea; --bg: rgba(255,246,230,.10); --out: rgba(232,200,130,.32); --in: rgba(255,248,235,.17); --text: #fffaf2; --muted: rgba(255,250,242,.78); --link: #ffe6ad; --line: rgba(255,255,255,.16); }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { font-family: var(--sans); background: transparent; min-height: 0; color: var(--text); display: flex; justify-content: center; padding: 26px 14px; }
   :focus-visible { outline: 2px solid #f3dca8; outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
-  .app { width: 100%; max-width: 640px; height: calc(100dvh - 52px); overflow: hidden; border-radius: 24px; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08); border: 1px solid var(--line); -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4); }
-  header { background: rgba(255,255,255,.07); border-bottom: 1px solid var(--line); color: var(--hdr-text); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .app { width: 100%; max-width: 640px; height: calc(100dvh - 52px); overflow: hidden; border-radius: 24px; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08); border: 1px solid var(--line); -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.08); backdrop-filter: blur(32px) saturate(1.8) brightness(1.08); border-top-color: rgba(255,255,255,.5); }
+  header { background: rgba(255,248,235,.12); border-bottom: 1px solid var(--line); color: var(--hdr-text); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
   .avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex: none; border: 1px solid rgba(255,255,255,.3); }
   .who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; padding: 0; }
   .title { flex: 1; min-width: 0; display: block; }
@@ -48,10 +48,11 @@
   .row { display: flex; flex-direction: column; max-width: 86%; }
   .row.in { align-self: flex-start; }
   .row.out { align-self: flex-end; }
-  .bubble { background: var(--in); border: 1px solid rgba(255,255,255,.12); border-radius: 18px; padding: 10px 14px 8px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.45; font-size: .98rem; }
+  .bubble { background: var(--in); border: 1px solid rgba(255,255,255,.2); border-top-color: rgba(255,255,255,.38); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); border-radius: 18px; padding: 10px 14px 8px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.45; font-size: .98rem; }
   .row.out .bubble { background: var(--out); border-color: rgba(243,220,168,.3); }
   .nb { white-space: nowrap; }
   .bubble a { color: var(--link); }
+  .bubble, .btns button, header, .sheet { text-shadow: 0 1px 2px rgba(40,28,14,.4); }
   .bubble .quote { display: block; border-inline-start: 3px solid #e2bf78; padding-inline-start: 8px; color: var(--muted); font-size: .9rem; }
   .time { font-size: .7rem; color: var(--muted); text-align: end; margin-top: 2px; display: block; }
   .btns { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
