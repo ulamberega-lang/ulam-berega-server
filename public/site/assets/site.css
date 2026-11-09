@@ -1,5 +1,6 @@
 /* עיצוב משותף לאתר הציבורי. הרקע כמו במקור: שמנת, אולם מעומעם ושורות "שמחה בשיחה ♥ מזל טוב" (bg.js).
-   מעליו לוחות זכוכית בגווני קרם-קרמל (לאטה) (glassmorphism): שקופים למחצה, טשטוש חזק, ברק וקצה מואר, טקסט בהיר וזהב.
+   מעליו לוחות זכוכית בגווני קרם-קרמל (לאטה): ברק אלכסוני, קצה מואר וצל, טקסט בהיר וזהב.
+   בלי backdrop-filter: מעל הרקע הנע הוא האט את האתר באייפון והלוחות נצבעו באיחור (נמדד: פי 2.7 זמן לפריים).
    הכותרת והתחתית יושבות ישר על הרקע הבהיר, ולכן הן בצבע כהה. גופן Rubik (מודרני) לכל הטקסט. */
 :root {
   --glass: rgba(255,246,230,.12); --glass-strong: rgba(255,246,230,.2); --glass-line: rgba(255,244,225,.32);
@@ -37,9 +38,8 @@ a { color: var(--link); text-underline-offset: 3px; }
 /* הילה בהירה מסביב לאותיות, כדי שיהיו קריאות מעל השורות שברקע */
 .brand h1, .brand .sub, h1.page, footer.site { text-shadow: 0 0 3px #fffaf0, 0 0 10px #fffaf0, 0 0 18px rgba(255,250,240,.9); }
 
-/* זכוכית: שקיפות עם ברק אלכסוני, טשטוש חזק של הרקע, קצה עליון מואר ומסגרת חדה */
-.panel { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(150,120,84,.86) 0%, rgba(128,101,71,.84) 50%, rgba(140,111,78,.86) 100%); /* קרם-קרמל (לאטה) */
-  -webkit-backdrop-filter: blur(30px) saturate(1.6); backdrop-filter: blur(30px) saturate(1.6);
+/* זכוכית: ברק אלכסוני, קצה עליון מואר ומסגרת חדה. כמעט אטום ובלי טשטוש רקע (מהירות באייפון) */
+.panel { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(163,136,104,.97) 0%, rgba(144,120,93,.97) 50%, rgba(154,128,98,.97) 100%); /* קרם-קרמל (לאטה) */
   border: 1px solid var(--glass-line); border-top-color: rgba(255,255,255,.55); border-inline-start-color: rgba(255,255,255,.4); border-radius: 24px; padding: 28px 32px; margin: 0 0 18px;
   box-shadow: 0 30px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.04); }
 .panel::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
@@ -53,7 +53,7 @@ a { color: var(--link); text-underline-offset: 3px; }
 .panel p:last-child { margin-bottom: 0; }
 
 .ways { display: grid; gap: 10px; margin-top: 18px; }
-.way { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-line); border-top-color: rgba(255,255,255,.45); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: var(--ink); text-decoration: none; transition: transform .2s, box-shadow .2s, background .2s, border-color .2s; }
+.way { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-line); border-top-color: rgba(255,255,255,.45); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); color: var(--ink); text-decoration: none; transition: transform .2s, box-shadow .2s, background .2s, border-color .2s; }
 .way::after { content: "\2190"; margin-inline-start: auto; font-size: 1.3rem; color: var(--gold); transition: transform .2s; }
 .way:hover { transform: translateY(-2px); background: var(--glass-strong); border-color: rgba(255,255,255,.3); box-shadow: 0 14px 34px rgba(0,0,0,.3); }
 .way:hover::after { transform: translateX(-4px); }
