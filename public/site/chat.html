@@ -29,7 +29,7 @@
 <script src="/assets/bg.js" defer></script>
 <script src="/assets/visit.js" defer></script>
 <style>
-  :root { --green: #2f261d; --hdr-text: #f5f1ea; --bg: rgba(56,44,32,.80); --out: rgba(232,200,130,.32); --in: rgba(255,248,235,.17); --text: #fffaf2; --muted: rgba(255,250,242,.78); --link: #ffe6ad; --line: rgba(255,255,255,.16); }
+  :root { --green: #2f261d; --hdr-text: #f5f1ea; --bg: rgba(134,106,75,.86); --out: rgba(232,200,130,.32); --in: rgba(255,248,235,.17); --text: #fffaf2; --muted: rgba(255,250,242,.78); --link: #ffe6ad; --line: rgba(255,255,255,.16); }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { font-family: var(--sans); background: transparent; min-height: 0; color: var(--text); display: flex; justify-content: center; padding: 26px 14px; }
@@ -66,7 +66,7 @@
   input:focus { border-color: rgba(243,220,168,.6); }
   input:focus-visible { outline: none; } /* המסגרת הזהובה מסמנת את השדה הפעיל */
   form button { width: 48px; height: 48px; border: 0; border-radius: 50%; background: linear-gradient(135deg, #f3dca8, #c9a14f); color: #2a2016; font-size: 1.2rem; cursor: pointer; flex: none; }
-  .info { position: absolute; inset: 0; background: #2a221a; display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
+  .info { position: absolute; inset: 0; background: #7c6347; display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
   .info.open { display: flex; }
   .info header { position: sticky; top: 0; }
   .info header button { background: none; border: 0 !important; font-size: 1.5rem; padding: 0 6px; }
@@ -83,7 +83,7 @@
   .links a small { display: block; color: var(--muted); }
   .sheet-bg { position: absolute; inset: 0; background: rgba(20,15,10,.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); display: none; align-items: flex-end; padding: 0 12px calc(12px + env(safe-area-inset-bottom)); }
   .sheet-bg.open { display: flex; }
-  .sheet { background: rgba(52,42,32,.94); border: 1px solid var(--line); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); width: 100%; max-height: 75%; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; }
+  .sheet { background: rgba(120,95,67,.96); border: 1px solid var(--line); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); width: 100%; max-height: 75%; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; }
   .sheet h3 { margin: 0; padding: 16px; font-size: 1rem; border-bottom: 1px solid var(--line); font-family: var(--serif); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
   .sheet h3 button { background: none; border: 0; font-size: 1.4rem; cursor: pointer; color: var(--muted); }
   .sheet ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; }

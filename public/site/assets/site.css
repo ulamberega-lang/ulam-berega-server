@@ -1,5 +1,5 @@
 /* עיצוב משותף לאתר הציבורי. הרקע כמו במקור: שמנת, אולם מעומעם ושורות "שמחה בשיחה ♥ מזל טוב" (bg.js).
-   מעליו לוחות זכוכית כהים בגווני בז'-מוקה (glassmorphism): שקופים למחצה, טשטוש חזק, ברק וקצה מואר, טקסט בהיר וזהב.
+   מעליו לוחות זכוכית בגווני קרם-קרמל (לאטה) (glassmorphism): שקופים למחצה, טשטוש חזק, ברק וקצה מואר, טקסט בהיר וזהב.
    הכותרת והתחתית יושבות ישר על הרקע הבהיר, ולכן הן בצבע כהה. גופן Rubik (מודרני) לכל הטקסט. */
 :root {
   --glass: rgba(255,246,230,.12); --glass-strong: rgba(255,246,230,.2); --glass-line: rgba(255,244,225,.32);
@@ -38,7 +38,7 @@ a { color: var(--link); text-underline-offset: 3px; }
 .brand h1, .brand .sub, h1.page, footer.site { text-shadow: 0 0 3px #fffaf0, 0 0 10px #fffaf0, 0 0 18px rgba(255,250,240,.9); }
 
 /* זכוכית: שקיפות עם ברק אלכסוני, טשטוש חזק של הרקע, קצה עליון מואר ומסגרת חדה */
-.panel { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(74,60,44,.80) 0%, rgba(52,41,30,.74) 50%, rgba(62,50,37,.78) 100%);
+.panel { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(150,120,84,.86) 0%, rgba(128,101,71,.84) 50%, rgba(140,111,78,.86) 100%); /* קרם-קרמל (לאטה) */
   -webkit-backdrop-filter: blur(30px) saturate(1.6); backdrop-filter: blur(30px) saturate(1.6);
   border: 1px solid var(--glass-line); border-top-color: rgba(255,255,255,.55); border-inline-start-color: rgba(255,255,255,.4); border-radius: 24px; padding: 28px 32px; margin: 0 0 18px;
   box-shadow: 0 30px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.04); }
