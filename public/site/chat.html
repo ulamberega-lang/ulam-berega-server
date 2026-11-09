@@ -30,14 +30,14 @@
 <script src="/assets/visit.js" defer></script>
 <style>
   /* חלון הצ'אט בהיר מאוד (טקסט כהה), והכותרת בגוון הקרם-קרמל של האתר */
-  :root { --green: #2f261d; --hdr-text: #fffaf2; --bg: rgba(255,252,246,.92); --out: rgba(226,196,138,.42); --in: #ffffff; --text: #2a1f12; --muted: #6b5a43; --link: #7a5a1f; --line: rgba(176,141,74,.3); }
+  :root { --green: #2f261d; --hdr-text: #fffaf2; --bg: rgba(255,252,246,.97); --out: rgba(226,196,138,.42); --in: #ffffff; --text: #2a1f12; --muted: #6b5a43; --link: #7a5a1f; --line: rgba(176,141,74,.3); }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body { font-family: var(--sans); background: transparent; min-height: 0; color: var(--text); display: flex; justify-content: center; padding: 26px 14px; }
   :focus-visible { outline: 2px solid #8a6a2c; outline-offset: 2px; }
   header :focus-visible { outline-color: #f3dca8; }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
-  .app { width: 100%; max-width: 640px; height: calc(100dvh - 52px); overflow: hidden; border-radius: 24px; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 30px 80px rgba(90,64,20,.28), inset 0 1px 0 #fff; border: 1px solid rgba(255,255,255,.9); -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.08); backdrop-filter: blur(32px) saturate(1.8) brightness(1.08); border-top-color: rgba(255,255,255,.5); }
+  .app { width: 100%; max-width: 640px; height: calc(100dvh - 52px); overflow: hidden; border-radius: 24px; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 30px 80px rgba(90,64,20,.28), inset 0 1px 0 #fff; border: 1px solid rgba(255,255,255,.9); border-top-color: rgba(255,255,255,.5); }
   header { background: linear-gradient(135deg, rgba(150,120,84,.96), rgba(128,101,71,.96)); border-bottom: 1px solid rgba(176,141,74,.4); color: var(--hdr-text); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
   .avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex: none; border: 1px solid rgba(255,255,255,.3); }
   .who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; padding: 0; }
@@ -50,7 +50,7 @@
   .row { display: flex; flex-direction: column; max-width: 86%; }
   .row.in { align-self: flex-start; }
   .row.out { align-self: flex-end; }
-  .bubble { background: var(--in); border: 1px solid rgba(176,141,74,.2); box-shadow: 0 1px 3px rgba(90,64,20,.1); border-radius: 18px; padding: 10px 14px 8px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.45; font-size: .98rem; }
+  .bubble { background: var(--in); border: 1px solid rgba(176,141,74,.2); box-shadow: 0 1px 3px rgba(90,64,20,.1); border-radius: 18px; padding: 10px 14px 8px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.45; font-size: .98rem; }
   .row.out .bubble { background: var(--out); border-color: rgba(176,141,74,.35); }
   .nb { white-space: nowrap; }
   .bubble a { color: var(--link); }
@@ -68,24 +68,26 @@
   input:focus { border-color: #b08d4a; }
   input:focus-visible { outline: none; } /* המסגרת הזהובה מסמנת את השדה הפעיל */
   form button { width: 48px; height: 48px; border: 0; border-radius: 50%; background: linear-gradient(135deg, #f3dca8, #c9a14f); color: #2a2016; font-size: 1.2rem; cursor: pointer; flex: none; }
-  .info { position: absolute; inset: 0; background: #fbf6ec; display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
+  /* פרטי העסק: בגווני הקרם-קרמל של האתר, טקסט בהיר */
+  .info { --text: #fffaf2; --muted: rgba(255,250,242,.82); --line: rgba(255,244,225,.3); color: var(--text); text-shadow: 0 1px 2px rgba(20,14,8,.45); position: absolute; inset: 0; background: linear-gradient(160deg, #a38868, #90785d 55%, #9a8062); display: none; flex-direction: column; overflow-y: auto; z-index: 5; }
   .info.open { display: flex; }
   .info header { position: sticky; top: 0; }
   .info header button { background: none; border: 0 !important; font-size: 1.5rem; padding: 0 6px; }
-  .card { background: #fff; border-block: 1px solid var(--line); margin-bottom: 10px; padding: 14px 18px; }
+  .card { background: rgba(255,246,230,.12); border: 1px solid var(--line); border-top-color: rgba(255,255,255,.45); border-radius: 18px; margin: 12px 12px 0; padding: 14px 18px; }
+  .card:last-child { margin-bottom: 12px; }
   .card.top { text-align: center; padding: 24px 18px; }
   .card.top img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 1.5px solid #b08d4a; padding: 3px; background: #fffdf8; }
-  .card.top h2 { margin: 12px 0 2px; font-family: var(--serif); font-weight: 500; font-size: 1.5rem; }
+  .card.top h2 { color: #ffe7b3; margin: 12px 0 2px; font-family: var(--serif); font-weight: 500; font-size: 1.5rem; }
   .card.top p { margin: 0; color: var(--muted); }
-  .card h4 { margin: 0 0 6px; font-size: .85rem; color: var(--muted); font-weight: 500; }
+  .card h4 { margin: 0 0 6px; font-size: .85rem; color: #ffe7b3; font-weight: 500; }
   .card p { margin: 0; line-height: 1.5; }
   .links a { display: flex; align-items: center; gap: 12px; padding: 12px 0; color: var(--text); text-decoration: none; border-top: 1px solid var(--line); }
   .links a:first-child { border-top: 0; }
   .links a span { font-size: 1.3rem; width: 28px; text-align: center; }
   .links a small { display: block; color: var(--muted); }
-  .sheet-bg { position: absolute; inset: 0; background: rgba(40,28,14,.35); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); display: none; align-items: flex-end; padding: 0 12px calc(12px + env(safe-area-inset-bottom)); }
+  .sheet-bg { position: absolute; inset: 0; background: rgba(40,28,14,.35); display: none; align-items: flex-end; padding: 0 12px calc(12px + env(safe-area-inset-bottom)); }
   .sheet-bg.open { display: flex; }
-  .sheet { background: #fffdf8; border: 1px solid var(--line); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); width: 100%; max-height: 75%; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; }
+  .sheet { background: #fffdf8; border: 1px solid var(--line); width: 100%; max-height: 75%; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; }
   .sheet h3 { margin: 0; padding: 16px; font-size: 1rem; border-bottom: 1px solid var(--line); font-family: var(--serif); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
   .sheet h3 button { background: none; border: 0; font-size: 1.4rem; cursor: pointer; color: var(--muted); }
   .sheet ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
