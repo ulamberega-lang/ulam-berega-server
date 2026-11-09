@@ -102,7 +102,7 @@ function page({ path, h1, sub, title, desc, place, intro, sections, faq, crumbs 
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${esc(url)}">
 <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large">
-<meta name="theme-color" content="#2a221a">
+<meta name="theme-color" content="#3a2e1c">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="shortcut icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/logo.png">
