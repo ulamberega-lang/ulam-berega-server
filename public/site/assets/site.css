@@ -1,16 +1,20 @@
-/* עיצוב משותף לאתר הציבורי: שמנת, זהב ויוקרה שקטה. הרקע (אולם מעומעם ושורות "שמחה בשיחה ♥ מזל טוב") נבנה ב-bg.js */
+/* עיצוב משותף לאתר הציבורי. הרקע כמו במקור: שמנת, אולם מעומעם ושורות "שמחה בשיחה ♥ מזל טוב" (bg.js).
+   מעליו לוחות זכוכית בגווני קרם-קרמל (לאטה) (glassmorphism): שקופים למחצה, טשטוש חזק, ברק וקצה מואר, טקסט בהיר וזהב.
+   הכותרת והתחתית יושבות ישר על הרקע הבהיר, ולכן הן בצבע כהה. גופן Rubik (מודרני) לכל הטקסט. */
 :root {
-  --cream: #faf5ea; --ivory: #fffdf8; --champagne: #f1e3bd;
-  --gold: #b08d4a; --gold-deep: #8a6a2c; --gold-light: #d9c08a;
-  --ink: #33291c; --muted: #6b5d47; --link: #7a5a1f;
-  --serif: "Frank Ruhl Libre", "David Libre", "David", "Times New Roman", serif;
-  --sans: "Heebo", "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --glass: rgba(255,246,230,.12); --glass-strong: rgba(255,246,230,.2); --glass-line: rgba(255,244,225,.32);
+  --gold: #f6d68f; --gold-deep: #c9a14f; --gold-light: #ffe7b3;
+  --ink: #fffaf2; --muted: rgba(255,250,242,.82); --link: #ffe6ad;
+  --serif: "Rubik", "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --sans: "Rubik", "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --on-bg: #2a1f12; --on-bg-muted: #5a4a35; /* טקסט שיושב ישר על הרקע הבהיר */
 }
 * { box-sizing: border-box; }
-html { background: linear-gradient(180deg, #f3e9d0 0%, #faf5ea 55%, #fffdf8 100%) fixed; }
-body { margin: 0; min-height: 100vh; font-family: var(--sans); color: var(--ink); line-height: 1.8; background: transparent; }
-:focus-visible { outline: 3px solid #6b4a12; outline-offset: 3px; }
+html { background: linear-gradient(180deg, #f3e9d0 0%, #faf5ea 55%, #fffdf8 100%) fixed; } /* כמו במקור */
+body { margin: 0; min-height: 100vh; font-family: var(--sans); color: var(--ink); line-height: 1.75; background: transparent; }
+:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
 a { color: var(--link); text-underline-offset: 3px; }
+.nb { white-space: nowrap; } /* מספר טלפון לא נשבר לשתי שורות */
 
 /* שכבת הרקע */
 .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
@@ -27,28 +31,40 @@ a { color: var(--link); text-underline-offset: 3px; }
 /* מבנה הדף */
 .wrap { max-width: 760px; margin: 0 auto; padding: 56px 20px 72px; }
 .brand { text-align: center; padding: 0 0 36px; }
-.brand img { width: 108px; height: 108px; border-radius: 50%; border: 1.5px solid var(--gold); padding: 3px; background: var(--ivory); box-shadow: 0 14px 34px rgba(90,64,20,.20); }
-.brand h1, h1.page { font-family: var(--serif); font-weight: 700; font-size: clamp(2.2rem, 7vw, 3.2rem); line-height: 1.1; margin: 22px 0 8px; color: var(--ink); }
-.brand .sub { margin: 0; color: var(--muted); font-size: 1.15rem; }
+.brand img { width: 108px; height: 108px; border-radius: 50%; border: 1.5px solid #b08d4a; padding: 3px; background: #fffdf8; box-shadow: 0 14px 34px rgba(90,64,20,.22); }
+.brand h1, h1.page { font-family: var(--serif); font-weight: 700; font-size: clamp(2.2rem, 7vw, 3.3rem); line-height: 1.1; letter-spacing: -.01em; margin: 22px 0 8px; color: var(--on-bg); }
+.brand .sub { margin: 0; color: var(--on-bg-muted); font-size: 1.15rem; font-weight: 500; }
+/* הילה בהירה מסביב לאותיות, כדי שיהיו קריאות מעל השורות שברקע */
+.brand h1, .brand .sub, h1.page, footer.site { text-shadow: 0 0 3px #fffaf0, 0 0 10px #fffaf0, 0 0 18px rgba(255,250,240,.9); }
 
-.panel { background: rgba(255,253,248,.74); -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(14px) saturate(1.1);
-  border: 1px solid rgba(255,255,255,.75); outline: 1px solid rgba(176,141,74,.28); outline-offset: -1px; border-radius: 20px; padding: 28px 32px; margin: 0 0 18px;
-  box-shadow: 0 18px 50px rgba(90,64,20,.10); }
-.panel h2 { font-family: var(--serif); font-weight: 700; font-size: 1.35rem; margin: 0 0 8px; color: var(--gold-deep); }
+/* זכוכית: שקיפות עם ברק אלכסוני, טשטוש חזק של הרקע, קצה עליון מואר ומסגרת חדה */
+.panel { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(150,120,84,.86) 0%, rgba(128,101,71,.84) 50%, rgba(140,111,78,.86) 100%); /* קרם-קרמל (לאטה) */
+  -webkit-backdrop-filter: blur(30px) saturate(1.6); backdrop-filter: blur(30px) saturate(1.6);
+  border: 1px solid var(--glass-line); border-top-color: rgba(255,255,255,.55); border-inline-start-color: rgba(255,255,255,.4); border-radius: 24px; padding: 28px 32px; margin: 0 0 18px;
+  box-shadow: 0 30px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.04); }
+.panel::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 70%, rgba(255,255,255,.06) 100%); }
+.panel > * { position: relative; }
+/* חדות: צל טקסט עדין, כדי שטקסט בהיר יבלוט על הזכוכית הבהירה */
+.panel { text-shadow: 0 1px 2px rgba(20,14,8,.5); }
+.way.main { text-shadow: none; }
+.panel h2 { font-family: var(--serif); font-weight: 500; font-size: 1.35rem; margin: 0 0 8px; color: var(--gold-light); text-shadow: 0 1px 12px rgba(0,0,0,.25); }
 .panel p { margin: 0 0 8px; }
 .panel p:last-child { margin-bottom: 0; }
 
 .ways { display: grid; gap: 10px; margin-top: 18px; }
-.way { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 14px; background: rgba(255,253,248,.85); border: 1px solid rgba(176,141,74,.45); color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s, background .15s; }
-.way::after { content: "\2190"; margin-inline-start: auto; font-size: 1.3rem; color: var(--gold-deep); }
-.way:hover { transform: translateY(-1px); background: #fff; box-shadow: 0 10px 26px rgba(90,64,20,.14); }
-.way svg { width: 30px; height: 30px; flex: none; stroke: var(--gold-deep); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.way b { display: block; font-family: var(--serif); font-size: 1.2rem; }
+.way { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-line); border-top-color: rgba(255,255,255,.45); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: var(--ink); text-decoration: none; transition: transform .2s, box-shadow .2s, background .2s, border-color .2s; }
+.way::after { content: "\2190"; margin-inline-start: auto; font-size: 1.3rem; color: var(--gold); transition: transform .2s; }
+.way:hover { transform: translateY(-2px); background: var(--glass-strong); border-color: rgba(255,255,255,.3); box-shadow: 0 14px 34px rgba(0,0,0,.3); }
+.way:hover::after { transform: translateX(-4px); }
+.way svg { width: 30px; height: 30px; flex: none; stroke: var(--gold); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.way b { display: block; font-family: var(--serif); font-weight: 500; font-size: 1.15rem; }
 .way small { display: block; color: var(--muted); font-size: .92rem; line-height: 1.4; }
-.way.main { background: var(--gold); border-color: var(--gold); }
-.way.main svg, .way.main::after { stroke: var(--ink); color: var(--ink); }
-.way.main small { color: #2f2410; }
-.way.main:hover { background: #bd9a55; }
+.way.main { background: linear-gradient(135deg, rgba(243,220,168,.95), rgba(201,161,79,.92)); border-color: rgba(255,240,205,.6); color: #2a2016; box-shadow: 0 12px 34px rgba(226,191,120,.25); }
+.way.main svg, .way.main::after { stroke: #2a2016; color: #2a2016; }
+.way.main small { color: rgba(42,32,22,.78); }
+.way.main:hover { background: linear-gradient(135deg, #f6e2b4, #d2ab5c); }
 
-footer.site { text-align: center; color: var(--muted); font-size: .95rem; margin-top: 36px; }
+footer.site { text-align: center; color: var(--on-bg-muted); font-size: .95rem; margin-top: 36px; }
+footer.site a { color: #6e4f14; }
 footer.site a { margin: 0 8px; }
