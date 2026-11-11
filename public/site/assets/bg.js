@@ -79,7 +79,9 @@
     bg.className = 'bg';
     bg.setAttribute('aria-hidden', 'true');
     var n = Math.max(10, Math.min(24, Math.round(window.innerHeight / 62)));
-    bg.innerHTML = hall() + '<div class="rows">' + rows(n) + '</div><div class="veil"></div>';
+    // האולם מוצג כתמונה ולא כ-SVG חי: הטשטושים (feGaussianBlur) מחושבים פעם אחת, ולא בכל צביעה מחדש בזמן גלילה
+    // (נמדד: SVG חי נצבע מחדש בגלילה, פי 12 עבודת רסטר)
+    bg.innerHTML = '<img class="hall" alt="" src="data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hall()) + '">' + '<div class="rows">' + rows(n) + '</div><div class="veil"></div>';
     document.body.insertBefore(bg, document.body.firstChild);
   }
   if (document.body) build(); else document.addEventListener('DOMContentLoaded', build);

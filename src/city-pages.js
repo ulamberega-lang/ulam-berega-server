@@ -120,7 +120,6 @@ function page({ path, h1, sub, title, desc, place, intro, sections, faq, crumbs 
 <link rel="stylesheet" href="/assets/site.css">
 <script src="/assets/bg.js" defer></script>
 <script src="/assets/visit.js" defer></script>
-<script src="/assets/motion.js" defer></script>
 </head>
 <body>
 <main class="wrap">
