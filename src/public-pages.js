@@ -30,7 +30,8 @@ publicPages.get('/sitemap.xml', async (req, res) => {
 });
 
 // עיצוב ורקע משותפים (site.css, bg.js)
-publicPages.use('/assets', express.static(`${publicSite}/assets`, { maxAge: '1h' }));
+// בלי שמירה לשעה: הדפדפן בודק בכל טעינה אם הקובץ השתנה (תשובה קצרה 304 אם לא), כך שעדכון מופיע מיד
+publicPages.use('/assets', express.static(`${publicSite}/assets`, { maxAge: 0 }));
 publicPages.get('/health', (req, res) => res.send('ok')); // לפינג נגד שינה של Render
 // דף נחיתה ומדיניות פרטיות פומביים (נדרשים לפרופיל העסקי ולאפליקציה אצל Meta)
 // דף הבית: בלוק קישורי הערים (קישור פנימי לדפי העיר) נוצר מהערים הפעילות

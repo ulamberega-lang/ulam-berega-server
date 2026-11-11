@@ -11,7 +11,7 @@
   --on-bg: #2a1f12; --on-bg-muted: #5a4a35; /* טקסט שיושב ישר על הרקע הבהיר */
 }
 * { box-sizing: border-box; }
-html { background: linear-gradient(180deg, #f3e9d0 0%, #faf5ea 55%, #fffdf8 100%) fixed; } /* כמו במקור */
+html { background: linear-gradient(180deg, #f3e9d0 0%, #faf5ea 55%, #fffdf8 100%); } /* בלי fixed: ב-Safari רקע קבוע מאט גלילה, וממילא מוסתר מתחת ל-.bg */
 body { margin: 0; min-height: 100vh; font-family: var(--sans); color: var(--ink); line-height: 1.75; background: transparent; }
 :focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
 a { color: var(--link); text-underline-offset: 3px; }
@@ -28,6 +28,10 @@ a { color: var(--link); text-underline-offset: 3px; }
 .bg .row i { font-style: normal; font-size: 19px; color: #fff; text-shadow: 0 0 7px rgba(176,141,74,.85), 0 0 2px rgba(138,106,44,.9); padding: 0 6px; }
 @keyframes run { from { transform: translateX(0); } to { transform: translateX(50%); } }
 @media (prefers-reduced-motion: reduce) { .bg .row { animation: none; } }
+
+/* מהירות באייפון: כל לוח, הכותרת והתחתית בשכבה משלהם. הם נצבעים פעם אחת וזזים בגלילה בלי לצייר מחדש,
+   במקום שהדפדפן יצייר את הדף בחלקים תוך כדי גלילה מהירה (אז נראו חלקים ריקים והלוחות "קפצו") */
+.panel, .brand, footer.site { will-change: transform; }
 
 /* מבנה הדף */
 .wrap { max-width: 760px; margin: 0 auto; padding: 56px 20px 72px; }
@@ -46,9 +50,9 @@ a { color: var(--link); text-underline-offset: 3px; }
   background: linear-gradient(115deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 70%, rgba(255,255,255,.06) 100%); }
 .panel > * { position: relative; }
 /* חדות: צל טקסט עדין, כדי שטקסט בהיר יבלוט על הזכוכית הבהירה */
-.panel { text-shadow: 0 1px 2px rgba(20,14,8,.5); }
+.panel { text-shadow: 0 1px 0 rgba(20,14,8,.45); } /* בלי טשטוש: באייפון טשטוש לכל שורת טקסט מאט את הציור */
 .way.main { text-shadow: none; }
-.panel h2 { font-family: var(--serif); font-weight: 500; font-size: 1.35rem; margin: 0 0 8px; color: var(--gold-light); text-shadow: 0 1px 12px rgba(0,0,0,.25); }
+.panel h2 { font-family: var(--serif); font-weight: 500; font-size: 1.35rem; margin: 0 0 8px; color: var(--gold-light); }
 .panel p { margin: 0 0 8px; }
 .panel p:last-child { margin-bottom: 0; }
 
