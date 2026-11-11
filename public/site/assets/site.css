@@ -72,25 +72,21 @@ footer.site a { margin: 0 8px; }
 /* תנועה בגלילה (motion.js). רק transform ו-opacity. כוונון:
    --reveal-duration  משך החשיפה          --reveal-distance  כמה פיקסלים האלמנט עולה
    --reveal-stagger   השהיה בין פריטים שנחשפים יחד   --reveal-delay  השהיה לפני הראשון
-   --parallax         מהירות הכותרת ביחס לדף (0 = בלי פרלקסה)   --progress-height  עובי הפס (0 = בלי פס) */
+   --parallax         מהירות הכותרת ביחס לדף (0 = בלי פרלקסה) */
 :root {
   --reveal-duration: .6s; --reveal-distance: 24px; --reveal-stagger: 90ms; --reveal-delay: 0ms;
   --reveal-ease: cubic-bezier(.22,.61,.36,1); /* ease-out */
-  --parallax: .35; --progress-height: 3px;
+  --parallax: .35;
 }
 .reveal { opacity: 0; transform: translate3d(0, var(--reveal-distance), 0); }
 .reveal.in { animation: reveal var(--reveal-duration) var(--reveal-ease) calc(var(--reveal-delay) + var(--reveal-i, 0) * var(--reveal-stagger)) both; }
 @keyframes reveal { from { opacity: 0; transform: translate3d(0, var(--reveal-distance), 0); } to { opacity: 1; transform: none; } }
 
-.progress { position: fixed; top: 0; inset-inline: 0; height: var(--progress-height); z-index: 10; pointer-events: none;
-  background: linear-gradient(270deg, #c9a14f, #f6d68f); transform-origin: right; transform: scaleX(0); } /* מתמלא מימין, כמו הקריאה */
-@keyframes progress { to { transform: scaleX(1); } }
 @keyframes parallax { to { transform: translate3d(0, calc(var(--parallax) * 100%), 0); } }
 @media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: scroll()) {
-    .progress { animation: progress linear both; animation-timeline: scroll(root); }
+  @supports (animation-timeline: view()) {
     /* הכותרת יורדת לאט בזמן שהיא יוצאת מהמסך, והלוח הראשון עולה מעליה */
     .brand { animation: parallax linear both; animation-timeline: view(); animation-range: exit; }
   }
 }
-@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } .progress { display: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } }
