@@ -12,6 +12,8 @@ export const config = {
   mailFrom: process.env.MAIL_FROM,
   adminPassword: process.env.ADMIN_PASSWORD,
   staffPassword: process.env.STAFF_PASSWORD,           // אתר ההוספה של העובד (/staff); בלי זה האתר סגור
+  renderApiKey: process.env.RENDER_API_KEY,             // עריכת משתני הסביבה מאתר הניהול (settings.html)
+  renderServiceId: process.env.RENDER_SERVICE_ID,       // Render מגדיר אוטומטית
   waToken: process.env.WA_ACCESS_TOKEN,               // בוט הוואטסאפ (WhatsApp Cloud API של Meta)
   waAppSecret: process.env.WA_APP_SECRET,             // לאימות חתימת ה-webhook
   waVerifyToken: process.env.WA_VERIFY_TOKEN,         // לאימות הכתובת בהגדרת ה-webhook אצל Meta

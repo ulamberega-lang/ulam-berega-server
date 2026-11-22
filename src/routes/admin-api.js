@@ -13,6 +13,7 @@ import { suggestNikud } from '../services/nikud-suggest.js';
 import { downloadRecording, deleteRecordingFile } from '../services/transcriber.js';
 import { hallFromBody, plainName, InputError } from '../lib/hall-input.js';
 import * as waSetup from '../whatsapp/setup.js';
+import * as renderEnv from '../services/render-env.js';
 
 export const adminApi = Router();
 
@@ -174,6 +175,12 @@ adminApi.delete('/channels', handle(async () => {
   console.log('channels: נתוני וואטסאפ, צ\'אט ואתר אופסו');
   return { ok: true };
 }));
+
+// ---------- משתני הסביבה ב-Render (public/admin/settings.html) ----------
+adminApi.get('/settings', handle(() => renderEnv.list()));
+adminApi.put('/settings/:key', handle((req) => renderEnv.set(req.params.key, req.body?.value)));
+adminApi.delete('/settings/:key', handle((req) => renderEnv.remove(req.params.key)));
+adminApi.post('/settings/deploy', handle(() => renderEnv.deploy()));
 
 // ---------- הגדרת וואטסאפ (public/admin/whatsapp.html) ----------
 
