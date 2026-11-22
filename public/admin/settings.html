@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>הגדרות השרת</title>
+<style>
+  body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #f5f7fb; color: #1d2a44; line-height: 1.6; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 6px; }
+  a.back { color: #1b5fd1; text-decoration: none; font-size: .95rem; }
+  section { background: #fff; border-radius: 12px; padding: 14px 16px; margin: 0 0 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  h2 { font-size: 1rem; margin: 0; direction: ltr; text-align: right; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .desc { color: #5a6a8a; font-size: .9rem; margin: 2px 0 6px; }
+  input { font: inherit; padding: 8px 10px; border: 1px solid #b9c3d8; border-radius: 8px; width: 100%; box-sizing: border-box; margin: 4px 0 8px; direction: ltr; text-align: left; }
+  input.search { direction: rtl; text-align: right; }
+  button { font: inherit; padding: 7px 14px; border: 0; border-radius: 8px; background: #1b5fd1; color: #fff; cursor: pointer; margin-inline-end: 6px; }
+  button.alt { background: #5a6a8a; }
+  button.danger { background: #fff; color: #b3261e; border: 1px solid #e3b3ae; }
+  button:disabled { opacity: .5; cursor: default; }
+  .tag { display: inline-block; font-size: .78rem; border-radius: 999px; padding: 1px 9px; margin-inline-start: 6px; vertical-align: middle; font-family: system-ui, Arial, sans-serif; }
+  .tag.pending { background: #fff1d6; color: #8a5a00; }
+  .tag.secret { background: #eef2fa; color: #44527a; }
+  #banner { background: #fff1d6; border: 1px solid #f0d08a; }
+  #msg { min-height: 1.4em; font-size: .95rem; }
+  #msg.err { color: #b3261e; }
+  .hint { color: #5a6a8a; font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/admin/">→ חזרה לאתר הניהול</a>
+  <h1>הגדרות השרת (Render)</h1>
+  <p class="hint">משתני הסביבה של השרת הראשי. שמירה מעדכנת את Render מיד, אבל השינוי נכנס לתוקף רק אחרי "הפעלה מחדש". ערכים סודיים (מפתחות, סיסמאות) לא מוצגים: רואים רק את 4 התווים האחרונים, ואפשר להקליד ערך חדש במקומם.</p>
+
+  <section id="banner" hidden>
+    <b id="bannerText"></b>
+    <p class="hint">ההפעלה מחדש לוקחת כמה דקות, ושיחות טלפון פעילות באותו רגע מתנתקות. עדיף בשעה שקטה.</p>
+    <button id="deploy">הפעל מחדש עכשיו</button>
+  </section>
+
+  <p id="msg" role="status"></p>
+  <input id="search" class="search" type="search" placeholder="חיפוש לפי שם או תיאור">
+  <div id="list"><p class="hint">טוען…</p></div>
+
+  <section>
+    <h2 style="font-family:inherit;direction:rtl">הוספת משתנה חדש</h2>
+    <input id="newKey" placeholder="NAME" autocapitalize="characters" spellcheck="false">
+    <input id="newValue" placeholder="ערך" spellcheck="false">
+    <button id="add">הוסף</button>
+  </section>
+</main>
+<script>
+// תיאור בעברית לכל משתנה מוכר (CLAUDE.md, "משתני סביבה")
+const DESC = {
+  OWNER_PHONES: 'מספרים שרשאים להשתמש בחייגן היוצא (שלוחה 7), מופרדים בפסיקים. למשל 0525645458,0501234567',
+  DIALER_CALLER_ID: 'הזיהוי שמוצג למי שמקבל שיחה מהחייגן: did (מספר הקו, ברירת מחדל) או real_did',
+  ADMIN_PASSWORD: 'סיסמת אתר הניהול. החלפה מנתקת את כל מי שמחובר',
+  STAFF_PASSWORD: 'סיסמת אתר ההוספה של העובד (/staff). בלעדיה האתר סגור',
+  MAIL_FROM: 'כתובת השולח במיילים לאולמות, ולשם נשלחות ההודעות הקוליות וההתראות',
+  BREVO_API_KEY: 'מפתח Brevo לשליחת מיילים',
+  OPENAI_API_KEY: 'מפתח OpenAI לתמלול ולהצעות ניקוד',
+  OPENAI_NIKUD_MODEL: 'המודל להצעות ניקוד (ברירת מחדל gpt-4o-mini)',
+  YEMOT_TOKEN: 'מפתח ימות המשיח: מספר_מערכת:API_KEY',
+  YEMOT_API: 'כתובת ה-API של ימות',
+  SUPABASE_URL: 'כתובת מסד הנתונים',
+  SUPABASE_SERVICE_ROLE_KEY: 'מפתח מסד הנתונים',
+  WA_ACCESS_TOKEN: 'טוקן הוואטסאפ (System User ב-Meta)',
+  WA_APP_SECRET: 'סוד האפליקציה ב-Meta (אימות ה-webhook)',
+  WA_VERIFY_TOKEN: 'מחרוזת האימות שהוזנה בהגדרת ה-webhook אצל Meta',
+  SYSTEM_PHONE: 'מספר הקו שמוצג בצ\'אט באתר',
+  PUBLIC_LINK_BASE: 'הכתובת בקישורי החיוג של הבוט (הדומיין הציבורי)',
+  SITE_URL: 'הדומיין הראשי של האתר (לקידום בגוגל)',
+};
+const $ = (id) => document.getElementById(id);
+let rows = [];
+
+function say(text, err) { $('msg').textContent = text || ''; $('msg').className = err ? 'err' : ''; }
+
+async function api(path, { method = 'GET', body } = {}) {
+  const res = await fetch('/admin/api/settings' + path, { method, headers: { 'content-type': 'application/json' }, body: method === 'GET' ? undefined : JSON.stringify(body || {}) }); // בלי גוף JSON השרת חוסם (admin-guard)
+  if (res.status === 401) { location.href = '/admin/login'; throw new Error('נדרשת כניסה'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'תקלה');
+  return data;
+}
+
+async function load() {
+  try { rows = await api(''); render(); } catch (e) { $('list').innerHTML = ''; say(e.message, true); }
+}
+
+function el(tag, props = {}, ...kids) { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; }
+
+function render() {
+  const q = $('search').value.trim().toLowerCase();
+  const shown = rows.filter((r) => !q || r.key.toLowerCase().includes(q) || (DESC[r.key] || '').includes(q));
+  $('list').replaceChildren(...shown.map(card));
+  const n = rows.filter((r) => r.pending).length;
+  $('banner').hidden = !n;
+  $('bannerText').textContent = n === 1 ? 'שינוי אחד עוד לא בתוקף' : `${n} שינויים עוד לא בתוקף`;
+}
+
+function card(r) {
+  const input = el('input', { value: r.secret ? '' : r.value, placeholder: r.secret ? `${r.value || 'ריק'} (להחלפה הקלד ערך חדש)` : '', spellcheck: false, type: r.secret ? 'password' : 'text', autocomplete: 'off', disabled: r.locked });
+  const h = el('h2', {}, r.key);
+  if (r.secret) h.append(el('span', { className: 'tag secret', textContent: 'סודי' }));
+  if (r.pending) h.append(el('span', { className: 'tag pending', textContent: 'ממתין להפעלה מחדש' }));
+  const save = el('button', { textContent: 'שמור', disabled: r.locked });
+  save.onclick = async () => {
+    save.disabled = true;
+    try { await api('/' + r.key, { method: 'PUT', body: { value: input.value } }); say(`${r.key} נשמר. ייכנס לתוקף אחרי הפעלה מחדש`); await load(); }
+    catch (e) { say(e.message, true); save.disabled = false; }
+  };
+  const kids = [h, el('p', { className: 'desc', textContent: r.locked ? 'נערך רק ב-Render' : (DESC[r.key] || '') }), input, save];
+  if (!r.locked && !r.required) {
+    const del = el('button', { className: 'danger', textContent: 'מחק' });
+    del.onclick = async () => {
+      if (!confirm(`למחוק את ${r.key}?`)) return;
+      try { await api('/' + r.key, { method: 'DELETE' }); say(`${r.key} נמחק. ייכנס לתוקף אחרי הפעלה מחדש`); await load(); }
+      catch (e) { say(e.message, true); }
+    };
+    kids.push(del);
+  }
+  return el('section', {}, ...kids);
+}
+
+$('search').oninput = render;
+$('add').onclick = async () => {
+  const key = $('newKey').value.trim().toUpperCase();
+  if (rows.some((r) => r.key === key) && !confirm(`${key} כבר קיים. להחליף את הערך?`)) return;
+  try { await api('/' + encodeURIComponent(key), { method: 'PUT', body: { value: $('newValue').value } }); $('newKey').value = ''; $('newValue').value = ''; say(`${key} נוסף. ייכנס לתוקף אחרי הפעלה מחדש`); await load(); }
+  catch (e) { say(e.message, true); }
+};
+$('deploy').onclick = async () => {
+  if (!confirm('להפעיל את השרת מחדש עכשיו? שיחות טלפון פעילות יתנתקו, וזה לוקח כמה דקות.')) return;
+  $('deploy').disabled = true;
+  try { await api('/deploy', { method: 'POST' }); say('ההפעלה מחדש התחילה. בעוד כמה דקות רענן את הדף: התגית "ממתין" תיעלם כשהשינויים בתוקף'); }
+  catch (e) { say(e.message, true); $('deploy').disabled = false; }
+};
+load();
+</script>
+</body>
+</html>

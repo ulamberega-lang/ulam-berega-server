@@ -14,6 +14,8 @@ process.env.WA_APP_SECRET = 'wa-secret';
 process.env.WA_VERIFY_TOKEN = 'wa-verify';
 process.env.WA_RETRY_MS = '1';  // בלי המתנה אמיתית בניסיון חוזר
 process.env.WA_BUSY_WAIT_MS = '1'; // בלי המתנה אמיתית לפני הודעת עומס
+process.env.RENDER_API_KEY = 'rnd-key';
+process.env.RENDER_SERVICE_ID = 'srv-test';
 process.env.SUPABASE_URL = 'http://fake';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake';
 register('./loader.mjs', import.meta.url);
@@ -24,6 +26,8 @@ export const yemotCalls = [];    // כתובות שנקראו בימות (הור
 export const transcripts = [];   // תור הטקסטים ש-OpenAI "ישמע"
 export const chatReplies = [];    // תשובות "OpenAI" להשלמת צ'אט (הצעת ניקוד): מחרוזת JSON או אובייקט
 export const whatsappSent = [];  // הודעות שהבוט שלח ל-Meta
+export const renderEnv = new Map(); // משתני הסביבה של השירות ב-"Render" (דף ההגדרות)
+export const renderDeploys = [];
 export const behavior = { brevoStatus: 201, waFail: 0 }; // לבדיקת כשל בשליחה; waFail = כמה הודעות וואטסאפ הבאות ייכשלו בעומס (130429)
 
 globalThis.fetch = async (url, opts = {}) => {
@@ -43,6 +47,17 @@ globalThis.fetch = async (url, opts = {}) => {
     if (/\/\d+\/uploads\?/.test(u)) return new Response('{"id":"upload:SESSION"}', { status: 200 });
     if (u.includes('/upload:')) return new Response('{"h":"HANDLE123"}', { status: 200 });
     return new Response('{}', { status: 200 });
+  }
+  if (u.startsWith('https://api.render.com/v1/services/srv-test/')) {
+    if (opts.headers?.authorization !== 'Bearer rnd-key') return new Response('{"message":"unauthorized"}', { status: 401 });
+    const path = u.slice('https://api.render.com/v1/services/srv-test'.length);
+    const method = opts.method ?? 'GET';
+    if (path.startsWith('/env-vars?')) return Response.json([...renderEnv].map(([key, value]) => ({ cursor: key, envVar: { key, value } })));
+    const key = decodeURIComponent(path.match(/^\/env-vars\/([^/?]+)$/)?.[1] ?? '');
+    if (key && method === 'PUT') { renderEnv.set(key, JSON.parse(opts.body).value); return Response.json({ key, value: renderEnv.get(key) }); }
+    if (key && method === 'DELETE') return renderEnv.delete(key) ? new Response(null, { status: 204 }) : new Response('{"message":"not found"}', { status: 404 });
+    if (path === '/deploys' && method === 'POST') { renderDeploys.push(Date.now()); return Response.json({ id: 'dep-1' }, { status: 201 }); }
+    return new Response('{"message":"not found"}', { status: 404 });
   }
   if (u.includes('DownloadFile')) { yemotCalls.push(u); return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'audio/wav' } }); }
   if (u.includes('FileAction')) { yemotCalls.push(u); return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'content-type': 'application/json' } }); }
