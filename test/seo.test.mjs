@@ -62,12 +62,17 @@ test('דף עיר: תוכן, canonical, מפת אתר ו-404', async () => {
 });
 
 test('סמל האתר: favicon.ico וקובץ 192', async () => {
-  for (const p of ['/favicon.ico', '/icon-192.png']) {
+  for (const p of ['/favicon.ico', '/icon-192.png', '/apple-touch-icon.png']) {
     const r = await fetch(`${base}${p}`);
     assert.equal(r.status, 200);
     assert.equal(r.headers.get('content-type'), 'image/png');
   }
-  assert.match(readFileSync(new URL('../public/site/index.html', import.meta.url), 'utf8'), /rel="icon"[^>]*href="\/icon-192\.png"/);
+  assert.match(readFileSync(new URL('../public/site/index.html', import.meta.url), 'utf8'), /rel="icon"[^>]*href="\/icon-192\.png"/);  // אתר הניהול ואתר העובד: סמל בלשונית ובמסך הבית של אייפון
+  for (const f of ['admin/index.html', 'admin/login.html', 'admin/settings.html', 'admin/whatsapp.html', 'staff/index.html']) {
+    const html = readFileSync(new URL(`../public/${f}`, import.meta.url), 'utf8');
+    assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/, f);
+    assert.match(html, /rel="icon"[^>]*href="\/icon-192\.png"/, f);
+  }
 });
 
 test('דף שכונה, מפת אתר ודף הבית', async () => {

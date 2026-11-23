@@ -21,7 +21,8 @@ const staffSite = fileURLToPath(new URL('../public/staff', import.meta.url));
 // דף הכניסה של העובד: אותו דף כמו של הניהול, עם הכתובות והכותרת של /staff
 const staffLogin = readFileSync(`${adminSite}/login.html`, 'utf8')
   .replaceAll("'/admin/", "'/staff/").replace('value="admin"', 'value="staff"')
-  .replace('כניסה לאתר הניהול', 'כניסה להוספת אולמות').replace('<title>כניסה לניהול</title>', '<title>הוספת אולמות</title>');
+  .replace('כניסה לאתר הניהול', 'כניסה להוספת אולמות').replace('<title>כניסה לניהול</title>', '<title>הוספת אולמות</title>')
+  .replace('content="ניהול"', 'content="הוספת אולמות"'); // השם מתחת לסמל במסך הבית
 
 export function createApp() {
   const app = express();
