@@ -22,10 +22,8 @@ a { color: var(--link); text-underline-offset: 3px; }
 .bg .hall { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform; } /* שכבה משלה: לא נצבעת מחדש בגלילה */
 .bg .veil { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 42%, rgba(255,253,248,.5), rgba(255,253,248,0) 72%); }
 .bg .rows { position: absolute; inset: -10% -5%; transform: rotate(-7deg); display: flex; flex-direction: column; justify-content: space-around; }
-.bg .row { display: flex; width: max-content; white-space: nowrap; font-family: var(--serif); font-size: 15px; letter-spacing: .02em; line-height: 1; will-change: transform; animation: run 140s linear infinite; }
+.bg .row { flex: none; width: calc(2 * var(--strip-w)); height: var(--strip-h); background: var(--strip) repeat-x 0 0 / var(--strip-w) var(--strip-h); will-change: transform; animation: run 140s linear infinite; } /* התמונה והמידות מ-bg.js; פעמיים לרוחב, כדי שהתנועה ב-50% תחזור בדיוק */
 .bg .row.rev { animation-direction: reverse; animation-duration: 170s; }
-.bg .row span { color: rgba(138,106,44,.62); padding: 0 14px; }
-.bg .row i { font-style: normal; font-size: 19px; color: #fff; text-shadow: 0 0 7px rgba(176,141,74,.85), 0 0 2px rgba(138,106,44,.9); padding: 0 6px; }
 @keyframes run { from { transform: translateX(0); } to { transform: translateX(50%); } }
 @media (prefers-reduced-motion: reduce) { .bg .row { animation: none; } }
 

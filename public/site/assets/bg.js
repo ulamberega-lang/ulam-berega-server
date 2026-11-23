@@ -1,4 +1,5 @@
 // רקע האתר: אולם אירועים אלגנטי ומעומעם (SVG), ומעליו שורות קטנות "שמחה בשיחה ♥ מזל טוב ♥" שרצות לסירוגין.
+// הכול תמונות (לא טקסט בדף), כדי שגוגל יראה רק את התוכן האמיתי של העמוד.
 // קישוט בלבד (aria-hidden). בלי JavaScript נשאר רקע שמנת רגיל מ-site.css.
 (function () {
   var seed = 7;
@@ -62,14 +63,44 @@
     return s;
   }
 
+  // השורות "שמחה בשיחה ♥ מזל טוב ♥" מצוירות פעם אחת כתמונה (canvas) ולא כטקסט בדף: טקסט שחוזר מאות פעמים
+  // הוצג לגוגל כחלק מתוכן העמוד (aria-hidden מסתיר רק מקוראי מסך). הצבעים והגדלים כמו בעיצוב הקודם.
+  var ROW_H = 24, BASE = 17, UNITS = 12;
+  var WORD = { font: '400 15px Rubik, Assistant, system-ui, sans-serif', color: 'rgba(138,106,44,.62)', pad: 14 };
+  var HEART = { font: '400 19px Rubik, Assistant, system-ui, sans-serif', color: '#fff', pad: 6 };
+  var PARTS = [['שמחה בשיחה', WORD], ['\u2665\uFE0E', HEART], ['מזל טוב', WORD], ['\u2665\uFE0E', HEART]];
+
+  // רצועה אחת (12 יחידות), מימין לשמאל כמו קריאה. מחזירה כתובת תמונה ורוחב
+  function strip() {
+    var ratio = Math.min(3, window.devicePixelRatio || 1);
+    var c = document.createElement('canvas'), x = c.getContext('2d'), w = 0, k, p;
+    for (p = 0; p < PARTS.length; p++) { x.font = PARTS[p][1].font; w += x.measureText(PARTS[p][0]).width + 2 * PARTS[p][1].pad; }
+    w = Math.ceil(w * UNITS);
+    c.width = Math.ceil(w * ratio); c.height = ROW_H * ratio;
+    x.scale(ratio, ratio); x.textBaseline = 'alphabetic'; x.textAlign = 'right'; x.direction = 'rtl';
+    var right = w;
+    for (k = 0; k < UNITS; k++) {
+      for (p = 0; p < PARTS.length; p++) {
+        var t = PARTS[p][0], st = PARTS[p][1];
+        x.font = st.font; x.fillStyle = st.color;
+        var tw = x.measureText(t).width;
+        if (st === HEART) {
+          // הילה כמו text-shadow: 0 0 7px זהב, 0 0 2px זהב כהה
+          x.shadowColor = 'rgba(176,141,74,.85)'; x.shadowBlur = 7 * ratio; x.fillText(t, right - st.pad, BASE);
+          x.shadowColor = 'rgba(138,106,44,.9)'; x.shadowBlur = 2 * ratio; x.fillText(t, right - st.pad, BASE);
+          x.shadowColor = 'transparent'; x.shadowBlur = 0;
+        } else x.fillText(t, right - st.pad, BASE);
+        right -= tw + 2 * st.pad;
+      }
+    }
+    return { url: c.toDataURL('image/png'), w: w };
+  }
+
   function rows(count) {
-    var unit = '<span>שמחה בשיחה</span><i>♥&#xFE0E;</i><span>מזל טוב</span><i>♥&#xFE0E;</i>';
     var html = '';
     for (var r = 0; r < count; r++) {
-      var one = '', k;
-      for (k = 0; k < 12; k++) one += unit;
-      // התוכן משוכפל פעמיים: התנועה ב-50% חוזרת בדיוק לאותו מצב
-      html += '<div class="row' + (r % 2 ? ' rev' : '') + '" style="animation-delay:-' + Math.round(rnd() * 120) + 's;margin-inline-start:-' + Math.round(rnd() * 300) + 'px">' + one + one + '</div>';
+      // התמונה חוזרת פעמיים לרוחב: התנועה ב-50% חוזרת בדיוק לאותו מצב
+      html += '<div class="row' + (r % 2 ? ' rev' : '') + '" style="animation-delay:-' + Math.round(rnd() * 120) + 's;margin-inline-start:-' + Math.round(rnd() * 300) + 'px"></div>';
     }
     return html;
   }
@@ -81,8 +112,22 @@
     var n = Math.max(10, Math.min(24, Math.round(window.innerHeight / 62)));
     // האולם מוצג כתמונה ולא כ-SVG חי: הטשטושים (feGaussianBlur) מחושבים פעם אחת, ולא בכל צביעה מחדש בזמן גלילה
     // (נמדד: SVG חי נצבע מחדש בגלילה, פי 12 עבודת רסטר)
-    bg.innerHTML = '<img class="hall" alt="" src="data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hall()) + '">' + '<div class="rows">' + rows(n) + '</div><div class="veil"></div>';
+    bg.innerHTML = '<img class="hall" alt="" src="data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hall()) + '">' + '<div class="rows"></div><div class="veil"></div>';
     document.body.insertBefore(bg, document.body.firstChild);
+    // השורות מצוירות אחרי שהגופן Rubik נטען (אחרת הציור בגופן חלופי). בלי תמיכה - מיד; לכל היותר 3 שניות המתנה
+    var drawn = false;
+    var draw = function () {
+      if (drawn) return; drawn = true;
+      try {
+        var img = strip(), box = bg.querySelector('.rows');
+        // התמונה פעם אחת במשתנה CSS, ולא בכל שורה
+        box.style.setProperty('--strip', 'url(' + img.url + ')');
+        box.style.setProperty('--strip-w', img.w + 'px');
+        box.style.setProperty('--strip-h', ROW_H + 'px');
+        box.innerHTML = rows(n);
+      } catch (e) { /* קישוט בלבד */ }
+    };
+    if (document.fonts && document.fonts.load) { document.fonts.load(WORD.font, 'שמחה').then(draw, draw); setTimeout(draw, 3000); } else draw();
   }
   if (document.body) build(); else document.addEventListener('DOMContentLoaded', build);
 })();
