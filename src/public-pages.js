@@ -62,6 +62,8 @@ publicPages.get(['/w', '/w/'], (req, res) => res.redirect(302, '/chat?from=whats
 publicPages.get('/logo.png', (req, res) => res.sendFile(`${publicSite}/logo.png`));
 // סמל האתר לגוגל (ריבוע, כפולה של 48): ב-/favicon.ico (גוגל בודקת גם שם) ובקובץ הקבוע
 publicPages.get('/icon-192.png', (req, res) => res.sendFile(`${publicSite}/icon-192.png`));
+// סמל במסך הבית של אייפון (Safari מבקש את הכתובת הזו גם בלי קישור בדף); גם לאתר הניהול
+publicPages.get('/apple-touch-icon.png', (req, res) => res.sendFile(`${publicSite}/apple-touch-icon.png`));
 publicPages.get('/favicon.ico', (req, res) => res.type('png').sendFile(`${publicSite}/icon-192.png`));
 
 // קישורי חיוג מהבוט (לאנדרואיד): דף קבוע שפותח את החייגן עם המספר והספרות. רק ספרות בכתובת, בלי גישה לנתונים
