@@ -457,3 +457,14 @@ test('בדיקת תקינות Meta: מייל התראה אחרי שתי תקלו
     assert.match(mails[1].subject, /חזר לפעול/);
   } finally { globalThis.fetch = orig; Object.assign(config, { waToken: old.t, brevoKey: old.k, mailFrom: old.f }); resetHealth(); }
 });
+
+test('צאט באתר: הרבה מבקרים מאותה כתובת (השרת הציבורי) לא נחסמים', async () => {
+  const { base, close } = await boot();
+  try {
+    // 400 פתיחות שיחה מכתובת אחת: מעל המגבלה הישנה (300 בדקה), כמו 1,000 מבקרים שמגיעים דרך השרת הציבורי
+    const statuses = await Promise.all(Array.from({ length: 400 }, (_, i) => realFetch(`${base}/api/webchat`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid: `many-visitors-${String(i).padStart(6, '0')}` }),
+    }).then((r) => r.status)));
+    assert.equal(statuses.filter((s) => s !== 200).length, 0);
+  } finally { await close(); }
+});
